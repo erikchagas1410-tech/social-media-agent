@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs-extra';
 import winston from 'winston';
 //import Groq from 'groq-sdk';
 import { TwitterApi } from 'twitter-api-v2';
@@ -13,6 +14,17 @@ if (envConfig.error) {
   console.error('[DEBUG] Erro ao carregar o arquivo .env:', envConfig.error);
 } else {
   console.log('[DEBUG] Arquivo .env lido com sucesso! Chaves encontradas:', Object.keys(envConfig.parsed || {}));
+}
+
+// Load brand book content
+const brandBookPath = path.resolve(__dirname, '../../erizon_brand_book.html');
+let brandBookContent = '';
+
+try {
+  brandBookContent = fs.readFileSync(brandBookPath, 'utf8');
+  console.log('Brand book content loaded successfully!');
+} catch (error) {
+  console.error('Error loading brand book content:', error);
 }
 
 const transports: winston.transport[] = [new winston.transports.Console()];
@@ -109,7 +121,7 @@ class SocialMediaAgent {
     };
       
     const random = Math.random();
-    const promptImage = `detailed image of ${content} in ERIZON style ${random}`;
+    const promptImage = `detailed image of ${content} in ERIZON style. Use the following brand guidelines: ${brandBookContent} ${random}`;
 
     const payload = JSON.stringify({ inputs: promptImage,  options: { wait_for_model: true } });
 
