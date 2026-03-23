@@ -104,48 +104,19 @@ class SocialMediaAgent {
 
   async generateImage(content: string): Promise<string> {
     try {
-      // Pedimos ao Groq para criar um prompt curto de imagem baseado no texto do post
       logger.info('Generating image...');
-    const HUGGING_FACE_API_TOKEN = process.env.HUGGING_FACE_API_TOKEN || '';
-    const API_URL = process.env.HUGGING_FACE_API_URL || 'https://api-inference.huggingface.co/models/prompthero/openjourney';
-    const headers = {
-      Authorization: `Bearer ${HUGGING_FACE_API_TOKEN}`,
-      'Content-Type': 'application/json',
-    };
       
     const random = Math.floor(Math.random() * 100000);
     const brandStyle = "futuristic tech style, deep space dark background, electric purple and cyber pink neon accents, data teal highlights, highly detailed, cyberpunk, high performance";
     const promptImage = `detailed image of ${content}, ${brandStyle}, seed ${random}`;
 
-      const payload = JSON.stringify({ inputs: promptImage, options: { wait_for_model: true } });
-
-    const response = await fetch(API_URL, {
-      method: 'POST',
-      headers: headers,
-      body: payload,
-    });
-
-    if (!response.ok) {
-      throw new Error(`Hugging Face API returned ${response.status}: ${response.statusText}`);
-    }
-
-    const imageBuffer = await response.arrayBuffer();
-    logger.info('Image buffer ok')
-    const base64Image = Buffer.from(imageBuffer).toString('base64');
-    logger.info('base64 ok')
-    const imageUrl = `data:image/jpeg;base64,${base64Image}`;
-    logger.info('Image gen ok')
-
+      // Usando Pollinations que é 100% gratuita, não exige API Key e agora vai funcionar com o prompt curto!
+      const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(promptImage)}?width=1080&height=1080&nologo=true&seed=${random}`;
+      
+      logger.info('Image gen ok');
     return imageUrl
     } catch (error) {
-      // Loga o erro completo para debug
-      console.log('Erro completo ao gerar imagem:', error)
       logger.error('Erro completo ao gerar imagem:', error);
-      logger.error(`Hugging Face API error: ${error}`);
-      // Se houver um erro na geração da imagem, retorna a imagem padrão
-      console.log('Error generating image prompt:', error);
-
-      logger.error('Error generating image prompt:', error);
       return 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1080&auto=format&fit=crop';
     }
   }
