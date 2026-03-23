@@ -1,6 +1,5 @@
 import dotenv from 'dotenv';
 import path from 'path';
-import fs from 'fs-extra';
 import winston from 'winston';
 //import Groq from 'groq-sdk';
 import { TwitterApi } from 'twitter-api-v2';
@@ -14,17 +13,6 @@ if (envConfig.error) {
   console.error('[DEBUG] Erro ao carregar o arquivo .env:', envConfig.error);
 } else {
   console.log('[DEBUG] Arquivo .env lido com sucesso! Chaves encontradas:', Object.keys(envConfig.parsed || {}));
-}
-
-// Load brand book content
-const brandBookPath = path.resolve(__dirname, '../../erizon_brand_book.html');
-let brandBookContent = '';
-
-try {
-  brandBookContent = fs.readFileSync(brandBookPath, 'utf8');
-  console.log('Brand book content loaded successfully!');
-} catch (error) {
-  console.error('Error loading brand book content:', error);
 }
 
 const transports: winston.transport[] = [new winston.transports.Console()];
@@ -118,16 +106,16 @@ class SocialMediaAgent {
     try {
       // Pedimos ao Groq para criar um prompt curto de imagem baseado no texto do post
       logger.info('Generating image...');
-    const HUGGING_FACE_API_TOKEN = process.env.HUGGING_FACE_API_TOKEN
-    const HUGGING_FACE_API_URL = process.env.HUGGING_FACE_API_URL
-    const API_URL = HUGGING_FACE_API_URL;
-        const headers = {
+    const HUGGING_FACE_API_TOKEN = process.env.HUGGING_FACE_API_TOKEN || '';
+    const API_URL = process.env.HUGGING_FACE_API_URL || 'https://api-inference.huggingface.co/models/prompthero/openjourney';
+    const headers = {
       Authorization: `Bearer ${HUGGING_FACE_API_TOKEN}`,
       'Content-Type': 'application/json',
     };
       
-    const random = Math.random();
-    const promptImage = `detailed image of ${content} in ERIZON style. Use the following brand guidelines: ${brandBookContent} ${random}`;
+    const random = Math.floor(Math.random() * 100000);
+    const brandStyle = "futuristic tech style, deep space dark background, electric purple and cyber pink neon accents, data teal highlights, highly detailed, cyberpunk, high performance";
+    const promptImage = `detailed image of ${content}, ${brandStyle}, seed ${random}`;
 
       const payload = JSON.stringify({ inputs: promptImage, options: { wait_for_model: true } });
 
