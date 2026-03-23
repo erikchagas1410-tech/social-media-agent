@@ -98,11 +98,12 @@ class SocialMediaAgent {
       });
       
       let prompt = completion.choices[0]?.message?.content?.trim() || 'AI technology futuristic concept';
-      // Limpa o prompt removendo aspas, asteriscos, quebras de linha e introduções indesejadas da IA para não quebrar a URL
-      prompt = prompt.replace(/^Here is the prompt:\s*/i, '').replace(/^Prompt:\s*/i, '').replace(/['"*]/g, '').replace(/\n/g, ' ').substring(0, 500).trim();
+      // Limpeza extrema: Remove tudo que não for letra, número ou vírgula (evita emojis e caracteres especiais que quebram o link)
+      prompt = prompt.replace(/^(Here is the prompt|Prompt|Here is your prompt):\s*/i, '');
+      const safePrompt = prompt.replace(/[^a-zA-Z0-9\s,]/g, '').replace(/\s+/g, ' ').substring(0, 200).trim();
       
       const seed = Math.floor(Math.random() * 100000); // Garante que a imagem seja nova
-      return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1080&height=1080&nologo=true&seed=${seed}`;
+      return `https://pollinations.ai/p/${encodeURIComponent(safePrompt)}?width=1080&height=1080&nologo=true&seed=${seed}`;
     } catch (error) {
       logger.error('Error generating image prompt:', error);
       return 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1080&auto=format&fit=crop';
@@ -262,7 +263,7 @@ const HTML_TEMPLATE = `
 
       <div>
         <label class="block text-sm font-bold text-gray-700 mb-2">Imagem para o Instagram</label>
-        <img id="post-image" src="" alt="Imagem gerada" class="w-full h-auto rounded-lg shadow-sm border mb-2 object-cover max-h-96" />
+        <img id="post-image" src="" alt="Imagem gerada" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1080&auto=format&fit=crop';" class="w-full h-auto rounded-lg shadow-sm border mb-2 object-cover max-h-96" />
         <input type="text" id="post-image-url" class="w-full border border-gray-300 rounded-lg p-2 text-sm text-gray-500 bg-gray-50" placeholder="URL da imagem (você pode colar outro link aqui se não gostar)">
       </div>
 
