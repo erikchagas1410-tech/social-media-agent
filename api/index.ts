@@ -69,11 +69,11 @@ class SocialMediaAgent {
         messages: [
           {
             role: 'system',
-            content: 'You are an expert social media manager. Generate a short, engaging post about AI technology. The post MUST be under 280 characters to fit on Twitter. Do not use quotes around the text. Do not use conversational filler like "Here is your post". Include 2 relevant hashtags.',
+            content: 'Você é um especialista em mídias sociais. Crie um post curto e engajador sobre inteligência artificial e tecnologia. O post DEVE ter menos de 280 caracteres. NÃO use aspas. NÃO use frases de introdução como "Aqui está o post". Inclua 2 hashtags. O TEXTO DEVE SER ESCRITO 100% EM PORTUGUÊS DO BRASIL.',
           },
           {
             role: 'user',
-            content: 'Generate a new engaging post for today.',
+            content: 'Gere um novo post engajador para hoje.',
           },
         ],
         model: 'llama-3.1-8b-instant', // Modelo atualizado e ativo do Groq
@@ -91,12 +91,16 @@ class SocialMediaAgent {
       // Pedimos ao Groq para criar um prompt curto de imagem baseado no texto do post
       const completion = await groq.chat.completions.create({
         messages: [
-          { role: 'system', content: 'You are an image prompt generator. Create a short, highly descriptive prompt in English for an AI image generator based on the following post. Maximum 30 words. Output ONLY the prompt.' },
+          { role: 'system', content: 'You are an image prompt generator. Create a short, highly descriptive prompt in English for an AI image generator based on the following post. Maximum 15 words. Return ONLY the English prompt. NO quotes, NO introductory text like "Here is the prompt".' },
           { role: 'user', content }
         ],
         model: 'llama-3.1-8b-instant',
       });
-      const prompt = completion.choices[0]?.message?.content?.trim() || 'AI technology futuristic concept';
+      
+      let prompt = completion.choices[0]?.message?.content?.trim() || 'AI technology futuristic concept';
+      // Limpa o prompt removendo aspas, asteriscos, quebras de linha e introduções indesejadas da IA para não quebrar a URL
+      prompt = prompt.replace(/^Here is the prompt:\s*/i, '').replace(/^Prompt:\s*/i, '').replace(/['"*]/g, '').replace(/\n/g, ' ').substring(0, 500).trim();
+      
       const seed = Math.floor(Math.random() * 100000); // Garante que a imagem seja nova
       return `https://image.pollinations.ai/prompt/${encodeURIComponent(prompt)}?width=1080&height=1080&nologo=true&seed=${seed}`;
     } catch (error) {
