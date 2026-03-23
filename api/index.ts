@@ -121,7 +121,7 @@ class SocialMediaAgent {
     const HUGGING_FACE_API_TOKEN = process.env.HUGGING_FACE_API_TOKEN
     const HUGGING_FACE_API_URL = process.env.HUGGING_FACE_API_URL
     const API_URL = HUGGING_FACE_API_URL;
-    const headers = {
+        const headers = {
       Authorization: `Bearer ${HUGGING_FACE_API_TOKEN}`,
       'Content-Type': 'application/json',
     };
@@ -129,7 +129,7 @@ class SocialMediaAgent {
     const random = Math.random();
     const promptImage = `detailed image of ${content} in ERIZON style. Use the following brand guidelines: ${brandBookContent} ${random}`;
 
-    const payload = JSON.stringify({ inputs: promptImage,  options: { wait_for_model: true } });
+      const payload = JSON.stringify({ inputs: promptImage, options: { wait_for_model: true } });
 
     const response = await fetch(API_URL, {
       method: 'POST',
