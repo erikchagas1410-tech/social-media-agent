@@ -39,9 +39,16 @@ if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY.trim() === '') {
   process.exit(1);
 }
 
-// Initialize Groq client
-const groq = new Groq({
-  apiKey: process.env.GROQ_API_KEY,
+// Initialize Google Vertex AI client
+const vertexAI = new VertexAI({
+    project: process.env.GOOGLE_PROJECT_ID || '',
+    location: process.env.GOOGLE_LOCATION || 'us-central1',
+  });
+
+// Define the model
+const model = vertexAI.getGenerativeModel({
+  model: 'gemini-1.5-pro-002',
+  generation_config: { maxOutputTokens: 2048 },
 });
 
 // Social Media Agent class
@@ -65,7 +72,6 @@ class SocialMediaAgent {
 
   async generatePost(): Promise<string> {
     try {
-      const completion = await groq.chat.completions.create({
         messages: [
           {
             role: 'system',
@@ -77,10 +83,12 @@ class SocialMediaAgent {
           },
         ],
         model: 'llama-3.1-8b-instant', // Modelo atualizado e ativo do Groq
-      });
 
-      return completion.choices[0]?.message?.content || 'Default post content';
+      const streamingResp = await model.generateContentStream(messages[1].content);
+      const aggregatedResponse = await streamingResp.response;
+      return aggregatedResponse.candidates[0].content.parts[0].text || 'Default post content';
     } catch (error) {
+      console.log(error)
       logger.error('Error generating post:', error);
       return 'Fallback post content';
     }
@@ -89,29 +97,40 @@ class SocialMediaAgent {
   async generateImage(content: string): Promise<string> {
     try {
       // Pedimos ao Groq para criar um prompt curto de imagem baseado no texto do post
-      const completion = await groq.chat.completions.create({
-        messages: [
-          { role: 'system', content: 'You are an image prompt generator. Create a short, highly descriptive prompt in English for an AI image generator based on the following post. Maximum 15 words. Return ONLY the English prompt. NO quotes, NO introductory text like "Here is the prompt".' },
-          { role: 'user', content }
-        ],
-        model: 'llama-3.1-8b-instant',
-      });
+    const HUGGING_FACE_API_TOKEN = process.env.HUGGING_FACE_API_TOKEN
+    const HUGGING_FACE_API_URL = process.env.HUGGING_FACE_API_URL
+    const API_URL = HUGGING_FACE_API_URL;
+    const headers = {
+      Authorization: `Bearer ${HUGGING_FACE_API_TOKEN}`,
+      'Content-Type': 'application/json',
+    };
       
-      let prompt = completion.choices[0]?.message?.content?.trim() || 'AI technology futuristic concept';
-      // Limpeza extrema: Remove introduções, caracteres especiais e limita o tamanho e log
-      prompt = prompt.replace(/^(Here is the prompt|Prompt|Here is your prompt):\s*/i, '');
-      const safePrompt = prompt.replace(/[^a-zA-Z0-9\s,]/g, '').replace(/\s+/g, ' ').substring(0, 200).trim();
-      logger.info(`[DEBUG] Safe image prompt: ${safePrompt}`);
-      
-      const seed = Math.floor(Math.random() * 100000); // Garante que a imagem seja nova
-      // Tenta gerar a imagem com o safePrompt
-      return `https://pollinations.ai/p/${encodeURIComponent(safePrompt)}?width=1080&height=1080&nologo=true&seed=${seed}`;
+    const promptImage = `detailed image of ${content}`
+
+    const payload = JSON.stringify({ inputs: promptImage,  options: { wait_for_model: true } });
+
+    const response = await fetch(API_URL, {
+      method: 'POST',
+      headers: headers,
+      body: payload,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Hugging Face API returned ${response.status}: ${response.statusText}`);
+    }
+
+    const imageBuffer = await response.arrayBuffer();
+    const base64Image = Buffer.from(imageBuffer).toString('base64');
+    const imageUrl = `data:image/jpeg;base64,${base64Image}`;
+
+    return imageUrl
     } catch (error) {
       // Loga o erro completo para debug
       logger.error('Erro completo ao gerar imagem:', error);
       if (error instanceof Error) {
             logger.error('Error generating image prompt:', error.message);
         }
+        console.log(error)
       // Se houver um erro na geração da imagem, retorna a imagem padrão
       logger.error('Error generating image prompt:', error);
       return 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1080&auto=format&fit=crop';
@@ -354,6 +373,7 @@ export default async function handler(req: any, res: any) {
   const method = req.method || 'GET';
 
   try {
+    console.log('oi')
     if (url === '/' && method === 'GET') {
       return res.status(200).setHeader('Content-Type', 'text/html').send(HTML_TEMPLATE);
     }
