@@ -108,7 +108,7 @@ class SocialMediaAgent {
       'Content-Type': 'application/json',
     };
       
-    const promptImage = `detailed image of ${content}`
+    const promptImage = `detailed image of ${content} in ERIZON style`;
 
     const payload = JSON.stringify({ inputs: promptImage,  options: { wait_for_model: true } });
 
