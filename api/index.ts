@@ -104,17 +104,8 @@ class SocialMediaAgent {
 
   async generateImage(content: string): Promise<string> {
     try {
-      logger.info('Generating image...');
-      
-    const random = Math.floor(Math.random() * 100000);
-    const brandStyle = "futuristic tech style, deep space dark background, electric purple and cyber pink neon accents, data teal highlights, highly detailed, cyberpunk, high performance";
-    const promptImage = `detailed image of ${content}, ${brandStyle}, seed ${random}`;
-
-      // Usando Pollinations que é 100% gratuita, não exige API Key e agora vai funcionar com o prompt curto!
-      const imageUrl = `https://pollinations.ai/p/${encodeURIComponent(promptImage)}?width=1080&height=1080&nologo=true&seed=${random}`;
-      
-      logger.info('Image gen ok');
-    return imageUrl
+      // A imagem agora é gerada localmente no Front-End usando HTML2Canvas!
+      return '';
     } catch (error) {
       logger.error('Erro completo ao gerar imagem:', error);
       return 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1080&auto=format&fit=crop';
@@ -253,6 +244,9 @@ const HTML_TEMPLATE = `
   <meta charset="UTF-8">
   <title>Aprovação de Posts - Agente IA</title>
   <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
 </head>
 <body class="bg-gray-100 p-4 md:p-8 font-sans">
   <div class="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-gray-200">
@@ -263,19 +257,44 @@ const HTML_TEMPLATE = `
     </button>
 
     <div id="loading" class="hidden text-center text-indigo-500 font-bold mb-4 animate-pulse">
-      Criando post e desenhando imagem (isso pode levar uns 10 segundos)...
+      Pensando na estratégia de hoje...
     </div>
 
     <div id="preview-section" class="hidden space-y-5">
       <div>
-        <label class="block text-sm font-bold text-gray-700 mb-2">Texto do Post (Sinta-se livre para editar)</label>
+        <label class="block text-sm font-bold text-gray-700 mb-2">Texto da Legenda (Live Preview)</label>
         <textarea id="post-content" rows="4" class="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
       </div>
 
       <div>
         <label class="block text-sm font-bold text-gray-700 mb-2">Imagem para o Instagram</label>
-        <img id="post-image" src="" alt="Imagem gerada" onerror="this.onerror=null; this.src='https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1080&auto=format&fit=crop';" class="w-full h-auto rounded-lg shadow-sm border mb-2 object-cover max-h-96" />
-        <input type="text" id="post-image-url" class="w-full border border-gray-300 rounded-lg p-2 text-sm text-gray-500 bg-gray-50" placeholder="URL da imagem (você pode colar outro link aqui se não gostar)">
+        
+        <!-- Template ERIZON para Captura -->
+        <div id="capture-area" class="bg-[#0B0112] text-white p-8 border border-[#BC13FE]/30 shadow-[0_0_30px_rgba(188,19,254,0.2)] flex flex-col justify-between relative overflow-hidden mx-auto" style="width: 100%; aspect-ratio: 1/1; max-width: 500px;">
+          <!-- Orbes de Luz Neo-futuristas -->
+          <div class="absolute -top-20 -left-20 w-64 h-64 bg-[#BC13FE] rounded-full mix-blend-screen filter blur-[80px] opacity-50"></div>
+          <div class="absolute -bottom-20 -right-20 w-64 h-64 bg-[#00F2FF] rounded-full mix-blend-screen filter blur-[80px] opacity-30"></div>
+          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#FF00E5] rounded-full mix-blend-screen filter blur-[120px] opacity-10"></div>
+          
+          <!-- Topo -->
+          <div class="flex justify-between items-center z-10">
+            <div class="font-extrabold text-3xl tracking-wider" style="font-family: 'Syne', sans-serif;">E<span class="text-[#BC13FE]">RI</span>ZON</div>
+            <div class="text-[#00F2FF] text-xs font-mono tracking-widest uppercase" style="font-family: 'JetBrains Mono', monospace;">Inteligência Operacional</div>
+          </div>
+
+          <!-- Centro (Live Text) -->
+          <div class="z-10 flex-grow flex items-center justify-center my-6">
+            <p id="card-text-display" class="text-xl md:text-2xl font-medium leading-relaxed text-center px-4" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+              Sua mensagem gerada pela IA aparecerá aqui.
+            </p>
+          </div>
+
+          <!-- Rodapé -->
+          <div class="z-10 flex justify-between items-end border-t border-[#BC13FE]/30 pt-4">
+            <div class="text-[10px] text-gray-400 uppercase tracking-widest" style="font-family: 'JetBrains Mono', monospace;">detect &gt; act &gt; scale</div>
+            <div class="text-[#FF00E5] text-sm font-bold tracking-wide" style="font-family: 'Syne', sans-serif;">ERIZON.COM.BR</div>
+          </div>
+        </div>
       </div>
 
       <button id="btn-publish" class="w-full bg-green-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-green-700 transition shadow-md mt-4">
@@ -292,9 +311,13 @@ const HTML_TEMPLATE = `
     const loading = document.getElementById('loading');
     const previewSection = document.getElementById('preview-section');
     const postContent = document.getElementById('post-content');
-    const postImage = document.getElementById('post-image');
-    const postImageUrl = document.getElementById('post-image-url');
+    const cardTextDisplay = document.getElementById('card-text-display');
     const statusMessage = document.getElementById('status-message');
+
+    // Espelha o texto digitado direto pro Card
+    postContent.addEventListener('input', (e) => {
+      cardTextDisplay.innerText = e.target.value || 'Escreva o post aqui...';
+    });
 
     btnGenerate.addEventListener('click', async () => {
       loading.classList.remove('hidden');
@@ -306,8 +329,7 @@ const HTML_TEMPLATE = `
         const res = await fetch('/api/generate');
         const data = await res.json();
         postContent.value = data.content;
-        postImage.src = data.imageUrl;
-        postImageUrl.value = data.imageUrl;
+        cardTextDisplay.innerText = data.content;
         previewSection.classList.remove('hidden');
       } catch (e) {
         alert('Erro ao gerar post: ' + e.message);
@@ -317,18 +339,20 @@ const HTML_TEMPLATE = `
       }
     });
 
-    postImageUrl.addEventListener('input', (e) => { postImage.src = e.target.value; });
-
     btnPublish.addEventListener('click', async () => {
       btnPublish.disabled = true;
-      btnPublish.innerText = 'Publicando nas redes...';
+      btnPublish.innerText = 'Renderizando Imagem e Publicando...';
       statusMessage.classList.add('hidden');
 
       try {
+        // Tira o "print" do Card ERIZON e converte pra base64 (ignora o fundo branco, pega qualidade alta)
+        const canvas = await html2canvas(document.getElementById('capture-area'), { scale: 2, useCORS: true, backgroundColor: '#0B0112' });
+        const imageBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+
         const res = await fetch('/api/publish', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ content: postContent.value, imageUrl: postImageUrl.value })
+          body: JSON.stringify({ content: postContent.value, imageBase64 })
         });
         const data = await res.json();
 
@@ -365,14 +389,32 @@ export default async function handler(req: any, res: any) {
     if (url === '/api/generate' && method === 'GET') {
       const agent = new SocialMediaAgent();
       const content = await agent.generatePost();
-      const imageUrl = await agent.generateImage(content);
-      logger.info(`Content: ${content}, Image URL: ${imageUrl}`);
-      return res.status(200).json({ content, imageUrl });
+      return res.status(200).json({ content });
     }
 
     if (url === '/api/publish' && method === 'POST') {
-      const { content, imageUrl } = req.body || {};
-      if (!content || !imageUrl) return res.status(400).json({ error: 'Texto ou imagem faltando.' });
+      const { content, imageBase64 } = req.body || {};
+      if (!content || !imageBase64) return res.status(400).json({ error: 'Texto ou imagem faltando.' });
+
+      let imageUrl = '';
+      try {
+        if (!process.env.IMGBB_API_KEY) {
+          throw new Error('Chave do ImgBB (IMGBB_API_KEY) não encontrada no Vercel!');
+        }
+        const form = new URLSearchParams();
+        form.append('key', process.env.IMGBB_API_KEY);
+        form.append('image', imageBase64);
+
+        // Upload pro ImgBB para pegar URL pública compatível com Instagram!
+        const imgbbRes = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form });
+        const imgbbData = await imgbbRes.json() as any;
+        
+        if (!imgbbData.success) throw new Error(imgbbData.error?.message || 'Falha ao upar imagem');
+        imageUrl = imgbbData.data.url;
+      } catch (err: any) {
+        logger.error('Erro no ImgBB:', err);
+        return res.status(500).json({ success: false, error: 'Erro ImgBB: ' + err.message });
+      }
 
       const agent = new SocialMediaAgent();
       await agent.postToSocialMedia(content, imageUrl);
