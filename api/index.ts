@@ -98,14 +98,20 @@ class SocialMediaAgent {
       });
       
       let prompt = completion.choices[0]?.message?.content?.trim() || 'AI technology futuristic concept';
-      // Limpeza extrema: Remove introduções, caracteres especiais e limita o tamanho
+      // Limpeza extrema: Remove introduções, caracteres especiais e limita o tamanho e log
       prompt = prompt.replace(/^(Here is the prompt|Prompt|Here is your prompt):\s*/i, '');
       const safePrompt = prompt.replace(/[^a-zA-Z0-9\s,]/g, '').replace(/\s+/g, ' ').substring(0, 200).trim();
+      logger.info(`[DEBUG] Safe image prompt: ${safePrompt}`);
       
       const seed = Math.floor(Math.random() * 100000); // Garante que a imagem seja nova
       // Tenta gerar a imagem com o safePrompt
       return `https://pollinations.ai/p/${encodeURIComponent(safePrompt)}?width=1080&height=1080&nologo=true&seed=${seed}`;
     } catch (error) {
+      // Loga o erro completo para debug
+      logger.error('Erro completo ao gerar imagem:', error);
+      if (error instanceof Error) {
+            logger.error('Error generating image prompt:', error.message);
+        }
       // Se houver um erro na geração da imagem, retorna a imagem padrão
       logger.error('Error generating image prompt:', error);
       return 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1080&auto=format&fit=crop';
