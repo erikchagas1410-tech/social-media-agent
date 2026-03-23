@@ -30,8 +30,14 @@ try {
 const transports: winston.transport[] = [new winston.transports.Console()];
 // O Vercel tem um sistema de arquivos read-only. Só salvamos em arquivo se rodar localmente.
 if (!process.env.VERCEL) {
-  transports.push(new winston.transports.File({ filename: 'error.log', level: 'error' }));
-  transports.push(new winston.transports.File({ filename: 'combined.log' }));
+  transports.push(new winston.transports.File({ 
+    filename: 'error.log', 
+    level: 'error' 
+  }));
+  transports.push(new winston.transports.File({ 
+    filename: 'combined.log' ,
+    level: 'info'
+  }));
 }
 
 // Initialize logger
@@ -415,7 +421,7 @@ export default async function handler(req: any, res: any) {
     }
 
     res.status(404).json({ error: 'Rota não encontrada' });
-  } catch (error) {
+  } catch (error: any) {
     logger.error('API Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
