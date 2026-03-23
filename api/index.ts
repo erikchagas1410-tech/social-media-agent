@@ -98,13 +98,15 @@ class SocialMediaAgent {
       });
       
       let prompt = completion.choices[0]?.message?.content?.trim() || 'AI technology futuristic concept';
-      // Limpeza extrema: Remove tudo que não for letra, número ou vírgula (evita emojis e caracteres especiais que quebram o link)
+      // Limpeza extrema: Remove introduções, caracteres especiais e limita o tamanho
       prompt = prompt.replace(/^(Here is the prompt|Prompt|Here is your prompt):\s*/i, '');
       const safePrompt = prompt.replace(/[^a-zA-Z0-9\s,]/g, '').replace(/\s+/g, ' ').substring(0, 200).trim();
       
       const seed = Math.floor(Math.random() * 100000); // Garante que a imagem seja nova
+      // Tenta gerar a imagem com o safePrompt
       return `https://pollinations.ai/p/${encodeURIComponent(safePrompt)}?width=1080&height=1080&nologo=true&seed=${seed}`;
     } catch (error) {
+      // Se houver um erro na geração da imagem, retorna a imagem padrão
       logger.error('Error generating image prompt:', error);
       return 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1080&auto=format&fit=crop';
     }
