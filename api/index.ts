@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import winston from 'winston';
-import Groq from 'groq-sdk';
+//import Groq from 'groq-sdk';
 import { TwitterApi } from 'twitter-api-v2';
 
 // Load environment variables
@@ -34,13 +34,13 @@ const logger = winston.createLogger({
 });
 
 // Verifica se a variável de ambiente foi carregada
-if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY.trim() === '') {
-  logger.error('GROQ_API_KEY não foi encontrada! O arquivo .env pode estar vazio, com nome errado ou salvo com a codificação incorreta (precisa ser UTF-8).');
-  process.exit(1);
-}
+//if (!process.env.GROQ_API_KEY || process.env.GROQ_API_KEY.trim() === '') {
+//  logger.error('GROQ_API_KEY não foi encontrada! O arquivo .env pode estar vazio, com nome errado ou salvo com a codificação incorreta (precisa ser UTF-8).');
+//  process.exit(1);
+//}
 
 // Initialize Google Vertex AI client
-const vertexAI = new VertexAI({
+/*const vertexAI = new VertexAI({
     project: process.env.GOOGLE_PROJECT_ID || '',
     location: process.env.GOOGLE_LOCATION || 'us-central1',
   });
@@ -49,7 +49,7 @@ const vertexAI = new VertexAI({
 const model = vertexAI.getGenerativeModel({
   model: 'gemini-1.5-pro-002',
   generation_config: { maxOutputTokens: 2048 },
-});
+});*/
 
 // Social Media Agent class
 class SocialMediaAgent {
@@ -72,7 +72,7 @@ class SocialMediaAgent {
 
   async generatePost(): Promise<string> {
     try {
-        messages: [
+        /*messages: [
           {
             role: 'system',
             content: 'Você é um especialista em mídias sociais. Crie um post curto e engajador sobre inteligência artificial e tecnologia. O post DEVE ter menos de 280 caracteres. NÃO use aspas. NÃO use frases de introdução como "Aqui está o post". Inclua 2 hashtags. O TEXTO DEVE SER ESCRITO 100% EM PORTUGUÊS DO BRASIL.',
@@ -83,11 +83,13 @@ class SocialMediaAgent {
           },
         ],
         model: 'llama-3.1-8b-instant', // Modelo atualizado e ativo do Groq
+*/
 
-      const streamingResp = await model.generateContentStream(messages[1].content);
-      const aggregatedResponse = await streamingResp.response;
-      return aggregatedResponse.candidates[0].content.parts[0].text || 'Default post content';
+      //const streamingResp = await model.generateContentStream(messages[1].content);
+      //const aggregatedResponse = await streamingResp.response;
+      return 'Default post content';//aggregatedResponse.candidates[0].content.parts[0].text || 
     } catch (error) {
+      logger.error('Error generating post:', error);
       console.log(error)
       logger.error('Error generating post:', error);
       return 'Fallback post content';
@@ -97,6 +99,7 @@ class SocialMediaAgent {
   async generateImage(content: string): Promise<string> {
     try {
       // Pedimos ao Groq para criar um prompt curto de imagem baseado no texto do post
+      logger.info('Generating image...');
     const HUGGING_FACE_API_TOKEN = process.env.HUGGING_FACE_API_TOKEN
     const HUGGING_FACE_API_URL = process.env.HUGGING_FACE_API_URL
     const API_URL = HUGGING_FACE_API_URL;
@@ -120,18 +123,21 @@ class SocialMediaAgent {
     }
 
     const imageBuffer = await response.arrayBuffer();
+    logger.info('Image buffer ok')
     const base64Image = Buffer.from(imageBuffer).toString('base64');
+    logger.info('base64 ok')
     const imageUrl = `data:image/jpeg;base64,${base64Image}`;
+    logger.info('Image gen ok')
 
     return imageUrl
     } catch (error) {
       // Loga o erro completo para debug
+      console.log('Erro completo ao gerar imagem:', error)
       logger.error('Erro completo ao gerar imagem:', error);
-      if (error instanceof Error) {
-            logger.error('Error generating image prompt:', error.message);
-        }
-        console.log(error)
+      logger.error(`Hugging Face API error: ${error}`);
       // Se houver um erro na geração da imagem, retorna a imagem padrão
+      console.log('Error generating image prompt:', error);
+
       logger.error('Error generating image prompt:', error);
       return 'https://images.unsplash.com/photo-1620712943543-bcc4688e7485?q=80&w=1080&auto=format&fit=crop';
     }
@@ -382,6 +388,7 @@ export default async function handler(req: any, res: any) {
       const agent = new SocialMediaAgent();
       const content = await agent.generatePost();
       const imageUrl = await agent.generateImage(content);
+      logger.info(`Content: ${content}, Image URL: ${imageUrl}`);
       return res.status(200).json({ content, imageUrl });
     }
 
@@ -395,7 +402,7 @@ export default async function handler(req: any, res: any) {
     }
 
     res.status(404).json({ error: 'Rota não encontrada' });
-  } catch (error: any) {
+  } catch (error) {
     logger.error('API Error:', error);
     res.status(500).json({ success: false, error: error.message });
   }
