@@ -900,8 +900,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       // Simplificamos apenas o clone exportado para evitar círculo branco e letras apagadas.
       const orbCenter = clone.querySelector('.orb-center');
       if (orbCenter) {
-        orbCenter.style.filter = 'none';
-        orbCenter.style.background = 'radial-gradient(circle at 40% 40%, rgba(188,19,254,.22) 0%, rgba(255,0,229,.10) 38%, rgba(11,1,18,0) 68%)';
+        orbCenter.style.display = 'none';
       }
       const orbGlow = clone.querySelector('.orb-glow');
       if (orbGlow) {
@@ -920,16 +919,19 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const h1Clone = clone.querySelector('.h1');
       if (h1Clone) {
         h1Clone.style.color = '#FFFFFF';
-        h1Clone.style.textShadow = '0 0 14px rgba(188,19,254,.22)';
+        h1Clone.style.textShadow = '0 0 10px rgba(188,19,254,.18)';
+        h1Clone.style.opacity = '1';
       }
       const subClone = clone.querySelector('.sub');
       if (subClone) {
         subClone.style.color = 'rgba(255,255,255,.82)';
+        subClone.style.opacity = '1';
       }
       const eyebrowClone = clone.querySelector('.eyebrow');
       if (eyebrowClone) {
         eyebrowClone.style.color = '#00F2FF';
         eyebrowClone.style.textShadow = '0 0 8px rgba(0,242,255,.35)';
+        eyebrowClone.style.opacity = '1';
       }
 
       // 3. Estúdio Fantasma: Colamos o card gigante na coordenada Y atual da tela 
