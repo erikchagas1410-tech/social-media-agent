@@ -1093,18 +1093,29 @@ export default async function handler(req: any, res: any) {
       const { content, imageBase64, platforms } = req.body || {};
       if (!content || !imageBase64) return res.status(400).json({ error: 'Texto ou imagem faltando.' });
 
-      // Usando Catbox.moe: 100% gratuito, sem chaves de API e aceito pelo Instagram!
-      const buffer = Buffer.from(imageBase64, 'base64');
-      const blob = new Blob([buffer], { type: 'image/jpeg' });
-      const form = new FormData();
-      form.append('reqtype', 'fileupload');
-      form.append('fileToUpload', blob, 'erizon-post.jpg');
-
-      const uploadRes = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form });
-      if (!uploadRes.ok) return res.status(500).json({ success: false, error: 'Erro ao fazer upload da imagem.' });
+      // Criação manual do Multipart-Form-Data (Bypass de bugs do FormData no Vercel)
+      const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
+      const bodyPrefix = `--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="erizon-post.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`;
+      const bodySuffix = `\r\n--${boundary}--\r\n`;
       
+      const bodyBuffer = Buffer.concat([
+        Buffer.from(bodyPrefix, 'utf8'),
+        Buffer.from(imageBase64, 'base64'),
+        Buffer.from(bodySuffix, 'utf8')
+      ]);
+
+      const uploadRes = await fetch('https://catbox.moe/user/api.php', { 
+        method: 'POST', 
+        headers: {
+          'Content-Type': `multipart/form-data; boundary=${boundary}`,
+          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36)'
+        },
+        body: bodyBuffer 
+      });
+      if (!uploadRes.ok) return res.status(500).json({ success: false, error: `Erro upload da imagem: ${uploadRes.status}` });
+
       const imageUrl = await uploadRes.text();
-      if (!imageUrl.startsWith('http')) return res.status(500).json({ success: false, error: 'URL de imagem inválida gerada.' });
+      if (!imageUrl.startsWith('http')) return res.status(500).json({ success: false, error: `URL de imagem inválida: ${imageUrl}` });
 
       logger.info(`Catbox Upload Success: ${imageUrl}`);
       const agent    = new SocialMediaAgent();
@@ -1121,16 +1132,27 @@ export default async function handler(req: any, res: any) {
       const imageUrls: string[] = [];
       for (let i = 0; i < imageBase64s.length; i++) {
         const b64 = imageBase64s[i];
-        const buffer = Buffer.from(b64, 'base64');
-        const blob = new Blob([buffer], { type: 'image/jpeg' });
-        const form = new FormData();
-        form.append('reqtype', 'fileupload');
-        form.append('fileToUpload', blob, `slide-${i}.jpg`);
+        const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
+        const bodyPrefix = `--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="slide-${i}.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`;
+        const bodySuffix = `\r\n--${boundary}--\r\n`;
         
-        const r = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form });
-        if (!r.ok) return res.status(500).json({ success: false, error: `Erro Catbox slide ${i}: ` + r.statusText });
+        const bodyBuffer = Buffer.concat([
+          Buffer.from(bodyPrefix, 'utf8'),
+          Buffer.from(b64, 'base64'),
+          Buffer.from(bodySuffix, 'utf8')
+        ]);
+
+        const r = await fetch('https://catbox.moe/user/api.php', { 
+          method: 'POST', 
+          headers: {
+            'Content-Type': `multipart/form-data; boundary=${boundary}`,
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36)'
+          },
+          body: bodyBuffer 
+        });
+        if (!r.ok) return res.status(500).json({ success: false, error: `Erro Catbox req slide ${i}: ` + r.statusText });
         const url = await r.text();
-        if (!url.startsWith('http')) return res.status(500).json({ success: false, error: 'URL inválida no slide ' + i });
+        if (!url.startsWith('http')) return res.status(500).json({ success: false, error: `URL inválida no slide ${i}: ${url}` });
         imageUrls.push(url);
       }
 
