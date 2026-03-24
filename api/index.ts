@@ -443,27 +443,27 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     .tr { top:32px; right:32px; border-top:2px solid rgba(188,19,254,.5); border-right:2px solid rgba(188,19,254,.5); }
     .bl { bottom:32px; left:32px; border-bottom:2px solid rgba(188,19,254,.5); border-left:2px solid rgba(188,19,254,.5); }
     .br { bottom:32px; right:32px; border-bottom:2px solid rgba(188,19,254,.5); border-right:2px solid rgba(188,19,254,.5); }
-    .logo { position:absolute; bottom:40px; left:50%; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; }
+    .logo { position:absolute; bottom:40px; left:0; right:0; margin:auto; display:flex; align-items:center; justify-content:center; }
     .logo img { height:52px; width:auto; object-fit:contain; }
     .grad  { background:linear-gradient(135deg,#BC13FE,#FF00E5); -webkit-background-clip:text; background-clip:text; color:transparent; }
     .grad2 { background:linear-gradient(135deg,#00F2FF,#BC13FE); -webkit-background-clip:text; background-clip:text; color:transparent; }
     .grad3 { background:linear-gradient(135deg,#FF00E5,#FF4488); -webkit-background-clip:text; background-clip:text; color:transparent; }
     .orb { position:absolute; border-radius:50%; }
-    .orb-center { width:580px; height:580px; top:50%; left:50%; transform:translate(-50%,-53%); background:radial-gradient(circle at 40% 40%,rgba(188,19,254,.28) 0%,rgba(255,0,229,.12) 45%,transparent 70%); filter:blur(18px); }
-    .orb-glow   { width:280px; height:280px; top:50%; left:50%; transform:translate(-50%,-53%); background:radial-gradient(circle,rgba(188,19,254,.45) 0%,transparent 70%); filter:blur(35px); }
-    .ring { position:absolute; border-radius:50%; border:1px solid; top:50%; left:50%; }
-    .r1 { width:460px; height:460px; transform:translate(-50%,-53%); border-color:rgba(188,19,254,.3); }
-    .r2 { width:640px; height:640px; transform:translate(-50%,-53%); border-color:rgba(188,19,254,.15); }
-    .r3 { width:820px; height:820px; transform:translate(-50%,-53%); border-color:rgba(188,19,254,.07); }
+    .orb-center { width:580px; height:580px; top:0; bottom:0; left:0; right:0; margin:auto; background:radial-gradient(circle at 40% 40%,rgba(188,19,254,.28) 0%,rgba(255,0,229,.12) 45%,transparent 70%); filter:blur(18px); }
+    .orb-glow   { width:280px; height:280px; top:0; bottom:0; left:0; right:0; margin:auto; background:radial-gradient(circle,rgba(188,19,254,.45) 0%,transparent 70%); filter:blur(35px); }
+    .ring { position:absolute; border-radius:50%; border:1px solid; top:0; bottom:0; left:0; right:0; margin:auto; }
+    .r1 { width:460px; height:460px; border-color:rgba(188,19,254,.3); }
+    .r2 { width:640px; height:640px; border-color:rgba(188,19,254,.15); }
+    .r3 { width:820px; height:820px; border-color:rgba(188,19,254,.07); }
     .light-t { position:absolute; top:-100px; left:50%; transform:translateX(-50%); width:500px; height:400px; background:radial-gradient(ellipse,rgba(188,19,254,.35) 0%,transparent 70%); filter:blur(50px); }
     .light-b { position:absolute; bottom:-120px; left:50%; transform:translateX(-50%); width:600px; height:300px; background:radial-gradient(ellipse,rgba(255,0,229,.2) 0%,transparent 70%); filter:blur(50px); }
     .div-line { width:60px; height:2px; background:linear-gradient(90deg,transparent,#BC13FE,transparent); margin:28px auto; box-shadow:0 0 12px rgba(188,19,254,.8); }
     .eyebrow { font-family:'JetBrains Mono',monospace; font-size:13px; color:#00F2FF; letter-spacing:4px; text-transform:uppercase; text-shadow:0 0 14px rgba(0,242,255,.7); margin-bottom:24px; }
-    .cc { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); text-align:center; z-index:10; width:90%; max-width:900px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 20px; box-sizing:border-box; }
+    .cc { position:absolute; top:0; left:0; right:0; bottom:0; text-align:center; z-index:10; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 90px; box-sizing:border-box; margin:auto; }
     .h1 { font-family:'Syne',sans-serif; font-weight:800; line-height:1.1; color:#fff; text-shadow:0 0 40px rgba(188,19,254,.3); font-size:72px; word-wrap:break-word; max-width:100%; }
     .sub { font-family:'Plus Jakarta Sans',sans-serif; font-size:22px; color:rgba(255,255,255,.6); line-height:1.6; max-width:760px; }
     .sub strong { color:#fff; font-weight:600; }
-    .lc { position:absolute; top:50%; left:80px; transform:translateY(-50%); z-index:10; width:800px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; padding:0; box-sizing:border-box; text-align:left; }
+    .lc { position:absolute; top:0; left:80px; bottom:0; height:100%; z-index:10; width:800px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; padding:0; box-sizing:border-box; text-align:left; }
     .lc .h1, .lc .sub { text-align:left; }
     .accent-bar { position:absolute; left:0; top:0; bottom:0; width:6px; background:linear-gradient(to bottom,transparent,#BC13FE 30%,#FF00E5 70%,transparent); display:none; }
     .accent-bar-top { position:absolute; top:0; left:0; right:0; height:6px; background:linear-gradient(90deg,#FF00E5,#BC13FE,#00F2FF); display:none; }
@@ -823,38 +823,50 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // RENDER CARD → BASE64
     // ============================================================
     async function renderCard() {
-      const card = document.getElementById('capture-area');
+      const originalCard = document.getElementById('capture-area');
+      
+      // Clona fisicamente para remover escalas e evitar bugs terríveis do html2canvas
+      const container = document.createElement('div');
+      container.style.position = 'fixed';
+      container.style.top = '-9999px';
+      container.style.left = '-9999px';
+      container.style.width = '1080px';
+      container.style.height = '1080px';
+      container.style.zIndex = '-9999';
+      
+      const clone = originalCard.cloneNode(true);
+      clone.style.transform = 'none';
+      clone.style.width = '1080px';
+      clone.style.height = '1080px';
+      
+      // html2canvas falha com "background-clip: text". Fallback para cor sólida garantindo nitidez!
+      const grads = clone.querySelectorAll('.grad, .grad2, .grad3');
+      grads.forEach(g => {
+        g.style.background = 'none';
+        g.style.webkitBackgroundClip = 'initial';
+        g.style.backgroundClip = 'initial';
+        if (g.classList.contains('grad2')) g.style.color = '#00F2FF';
+        else if (g.classList.contains('grad3')) g.style.color = '#FF4488';
+        else g.style.color = '#BC13FE';
+      });
 
-      // Usa onclone para resetar o transform DENTRO do contexto do html2canvas
-      // (abordagem correta — o clone fica no documento clonado, não no DOM principal)
-      const canvas = await html2canvas(card, {
-        scale: 1,
+      container.appendChild(clone);
+      document.body.appendChild(container);
+
+      // Aguarda 150ms para garantir que o navegador desenhou o clone na memória
+      await new Promise(r => setTimeout(r, 150));
+
+      const canvas = await html2canvas(clone, {
+        scale: 2, // Imagem final 2160x2160: qualidade ABSURDA para as redes
         useCORS: true,
-        allowTaint: true,
         backgroundColor: '#0B0112',
         logging: false,
         width: 1080,
-        height: 1080,
-        onclone: (_doc, el) => {
-          el.style.transform       = 'none';
-          el.style.width           = '1080px';
-          el.style.height          = '1080px';
-          el.style.background      = '#0B0112';
-          el.style.backgroundColor = '#0B0112';
-        }
+        height: 1080
       });
 
-      // Canvas duplo: pinta o fundo explicitamente antes de compor a imagem
-      // (garante que mesmo que html2canvas perca o background, ele sempre está lá)
-      const final = document.createElement('canvas');
-      final.width  = 1080;
-      final.height = 1080;
-      const ctx = final.getContext('2d');
-      ctx.fillStyle = '#0B0112';
-      ctx.fillRect(0, 0, 1080, 1080);
-      ctx.drawImage(canvas, 0, 0);
-
-      return final.toDataURL('image/jpeg', 0.92).split(',')[1];
+      document.body.removeChild(container);
+      return canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
     }
 
     // Gera imagem 1080×1920 para Story: card centralizado + brand background nas faixas
@@ -898,7 +910,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
       // Card centralizado verticalmente
       const cardY = (H - W) / 2; // (1920 - 1080) / 2 = 420
-      ctx.drawImage(cardImg, 0, cardY);
+      ctx.drawImage(cardImg, 0, cardY, W, W); // Desenha a imagem exatamente em 1080x1080 para evitar crop
 
       // Logo ERIZON embaixo do card
       const logoSrc = processedLogoUrl || '/logo-erizon.png';
@@ -1059,10 +1071,11 @@ export default async function handler(req: any, res: any) {
         return res.status(500).json({ success: false, error: 'IMGBB_API_KEY não configurada.' });
       }
 
-      // Envia o Base64 via FormData em vez de URLSearchParams para evitar corrupção da imagem
-      // e garantir que a URL gerada seja válida para o Facebook bot ler.
+      // Converte o Base64 em um arquivo binário (Blob) para o ImgBB hospedar como imagem (e não como texto)
+      const buffer = Buffer.from(imageBase64, 'base64');
+      const imageBlob = new Blob([buffer], { type: 'image/jpeg' });
       const formData = new FormData();
-      formData.append('image', imageBase64);
+      formData.append('image', imageBlob, 'erizon-post.jpg');
       
       const imgbbRes  = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`, { 
         method: 'POST', 
@@ -1091,9 +1104,12 @@ export default async function handler(req: any, res: any) {
 
       // Upload todos os slides pro ImgBB
       const imageUrls: string[] = [];
-      for (const b64 of imageBase64s) {
+      for (let i = 0; i < imageBase64s.length; i++) {
+        const b64 = imageBase64s[i];
+        const buffer = Buffer.from(b64, 'base64');
+        const imageBlob = new Blob([buffer], { type: 'image/jpeg' });
         const formData = new FormData();
-        formData.append('image', b64);
+        formData.append('image', imageBlob, `erizon-slide-${i}.jpg`);
         const r    = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`, { 
           method: 'POST', 
           body: formData 
