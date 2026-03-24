@@ -876,6 +876,66 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // ============================================================
     // RENDER CARD → BASE64
     // ============================================================
+    function stripHtml(html) {
+      const el = document.createElement('div');
+      el.innerHTML = html || '';
+      return (el.textContent || el.innerText || '').replace(/\s+/g, ' ').trim();
+    }
+
+    function parseRichLines(html) {
+      const root = document.createElement('div');
+      root.innerHTML = html || '';
+      const lines = [[]];
+      function pushLine() { lines.push([]); }
+      function walk(node, activeClass) {
+        if (node.nodeType === Node.TEXT_NODE) {
+          const value = node.textContent || '';
+          if (value) lines[lines.length - 1].push({ text: value, className: activeClass || '' });
+          return;
+        }
+        if (node.nodeType !== Node.ELEMENT_NODE) return;
+        const el = node;
+        if (el.tagName === 'BR') {
+          pushLine();
+          return;
+        }
+        const nextClass = el.classList && (el.classList.contains('grad') || el.classList.contains('grad2') || el.classList.contains('grad3'))
+          ? Array.from(el.classList).find(c => c === 'grad' || c === 'grad2' || c === 'grad3')
+          : activeClass;
+        Array.from(el.childNodes).forEach(child => walk(child, nextClass));
+      }
+      Array.from(root.childNodes).forEach(node => walk(node, ''));
+      return lines.filter(line => line.some(seg => (seg.text || '').trim().length > 0));
+    }
+
+    function wrapText(ctx, text, maxWidth) {
+      const words = (text || '').split(/\s+/).filter(Boolean);
+      if (!words.length) return [];
+      const lines = [];
+      let current = words[0];
+      for (let i = 1; i < words.length; i++) {
+        const test = current + ' ' + words[i];
+        if (ctx.measureText(test).width <= maxWidth) current = test;
+        else { lines.push(current); current = words[i]; }
+      }
+      lines.push(current);
+      return lines;
+    }
+
+    function fillCenteredText(ctx, segments, centerX, y) {
+      const widths = segments.map(seg => ctx.measureText(seg.text).width);
+      const total = widths.reduce((sum, w) => sum + w, 0);
+      let x = centerX - total / 2;
+      const prevAlign = ctx.textAlign;
+      ctx.textAlign = 'left';
+      segments.forEach((seg, idx) => {
+        ctx.fillStyle = seg.className === 'grad2' ? '#00F2FF' : seg.className === 'grad3' ? '#FF4488' : seg.className === 'grad' ? '#BC13FE' : '#FFFFFF';
+        ctx.fillText(seg.text, x, y);
+        x += widths[idx];
+      });
+      ctx.textAlign = prevAlign;
+    }
+
     async function renderCard() {
       await waitForRenderAssets();
       const originalCard = document.getElementById('capture-area');
@@ -968,9 +1028,156 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     }
 
     // Gera imagem 1080×1920 para Story: card centralizado + brand background nas faixas
+    async function renderCardCanvas() {
+      await waitForRenderAssets();
+
+      const W = 1080, H = 1080;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      const contentContainer = document.getElementById('content-container');
+      const isCenterLayout = contentContainer.className === 'cc';
+      const showAccentV = document.getElementById('card-accent-v').style.display !== 'none';
+      const showAccentH = document.getElementById('card-accent-h').style.display !== 'none';
+      const showBadge = !slideBadge.classList.contains('hidden');
+      const eyebrow = stripHtml(document.getElementById('card-eyebrow').innerHTML);
+      const h1Lines = parseRichLines(document.getElementById('card-h1').innerHTML);
+      const subText = stripHtml(document.getElementById('card-sub').innerHTML);
+
+      ctx.fillStyle = '#0B0112';
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.strokeStyle = 'rgba(188,19,254,0.05)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+      let glow = ctx.createRadialGradient(W / 2, -40, 20, W / 2, -40, 420);
+      glow.addColorStop(0, 'rgba(188,19,254,0.24)');
+      glow.addColorStop(1, 'rgba(11,1,18,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, 0, W, 420);
+
+      glow = ctx.createRadialGradient(W / 2, H + 20, 20, W / 2, H + 20, 420);
+      glow.addColorStop(0, 'rgba(255,0,229,0.16)');
+      glow.addColorStop(1, 'rgba(11,1,18,0)');
+      ctx.fillStyle = glow;
+      ctx.fillRect(0, H - 420, W, 420);
+
+      [230, 320, 410].forEach((r, idx) => {
+        ctx.lineWidth = 1;
+        ctx.strokeStyle = idx === 0 ? 'rgba(188,19,254,0.28)' : idx === 1 ? 'rgba(188,19,254,0.14)' : 'rgba(188,19,254,0.07)';
+        ctx.beginPath();
+        ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
+        ctx.stroke();
+      });
+
+      function drawCorner(x, y, sx, sy) {
+        ctx.strokeStyle = 'rgba(188,19,254,.5)';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(x, y + 40 * sy);
+        ctx.lineTo(x, y);
+        ctx.lineTo(x + 40 * sx, y);
+        ctx.stroke();
+      }
+      drawCorner(32, 32, 1, 1);
+      drawCorner(W - 32, 32, -1, 1);
+      drawCorner(32, H - 32, 1, -1);
+      drawCorner(W - 32, H - 32, -1, -1);
+
+      if (showAccentV) {
+        const vg = ctx.createLinearGradient(0, 0, 0, H);
+        vg.addColorStop(0, 'rgba(255,0,229,0)');
+        vg.addColorStop(0.3, '#BC13FE');
+        vg.addColorStop(0.7, '#FF00E5');
+        vg.addColorStop(1, 'rgba(255,0,229,0)');
+        ctx.fillStyle = vg;
+        ctx.fillRect(0, 0, 6, H);
+      }
+      if (showAccentH) {
+        const hg = ctx.createLinearGradient(0, 0, W, 0);
+        hg.addColorStop(0, '#FF00E5');
+        hg.addColorStop(0.5, '#BC13FE');
+        hg.addColorStop(1, '#00F2FF');
+        ctx.fillStyle = hg;
+        ctx.fillRect(0, 0, W, 6);
+      }
+
+      if (showBadge) {
+        ctx.font = '500 11px "JetBrains Mono", monospace';
+        ctx.fillStyle = 'rgba(188,19,254,.7)';
+        ctx.textAlign = 'right';
+        ctx.fillText(slideBadge.textContent || '', W - 56, 48);
+      }
+
+      const centerX = W / 2;
+      const leftX = 80;
+      ctx.textAlign = isCenterLayout ? 'center' : 'left';
+      ctx.font = '500 13px "JetBrains Mono", monospace';
+      ctx.fillStyle = '#00F2FF';
+      if (isCenterLayout) ctx.fillText(eyebrow, centerX, 355);
+      else ctx.fillText(eyebrow, leftX, 355);
+
+      ctx.shadowColor = 'rgba(188,19,254,.18)';
+      ctx.shadowBlur = 10;
+      ctx.font = '800 72px "Syne", sans-serif';
+      let h1Y = 500;
+      h1Lines.forEach(line => {
+        if (isCenterLayout) fillCenteredText(ctx, line, centerX, h1Y);
+        else {
+          let x = leftX;
+          line.forEach(seg => {
+            ctx.fillStyle = seg.className === 'grad2' ? '#00F2FF' : seg.className === 'grad3' ? '#FF4488' : seg.className === 'grad' ? '#BC13FE' : '#FFFFFF';
+            ctx.fillText(seg.text, x, h1Y);
+            x += ctx.measureText(seg.text).width;
+          });
+        }
+        h1Y += 86;
+      });
+      ctx.shadowBlur = 0;
+
+      const lineY = h1Y - 20;
+      const divWidth = 60;
+      const divX = isCenterLayout ? (W - divWidth) / 2 : leftX;
+      const divGrad = ctx.createLinearGradient(divX, 0, divX + divWidth, 0);
+      divGrad.addColorStop(0, 'rgba(188,19,254,0)');
+      divGrad.addColorStop(0.5, '#BC13FE');
+      divGrad.addColorStop(1, 'rgba(188,19,254,0)');
+      ctx.fillStyle = divGrad;
+      ctx.fillRect(divX, lineY, divWidth, 2);
+
+      ctx.font = '500 22px "Plus Jakarta Sans", sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,.82)';
+      const subLines = wrapText(ctx, subText, isCenterLayout ? 760 : 720);
+      let subY = lineY + 54;
+      subLines.forEach(line => {
+        if (isCenterLayout) ctx.fillText(line, centerX, subY);
+        else ctx.fillText(line, leftX, subY);
+        subY += 34;
+      });
+
+      const logoSrc = processedLogoUrl || '/logo-erizon.png';
+      const logoImg = await new Promise((resolve) => {
+        const i = new Image(); i.crossOrigin = 'anonymous';
+        i.onload = () => resolve(i);
+        i.onerror = () => resolve(null);
+        i.src = logoSrc;
+      });
+      if (logoImg) {
+        const logoH = 52;
+        const logoW = logoH * (logoImg.width / logoImg.height);
+        ctx.drawImage(logoImg, (W - logoW) / 2, H - 40 - logoH, logoW, logoH);
+      }
+
+      return canvas.toDataURL('image/png');
+    }
+
     async function renderStory() {
       await waitForRenderAssets();
-      const cardB64 = await renderCard(); // 1080×1080
+      const cardB64 = await renderCardCanvas(); // 1080×1080
       const cardImg = await new Promise((resolve) => {
         const img = new Image();
         img.onload = () => resolve(img);
@@ -1061,7 +1268,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
             btnPublish.innerText = 'Renderizando slide ' + (i+1) + '/' + carouselSlides.length + '...';
             showSlide(i);
             await new Promise(r => setTimeout(r, 350));
-            base64s.push(await renderCard());
+            base64s.push(await renderCardCanvas());
           }
           showSlide(0);
           btnPublish.innerText = 'Publicando carrossel...';
@@ -1078,7 +1285,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
           // Renderiza imagem de feed (1080×1080)
           btnPublish.innerText = 'Renderizando imagem...';
-          const b64Feed = await renderCard();
+          const b64Feed = await renderCardCanvas();
 
           // Se tiver story, renderiza versão 1080×1920 separada
           let b64Story = null;
