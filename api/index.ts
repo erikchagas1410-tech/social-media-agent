@@ -1363,6 +1363,59 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       return canvas.toDataURL('image/png');
     }
 
+    async function renderInstagramFeedCanvas() {
+      await waitForRenderAssets();
+      const cardB64 = await renderCardCanvas();
+      const cardImg = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.src = cardB64;
+      });
+
+      const W = 1080, H = 1350;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#0B0112';
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.strokeStyle = 'rgba(188,19,254,0.05)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+      const topGlow = ctx.createRadialGradient(W / 2, 40, 20, W / 2, 40, 460);
+      topGlow.addColorStop(0, 'rgba(188,19,254,0.22)');
+      topGlow.addColorStop(1, 'rgba(11,1,18,0)');
+      ctx.fillStyle = topGlow;
+      ctx.fillRect(0, 0, W, 480);
+
+      const bottomGlow = ctx.createRadialGradient(W / 2, H - 40, 20, W / 2, H - 40, 460);
+      bottomGlow.addColorStop(0, 'rgba(255,0,229,0.14)');
+      bottomGlow.addColorStop(1, 'rgba(11,1,18,0)');
+      ctx.fillStyle = bottomGlow;
+      ctx.fillRect(0, H - 480, W, 480);
+
+      const cardSize = 960;
+      const cardX = (W - cardSize) / 2;
+      const cardY = (H - cardSize) / 2;
+
+      ctx.drawImage(cardImg, cardX, cardY, cardSize, cardSize);
+
+      const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
+      lineGrad.addColorStop(0, 'transparent');
+      lineGrad.addColorStop(0.5, '#BC13FE');
+      lineGrad.addColorStop(1, 'transparent');
+      ctx.strokeStyle = lineGrad;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(72, cardY - 22); ctx.lineTo(W - 72, cardY - 22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(72, cardY + cardSize + 22); ctx.lineTo(W - 72, cardY + cardSize + 22); ctx.stroke();
+
+      return canvas.toDataURL('image/png');
+    }
+
     async function renderStory() {
       await waitForRenderAssets();
       const cardB64 = await renderCardCanvas(); // 1080×1080
@@ -1469,11 +1522,10 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           showStatus('success', data.results);
         } else {
           const hasStory = platforms.includes('instagram-story');
-          const feedPlatforms = platforms.filter(p => p !== 'instagram-story');
+          const hasInstagramFeed = platforms.includes('instagram');
+          const hasLinkedIn = platforms.includes('linkedin');
 
           // Renderiza imagem de feed (1080×1080)
-          btnPublish.innerText = 'Renderizando imagem...';
-          const b64Feed = await renderCardCanvas();
 
           // Se tiver story, renderiza versão 1080×1920 separada
           let b64Story = null;
@@ -1484,12 +1536,24 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
           const allResults = [];
 
-          // Posta feed + linkedin com a imagem 1:1
-          if (feedPlatforms.length > 0) {
-            btnPublish.innerText = 'Publicando...';
+          if (hasInstagramFeed) {
+            btnPublish.innerText = 'Renderizando Instagram (4:5)...';
+            const b64Instagram = await renderInstagramFeedCanvas();
             const res  = await fetch('/api/publish', {
               method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ content: postContent.value, imageBase64: b64Feed, platforms: feedPlatforms })
+              body: JSON.stringify({ content: postContent.value, imageBase64: b64Instagram, platforms: ['instagram'] })
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Erro desconhecido');
+            allResults.push(...data.results);
+          }
+
+          if (hasLinkedIn) {
+            btnPublish.innerText = 'Renderizando LinkedIn (1:1)...';
+            const b64LinkedIn = await renderCardCanvas();
+            const res  = await fetch('/api/publish', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ content: postContent.value, imageBase64: b64LinkedIn, platforms: ['linkedin'] })
             });
             const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Erro desconhecido');
