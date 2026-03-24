@@ -1059,14 +1059,22 @@ export default async function handler(req: any, res: any) {
         return res.status(500).json({ success: false, error: 'IMGBB_API_KEY não configurada.' });
       }
 
-      const form = new URLSearchParams();
-      form.append('key', process.env.IMGBB_API_KEY);
-      form.append('image', imageBase64);
-      const imgbbRes  = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form });
+      // Envia o Base64 via FormData em vez de URLSearchParams para evitar corrupção da imagem
+      // e garantir que a URL gerada seja válida para o Facebook bot ler.
+      const formData = new FormData();
+      formData.append('image', imageBase64);
+      
+      const imgbbRes  = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`, { 
+        method: 'POST', 
+        body: formData 
+      });
       const imgbbData = await imgbbRes.json() as any;
       if (!imgbbData.success) return res.status(500).json({ success: false, error: 'Erro ImgBB: ' + imgbbData.error?.message });
 
-      const imageUrl = imgbbData.data.url;
+      const imageUrl = imgbbData.data?.url;
+      if (!imageUrl) return res.status(500).json({ success: false, error: 'ImgBB não retornou a URL da imagem.' });
+      
+      logger.info(`ImgBB Upload Success: ${imageUrl}`);
       const agent    = new SocialMediaAgent();
       const results  = await agent.postToSocialMedia(content, imageUrl, imageBase64, platforms || ['instagram', 'linkedin']);
       return res.status(200).json({ success: true, results });
@@ -1084,13 +1092,16 @@ export default async function handler(req: any, res: any) {
       // Upload todos os slides pro ImgBB
       const imageUrls: string[] = [];
       for (const b64 of imageBase64s) {
-        const form = new URLSearchParams();
-        form.append('key', process.env.IMGBB_API_KEY);
-        form.append('image', b64);
-        const r    = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: form });
+        const formData = new FormData();
+        formData.append('image', b64);
+        const r    = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`, { 
+          method: 'POST', 
+          body: formData 
+        });
         const d    = await r.json() as any;
         if (!d.success) return res.status(500).json({ success: false, error: 'Erro ImgBB slide: ' + d.error?.message });
-        imageUrls.push(d.data.url);
+        if (!d.data?.url) return res.status(500).json({ success: false, error: 'ImgBB não retornou URL do slide.' });
+        imageUrls.push(d.data?.url);
       }
 
       const agent   = new SocialMediaAgent();
