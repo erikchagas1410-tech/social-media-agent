@@ -846,47 +846,30 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     async function renderCard() {
       const originalCard = document.getElementById('capture-area');
       
-      // Clona fisicamente para remover escalas e evitar bugs terríveis do html2canvas
-      const container = document.createElement('div');
-      container.style.position = 'fixed';
-      container.style.top = '-9999px';
-      container.style.left = '-9999px';
-      container.style.width = '1080px';
-      container.style.height = '1080px';
-      container.style.zIndex = '-9999';
-      
-      const clone = originalCard.cloneNode(true);
-      clone.style.transform = 'none';
-      clone.style.width = '1080px';
-      clone.style.height = '1080px';
-      
-      // html2canvas falha com "background-clip: text". Fallback para cor sólida garantindo nitidez!
-      const grads = clone.querySelectorAll('.grad, .grad2, .grad3');
-      grads.forEach(g => {
-        g.style.background = 'none';
-        g.style.webkitBackgroundClip = 'initial';
-        g.style.backgroundClip = 'initial';
-        if (g.classList.contains('grad2')) g.style.color = '#00F2FF';
-        else if (g.classList.contains('grad3')) g.style.color = '#FF4488';
-        else g.style.color = '#BC13FE';
-      });
-
-      container.appendChild(clone);
-      document.body.appendChild(container);
-
-      // Aguarda 150ms para garantir que o navegador desenhou o clone na memória
-      await new Promise(r => setTimeout(r, 150));
-
-      const canvas = await html2canvas(clone, {
+      const canvas = await html2canvas(originalCard, {
         scale: 1, // 1080x1080: Resolução nativa e ideal (o Instagram rejeita imagens > 1440px de largura)
         useCORS: true,
         backgroundColor: '#0B0112',
         logging: false,
         width: 1080,
-        height: 1080
+        height: 1080,
+        onclone: (clonedDoc) => {
+          const clonedCard = clonedDoc.getElementById('capture-area');
+          clonedCard.style.transform = 'none';
+          
+          // Fallback para gradientes que o html2canvas não suporta
+          const grads = clonedCard.querySelectorAll('.grad, .grad2, .grad3');
+          grads.forEach(g => {
+            g.style.background = 'none';
+            g.style.webkitBackgroundClip = 'initial';
+            g.style.backgroundClip = 'initial';
+            if (g.classList.contains('grad2')) g.style.color = '#00F2FF';
+            else if (g.classList.contains('grad3')) g.style.color = '#FF4488';
+            else g.style.color = '#BC13FE';
+          });
+        }
       });
 
-      document.body.removeChild(container);
       return canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
     }
 
