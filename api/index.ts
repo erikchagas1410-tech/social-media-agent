@@ -1067,25 +1067,20 @@ export default async function handler(req: any, res: any) {
       const { content, imageBase64, platforms } = req.body || {};
       if (!content || !imageBase64) return res.status(400).json({ error: 'Texto ou imagem faltando.' });
 
-      if (!process.env.IMGBB_API_KEY) {
-        return res.status(500).json({ success: false, error: 'IMGBB_API_KEY não configurada.' });
-      }
+      // Fazemos o upload para o Catbox.moe que aceita bots do Facebook sem bloquear (O ImgBB bloqueia o crawler do Insta)
+      const buffer = Buffer.from(imageBase64, 'base64');
+      const blob = new Blob([buffer], { type: 'image/jpeg' });
+      const form = new FormData();
+      form.append('reqtype', 'fileupload');
+      form.append('fileToUpload', blob, 'erizon-post.jpg');
 
-      // Retornamos ao envio simplificado e seguro de Base64, agora que a imagem tem o tamanho correto
-      const form = new URLSearchParams();
-      form.append('image', imageBase64);
+      const uploadRes = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form });
+      if (!uploadRes.ok) return res.status(500).json({ success: false, error: 'Erro ao fazer upload da imagem.' });
       
-      const imgbbRes  = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`, { 
-        method: 'POST', 
-        body: form 
-      });
-      const imgbbData = await imgbbRes.json() as any;
-      if (!imgbbData.success) return res.status(500).json({ success: false, error: 'Erro ImgBB: ' + imgbbData.error?.message });
+      const imageUrl = await uploadRes.text();
+      if (!imageUrl.startsWith('http')) return res.status(500).json({ success: false, error: 'URL de imagem inválida gerada.' });
 
-      const imageUrl = imgbbData.data?.url;
-      if (!imageUrl) return res.status(500).json({ success: false, error: 'ImgBB não retornou a URL da imagem.' });
-      
-      logger.info(`ImgBB Upload Success: ${imageUrl}`);
+      logger.info(`Catbox Upload Success: ${imageUrl}`);
       const agent    = new SocialMediaAgent();
       const results  = await agent.postToSocialMedia(content, imageUrl, imageBase64, platforms || ['instagram', 'linkedin']);
       return res.status(200).json({ success: true, results });
@@ -1096,24 +1091,21 @@ export default async function handler(req: any, res: any) {
       const { caption, imageBase64s, platforms } = req.body || {};
       if (!caption || !imageBase64s?.length) return res.status(400).json({ error: 'Caption ou imagens faltando.' });
 
-      if (!process.env.IMGBB_API_KEY) {
-        return res.status(500).json({ success: false, error: 'IMGBB_API_KEY não configurada.' });
-      }
-
-      // Upload todos os slides pro ImgBB
+      // Upload todos os slides pro Catbox
       const imageUrls: string[] = [];
       for (let i = 0; i < imageBase64s.length; i++) {
         const b64 = imageBase64s[i];
-        const form = new URLSearchParams();
-        form.append('image', b64);
-        const r    = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`, { 
-          method: 'POST', 
-          body: form 
-        });
-        const d    = await r.json() as any;
-        if (!d.success) return res.status(500).json({ success: false, error: 'Erro ImgBB slide: ' + d.error?.message });
-        if (!d.data?.url) return res.status(500).json({ success: false, error: 'ImgBB não retornou URL do slide.' });
-        imageUrls.push(d.data?.url);
+        const buffer = Buffer.from(b64, 'base64');
+        const blob = new Blob([buffer], { type: 'image/jpeg' });
+        const form = new FormData();
+        form.append('reqtype', 'fileupload');
+        form.append('fileToUpload', blob, `slide-${i}.jpg`);
+        
+        const r = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form });
+        if (!r.ok) return res.status(500).json({ success: false, error: `Erro Catbox slide ${i}: ` + r.statusText });
+        const url = await r.text();
+        if (!url.startsWith('http')) return res.status(500).json({ success: false, error: 'URL inválida no slide ' + i });
+        imageUrls.push(url);
       }
 
       const agent   = new SocialMediaAgent();
