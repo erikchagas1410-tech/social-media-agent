@@ -896,6 +896,42 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         else g.style.color = '#BC13FE';
       });
 
+      // 2b. html2canvas costuma distorcer blur/radial-gradient e desbotar texto.
+      // Simplificamos apenas o clone exportado para evitar círculo branco e letras apagadas.
+      const orbCenter = clone.querySelector('.orb-center');
+      if (orbCenter) {
+        orbCenter.style.filter = 'none';
+        orbCenter.style.background = 'radial-gradient(circle at 40% 40%, rgba(188,19,254,.22) 0%, rgba(255,0,229,.10) 38%, rgba(11,1,18,0) 68%)';
+      }
+      const orbGlow = clone.querySelector('.orb-glow');
+      if (orbGlow) {
+        orbGlow.style.display = 'none';
+      }
+      const lightTop = clone.querySelector('.light-t');
+      if (lightTop) {
+        lightTop.style.filter = 'none';
+        lightTop.style.background = 'radial-gradient(ellipse, rgba(188,19,254,.22) 0%, transparent 72%)';
+      }
+      const lightBottom = clone.querySelector('.light-b');
+      if (lightBottom) {
+        lightBottom.style.filter = 'none';
+        lightBottom.style.background = 'radial-gradient(ellipse, rgba(255,0,229,.14) 0%, transparent 72%)';
+      }
+      const h1Clone = clone.querySelector('.h1');
+      if (h1Clone) {
+        h1Clone.style.color = '#FFFFFF';
+        h1Clone.style.textShadow = '0 0 14px rgba(188,19,254,.22)';
+      }
+      const subClone = clone.querySelector('.sub');
+      if (subClone) {
+        subClone.style.color = 'rgba(255,255,255,.82)';
+      }
+      const eyebrowClone = clone.querySelector('.eyebrow');
+      if (eyebrowClone) {
+        eyebrowClone.style.color = '#00F2FF';
+        eyebrowClone.style.textShadow = '0 0 8px rgba(0,242,255,.35)';
+      }
+
       // 3. Estúdio Fantasma: Colamos o card gigante na coordenada Y atual da tela 
       // (para o navegador renderizar perfeitamente), mas com z-index negativo para ficar invisível pra você!
       const container = document.createElement('div');
