@@ -832,6 +832,73 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       return final.toDataURL('image/jpeg', 0.92).split(',')[1];
     }
 
+    // Gera imagem 1080×1920 para Story: card centralizado + brand background nas faixas
+    async function renderStory() {
+      const cardB64 = await renderCard(); // 1080×1080
+      const cardImg = await new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => resolve(img);
+        img.src = 'data:image/jpeg;base64,' + cardB64;
+      });
+
+      const W = 1080, H = 1920;
+      const story = document.createElement('canvas');
+      story.width  = W;
+      story.height = H;
+      const ctx = story.getContext('2d');
+
+      // Fundo #0B0112
+      ctx.fillStyle = '#0B0112';
+      ctx.fillRect(0, 0, W, H);
+
+      // Grade sutil (mesmo padrão do card)
+      ctx.strokeStyle = 'rgba(188,19,254,0.05)';
+      ctx.lineWidth   = 1;
+      for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+      // Glow superior
+      const gtop = ctx.createRadialGradient(W/2, 0, 0, W/2, 0, 420);
+      gtop.addColorStop(0, 'rgba(188,19,254,0.30)');
+      gtop.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gtop;
+      ctx.fillRect(0, 0, W, 500);
+
+      // Glow inferior
+      const gbot = ctx.createRadialGradient(W/2, H, 0, W/2, H, 420);
+      gbot.addColorStop(0, 'rgba(255,0,229,0.20)');
+      gbot.addColorStop(1, 'rgba(0,0,0,0)');
+      ctx.fillStyle = gbot;
+      ctx.fillRect(0, H - 500, W, 500);
+
+      // Card centralizado verticalmente
+      const cardY = (H - W) / 2; // (1920 - 1080) / 2 = 420
+      ctx.drawImage(cardImg, 0, cardY);
+
+      // Logo ERIZON embaixo do card
+      const logoY = cardY + W + 48;
+      ctx.fillStyle = 'rgba(188,19,254,0.8)';
+      ctx.beginPath(); ctx.arc(W/2 - 54, logoY + 6, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.beginPath(); ctx.arc(W/2 + 54, logoY + 6, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.font = '700 18px "JetBrains Mono", monospace';
+      ctx.letterSpacing = '4px';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('ERIZON', W/2, logoY + 10);
+
+      // Linha divisória acima do card
+      const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
+      lineGrad.addColorStop(0,   'transparent');
+      lineGrad.addColorStop(0.5, '#BC13FE');
+      lineGrad.addColorStop(1,   'transparent');
+      ctx.strokeStyle = lineGrad;
+      ctx.lineWidth   = 1.5;
+      ctx.beginPath(); ctx.moveTo(0, cardY - 1); ctx.lineTo(W, cardY - 1); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(0, cardY + W + 1); ctx.lineTo(W, cardY + W + 1); ctx.stroke();
+
+      return story.toDataURL('image/jpeg', 0.92).split(',')[1];
+    }
+
     // ============================================================
     // PUBLISH
     // ============================================================
@@ -866,16 +933,47 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           if (!data.success) throw new Error(data.error || 'Erro desconhecido');
           showStatus('success', data.results);
         } else {
+          const hasStory = platforms.includes('instagram-story');
+          const feedPlatforms = platforms.filter(p => p !== 'instagram-story');
+
+          // Renderiza imagem de feed (1080×1080)
           btnPublish.innerText = 'Renderizando imagem...';
-          const b64 = await renderCard();
-          btnPublish.innerText = 'Publicando...';
-          const res  = await fetch('/api/publish', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ content: postContent.value, imageBase64: b64, platforms })
-          });
-          const data = await res.json();
-          if (!data.success) throw new Error(data.error || 'Erro desconhecido');
-          showStatus('success', data.results);
+          const b64Feed = await renderCard();
+
+          // Se tiver story, renderiza versão 1080×1920 separada
+          let b64Story = null;
+          if (hasStory) {
+            btnPublish.innerText = 'Renderizando story (9:16)...';
+            b64Story = await renderStory();
+          }
+
+          const allResults = [];
+
+          // Posta feed + linkedin com a imagem 1:1
+          if (feedPlatforms.length > 0) {
+            btnPublish.innerText = 'Publicando...';
+            const res  = await fetch('/api/publish', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ content: postContent.value, imageBase64: b64Feed, platforms: feedPlatforms })
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Erro desconhecido');
+            allResults.push(...data.results);
+          }
+
+          // Posta story com a imagem 9:16 otimizada
+          if (hasStory && b64Story) {
+            btnPublish.innerText = 'Publicando story...';
+            const res  = await fetch('/api/publish', {
+              method:'POST', headers:{'Content-Type':'application/json'},
+              body: JSON.stringify({ content: postContent.value, imageBase64: b64Story, platforms: ['instagram-story'] })
+            });
+            const data = await res.json();
+            if (!data.success) throw new Error(data.error || 'Erro desconhecido');
+            allResults.push(...data.results);
+          }
+
+          showStatus('success', allResults);
         }
       } catch(e) {
         showStatus('error', ['❌ ' + e.message]);
