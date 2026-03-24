@@ -846,30 +846,52 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     async function renderCard() {
       const originalCard = document.getElementById('capture-area');
       
-      const canvas = await html2canvas(originalCard, {
-        scale: 1, // 1080x1080: Resolução nativa e ideal (o Instagram rejeita imagens > 1440px de largura)
+      // 1. Clonamos fisicamente o card para escapar do "scale" e do quadro pequeno da tela
+      const clone = originalCard.cloneNode(true);
+      clone.style.transform = 'none';
+      clone.style.margin = '0';
+      
+      // 2. Removemos gradientes do texto (html2canvas não suporta background-clip)
+      const grads = clone.querySelectorAll('.grad, .grad2, .grad3');
+      grads.forEach(g => {
+        g.style.background = 'none';
+        g.style.webkitBackgroundClip = 'initial';
+        g.style.backgroundClip = 'initial';
+        if (g.classList.contains('grad2')) g.style.color = '#00F2FF';
+        else if (g.classList.contains('grad3')) g.style.color = '#FF4488';
+        else g.style.color = '#BC13FE';
+      });
+
+      // 3. Estúdio Fantasma: Colamos o card gigante na coordenada Y atual da tela 
+      // (para o navegador renderizar perfeitamente), mas com z-index negativo para ficar invisível pra você!
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.top = window.scrollY + 'px';
+      container.style.left = '0';
+      container.style.width = '1080px';
+      container.style.height = '0'; // Altura zero para não criar barra de rolagem na sua tela
+      container.style.overflow = 'visible';
+      container.style.zIndex = '-9999';
+      container.style.pointerEvents = 'none';
+      
+      container.appendChild(clone);
+      document.body.appendChild(container);
+
+      // 4. Aguardamos 150ms para garantir que os pixels foram desenhados na memória
+      await new Promise(r => setTimeout(r, 150));
+
+      const canvas = await html2canvas(clone, {
+        scale: 1, // 1080x1080 exatos pro Instagram engolir feliz
         useCORS: true,
         backgroundColor: '#0B0112',
         logging: false,
         width: 1080,
-        height: 1080,
-        onclone: (clonedDoc) => {
-          const clonedCard = clonedDoc.getElementById('capture-area');
-          clonedCard.style.transform = 'none';
-          
-          // Fallback para gradientes que o html2canvas não suporta
-          const grads = clonedCard.querySelectorAll('.grad, .grad2, .grad3');
-          grads.forEach(g => {
-            g.style.background = 'none';
-            g.style.webkitBackgroundClip = 'initial';
-            g.style.backgroundClip = 'initial';
-            if (g.classList.contains('grad2')) g.style.color = '#00F2FF';
-            else if (g.classList.contains('grad3')) g.style.color = '#FF4488';
-            else g.style.color = '#BC13FE';
-          });
-        }
+        height: 1080
       });
 
+      // Limpamos a bagunça
+      document.body.removeChild(container);
+      
       return canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
     }
 
