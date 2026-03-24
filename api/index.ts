@@ -76,11 +76,13 @@ class SocialMediaAgent {
     }
   }
 
-  async generatePost(): Promise<{ imageText: string, caption: string }> {
+  async generatePost(): Promise<{ eyebrow: string, h1: string, sub: string, caption: string }> {
     try {
       if (!process.env.GROQ_API_KEY) {
         return {
-          imageText: 'Configure a GROQ_API_KEY no Vercel.',
+          eyebrow: '// ERRO',
+          h1: 'Sem <span class="grad">Chave API</span>',
+          sub: 'Configure a GROQ_API_KEY no Vercel para gerar conteúdo.',
           caption: 'Sem a chave da API do Groq, a IA não pode gerar novos textos.'
         };
       }
@@ -99,7 +101,9 @@ class SocialMediaAgent {
 
       RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO NO SEGUINTE FORMATO EXATO:
       {
-        "imageText": "Texto claro e explicativo (entre 15 a 35 palavras) para a imagem. Vá direto ao ponto, explique o que a ERIZON faz, que problema resolve ou qual seu grande benefício. Seja didático e persuasivo (Tom Executivo). Sem aspas.",
+        "eyebrow": "// Categoria (Ex: // Meta Ads · Frequência ou // Inteligência de Dados)",
+        "h1": "Frase de impacto principal MÁXIMO de 8 palavras. USE OBRIGATORIAMENTE a tag <span class='grad'>palavra</span> para destacar 1 ou 2 palavras cruciais.",
+        "sub": "Subtítulo explicativo curto (MÁXIMO de 15 palavras). Use a tag <strong> para colocar em negrito a parte mais forte.",
         "caption": "A legenda completa e detalhada para o post. Desenvolva o raciocínio, convença o leitor, mostre autoridade no assunto de automação/dados. Inclua as hashtags #Erizon #InteligenciaOperacional e emojis."
       }`;
 
@@ -118,7 +122,9 @@ class SocialMediaAgent {
     } catch (error) {
       logger.error('Error generating post:', error);
       return {
-        imageText: 'A inteligência operacional é o motor invisível das empresas que escalam.',
+        eyebrow: '// Inteligência Operacional',
+        h1: 'Pare de<br><span class="grad">adivinhar.</span>',
+        sub: 'Deixe a IA <strong>decidir por você.</strong><br>Com dados reais. Em português.',
         caption: 'O futuro não é apenas previsto, ele é operado. A ERIZON transforma seus dados em ações concretas que escalam o seu negócio. #Erizon #IA'
       };
     }
@@ -275,7 +281,49 @@ const HTML_TEMPLATE = `
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@500;600&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    /* ERIZON DESIGN SYSTEM */
+    .card { width: 1080px; height: 1080px; position: relative; overflow: hidden; background: #0B0112; font-family: 'Inter', sans-serif; color: #fff; }
+    .grid-bg { position: absolute; inset: 0; background-image: linear-gradient(rgba(188,19,254,.05) 1px, transparent 1px), linear-gradient(90deg, rgba(188,19,254,.05) 1px, transparent 1px); background-size: 60px 60px; }
+    .corner { position: absolute; width: 40px; height: 40px; }
+    .tl { top: 32px; left: 32px; border-top: 2px solid rgba(188,19,254,.5); border-left: 2px solid rgba(188,19,254,.5); }
+    .tr { top: 32px; right: 32px; border-top: 2px solid rgba(188,19,254,.5); border-right: 2px solid rgba(188,19,254,.5); }
+    .bl { bottom: 32px; left: 32px; border-bottom: 2px solid rgba(188,19,254,.5); border-left: 2px solid rgba(188,19,254,.5); }
+    .br { bottom: 32px; right: 32px; border-bottom: 2px solid rgba(188,19,254,.5); border-right: 2px solid rgba(188,19,254,.5); }
+    
+    .logo { position: absolute; bottom: 48px; left: 50%; transform: translateX(-50%); display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+    .logo-dot { width: 8px; height: 8px; border-radius: 50%; background: #BC13FE; box-shadow: 0 0 10px rgba(188,19,254,.9); }
+    .logo-txt { font-family: 'Montserrat', sans-serif; font-weight: 700; font-size: 16px; letter-spacing: 4px; text-transform: uppercase; }
+    
+    .grad { background: linear-gradient(135deg, #BC13FE, #FF00E5); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .grad2 { background: linear-gradient(135deg, #00F2FF, #BC13FE); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .grad3 { background: linear-gradient(135deg, #FF00E5, #FF4488); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    
+    .orb { position: absolute; border-radius: 50%; }
+    .orb-center { width: 580px; height: 580px; top: 50%; left: 50%; transform: translate(-50%,-53%); background: radial-gradient(circle at 40% 40%, rgba(188,19,254,.28) 0%, rgba(255,0,229,.12) 45%, transparent 70%); filter: blur(18px); }
+    .orb-glow { width: 280px; height: 280px; top: 50%; left: 50%; transform: translate(-50%,-53%); background: radial-gradient(circle, rgba(188,19,254,.45) 0%, transparent 70%); filter: blur(35px); }
+    .ring { position: absolute; border-radius: 50%; border: 1px solid; top: 50%; left: 50%; }
+    .r1 { width: 460px; height: 460px; transform: translate(-50%,-53%); border-color: rgba(188,19,254,.3); }
+    .r2 { width: 640px; height: 640px; transform: translate(-50%,-53%); border-color: rgba(188,19,254,.15); }
+    .r3 { width: 820px; height: 820px; transform: translate(-50%,-53%); border-color: rgba(188,19,254,.07); }
+    
+    .div-line { width: 60px; height: 2px; background: linear-gradient(90deg, transparent, #BC13FE, transparent); margin: 28px auto; box-shadow: 0 0 12px rgba(188,19,254,.8); }
+    
+    .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #00F2FF; letter-spacing: 4px; text-transform: uppercase; text-shadow: 0 0 14px rgba(0,242,255,.7); margin-bottom: 24px; }
+    
+    .cc { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; z-index: 10; width: 860px; }
+    .h1 { font-family: 'Montserrat', sans-serif; font-weight: 900; line-height: 1.06; color: #fff; text-shadow: 0 0 40px rgba(188,19,254,.3); }
+    .sub { font-family: 'Inter', sans-serif; font-size: 20px; color: rgba(255,255,255,.6); line-height: 1.65; }
+    .sub strong { color: #fff; font-weight: 600; }
+    
+    .light-t { position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 500px; height: 400px; background: radial-gradient(ellipse, rgba(188,19,254,.35) 0%, transparent 70%); filter: blur(50px); }
+    .light-b { position: absolute; bottom: -120px; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(255,0,229,.2) 0%, transparent 70%); filter: blur(50px); }
+
+    /* Wrapper responsivo para o preview não vazar da tela */
+    #card-wrapper { width: 100%; max-width: 500px; aspect-ratio: 1/1; position: relative; overflow: hidden; margin: 0 auto; border-radius: 12px; }
+    #capture-area { transform-origin: top left; }
+  </style>
 </head>
 <body class="bg-gray-100 p-4 md:p-8 font-sans">
   <div class="max-w-2xl mx-auto bg-white p-6 rounded-xl shadow-lg border border-gray-200">
@@ -291,8 +339,14 @@ const HTML_TEMPLATE = `
 
     <div id="preview-section" class="hidden space-y-5">
       <div>
-        <label class="block text-sm font-bold text-gray-700 mb-2">Texto da Imagem (Para o Card / Story)</label>
-        <textarea id="image-text" rows="2" class="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+        <label class="block text-sm font-bold text-gray-700 mb-2">Eyebrow (Topo)</label>
+        <input id="eyebrow-input" type="text" class="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none mb-3">
+        
+        <label class="block text-sm font-bold text-gray-700 mb-2">Título Principal (H1)</label>
+        <textarea id="h1-input" rows="2" class="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none mb-3"></textarea>
+        
+        <label class="block text-sm font-bold text-gray-700 mb-2">Subtítulo</label>
+        <textarea id="sub-input" rows="2" class="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
       </div>
 
       <div>
@@ -303,54 +357,19 @@ const HTML_TEMPLATE = `
       <div>
         <label class="block text-sm font-bold text-gray-700 mb-2">Imagem para o Instagram</label>
         
-        <!-- Template ERIZON para Captura (Design Premium & html2canvas friendly) -->
-        <div id="capture-area" class="relative flex flex-col justify-center items-center bg-[#0A0510] p-6 md:p-10 mx-auto overflow-hidden shadow-2xl" style="width: 100%; aspect-ratio: 1/1; max-width: 600px;">
-          
-          <!-- Efeitos de Fundo (Compatíveis com html2canvas) -->
-          <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.07) 1px, transparent 0); background-size: 24px 24px;"></div>
-          
-          <!-- Orbes Suaves -->
-          <div id="orb-1" class="absolute -top-32 -right-32 w-96 h-96 bg-[#BC13FE] rounded-full filter blur-[100px] opacity-30 transition-colors duration-500"></div>
-          <div id="orb-2" class="absolute -bottom-32 -left-32 w-96 h-96 bg-[#00F2FF] rounded-full filter blur-[100px] opacity-20 transition-colors duration-500"></div>
-
-          <!-- Container do Conteúdo (Design de Carta Premium) -->
-          <div class="relative z-10 flex flex-col justify-between w-full h-full bg-[#1A1025]/80 border border-[#BC13FE]/20 rounded-3xl p-6 md:p-8 shadow-[0_0_40px_rgba(188,19,254,0.1)]">
-            
-            <!-- Topo / Marca -->
-            <div class="flex justify-between items-start w-full">
-              <div class="flex items-center gap-3 md:gap-4">
-                <div class="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-[#BC13FE] to-[#FF00E5] flex items-center justify-center text-white font-extrabold text-xl md:text-3xl shadow-lg" style="font-family: 'Syne', sans-serif;">E</div>
-                <div class="flex flex-col">
-                  <div class="font-extrabold text-xl md:text-3xl text-white tracking-widest" style="font-family: 'Syne', sans-serif;">ERIZON</div>
-                  <div class="text-[#00F2FF] text-[8px] md:text-[10px] font-mono tracking-widest uppercase mt-0.5">Inteligência Operacional</div>
-                </div>
-              </div>
-              <div class="px-3 py-1.5 rounded-full border border-[#BC13FE]/30 bg-[#BC13FE]/10 text-white/90 text-[8px] md:text-[10px] font-mono tracking-widest uppercase flex items-center gap-2">
-                <span class="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-[#00F2FF]"></span> IA Insight
-              </div>
+        <div id="card-wrapper" class="shadow-2xl">
+          <div id="capture-area" class="card">
+            <div class="grid-bg"></div><div class="light-t"></div><div class="light-b"></div>
+            <div class="orb orb-center"></div><div class="orb orb-glow"></div>
+            <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
+            <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
+            <div class="cc">
+              <div id="card-eyebrow" class="eyebrow">// AI Marketing OS</div>
+              <h1 id="card-h1" class="h1" style="font-size:78px">Pare de<br><span class="grad">adivinhar.</span></h1>
+              <div class="div-line"></div>
+              <p id="card-sub" class="sub">Deixe a IA <strong>decidir por você.</strong><br>Com dados reais. Em português.</p>
             </div>
-
-            <!-- Centro / Mensagem Principal -->
-            <div class="flex flex-col justify-center flex-grow py-6 md:py-10 w-full">
-              <!-- Aspas duplas estilosas -->
-              <svg class="w-8 h-8 md:w-12 md:h-12 text-[#BC13FE] mb-4 md:mb-6 opacity-80" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
-              <p id="card-text-display" class="text-lg md:text-2xl font-medium leading-relaxed text-white" style="font-family: 'Plus Jakarta Sans', sans-serif;">
-                Sua mensagem gerada pela IA aparecerá aqui.
-              </p>
-            </div>
-
-            <!-- Rodapé / Assinatura -->
-            <div class="flex justify-between items-end w-full pt-5 md:pt-6 border-t border-[#BC13FE]/20">
-              <div class="flex flex-col gap-1.5">
-                <div class="text-[8px] md:text-[11px] text-[#00F2FF]/70 uppercase tracking-[0.2em]" style="font-family: 'JetBrains Mono', monospace;">detect > act > scale</div>
-                <div class="text-white text-xs md:text-base font-bold tracking-wider" style="font-family: 'Syne', sans-serif;">ERIZON.COM.BR</div>
-              </div>
-              <div class="flex gap-1.5 md:gap-2 mb-1">
-                <div class="h-1.5 md:h-2 w-6 md:w-8 bg-[#BC13FE] rounded-full"></div>
-                <div class="h-1.5 md:h-2 w-3 md:w-4 bg-[#00F2FF] rounded-full"></div>
-                <div class="h-1.5 md:h-2 w-1.5 md:w-2 bg-[#FF00E5] rounded-full"></div>
-              </div>
-            </div>
+            <div class="logo"><div class="logo-dot"></div><span class="logo-txt">Erizon</span><div class="logo-dot"></div></div>
           </div>
         </div>
       </div>
@@ -369,14 +388,25 @@ const HTML_TEMPLATE = `
     const loading = document.getElementById('loading');
     const previewSection = document.getElementById('preview-section');
     const postContent = document.getElementById('post-content');
-    const imageText = document.getElementById('image-text');
-    const cardTextDisplay = document.getElementById('card-text-display');
+    const eyebrowInput = document.getElementById('eyebrow-input');
+    const h1Input = document.getElementById('h1-input');
+    const subInput = document.getElementById('sub-input');
     const statusMessage = document.getElementById('status-message');
 
-    // Espelha o texto da IMAGEM direto pro Card
-    imageText.addEventListener('input', (e) => {
-      cardTextDisplay.innerText = e.target.value || 'Sua mensagem gerada pela IA aparecerá aqui.';
-    });
+    // Ajusta o card 1080x1080 no layout responsivo
+    function scaleCard() {
+      const wrapper = document.getElementById('card-wrapper');
+      const card = document.getElementById('capture-area');
+      const scale = wrapper.clientWidth / 1080;
+      card.style.transform = 'scale(' + scale + ')';
+    }
+    window.addEventListener('resize', scaleCard);
+    scaleCard();
+
+    // Espelha os textos digitados direto pro Card
+    eyebrowInput.addEventListener('input', e => document.getElementById('card-eyebrow').innerHTML = e.target.value);
+    h1Input.addEventListener('input', e => document.getElementById('card-h1').innerHTML = e.target.value);
+    subInput.addEventListener('input', e => document.getElementById('card-sub').innerHTML = e.target.value);
 
     btnGenerate.addEventListener('click', async () => {
       loading.classList.remove('hidden');
@@ -388,15 +418,16 @@ const HTML_TEMPLATE = `
         const res = await fetch('/api/generate');
         const data = await res.json();
         postContent.value = data.caption || '';
-        imageText.value = data.imageText || '';
-        cardTextDisplay.innerText = data.imageText || '';
-
-        // Randomiza o visual do post
-        const colors = ['#BC13FE', '#00F2FF', '#FF00E5', '#6B21A8', '#0284C7', '#E879F9', '#38BDF8'];
-        document.getElementById('orb-1').style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
-        document.getElementById('orb-2').style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        eyebrowInput.value = data.eyebrow || '';
+        h1Input.value = data.h1 || '';
+        subInput.value = data.sub || '';
+        
+        document.getElementById('card-eyebrow').innerHTML = data.eyebrow || '';
+        document.getElementById('card-h1').innerHTML = data.h1 || '';
+        document.getElementById('card-sub').innerHTML = data.sub || '';
 
         previewSection.classList.remove('hidden');
+        setTimeout(scaleCard, 100);
       } catch (e) {
         alert('Erro ao gerar post: ' + e.message);
       } finally {
@@ -411,9 +442,19 @@ const HTML_TEMPLATE = `
       statusMessage.classList.add('hidden');
 
       try {
-        // Tira o print com o scale 3 para aumentar bastante a qualidade da imagem, pronto para as redes!
-        const canvas = await html2canvas(document.getElementById('capture-area'), { scale: 3, useCORS: true, backgroundColor: '#0A0510' });
+        // Clona a div base para renderizar escondida em resolução original (sem as quebras do CSS Transform)
+        const originalCard = document.getElementById('capture-area');
+        const clone = originalCard.cloneNode(true);
+        clone.style.transform = 'none'; // Reseta o zoom para ficar 1080x1080 real!
+        const hiddenContainer = document.createElement('div');
+        hiddenContainer.style.position = 'absolute';
+        hiddenContainer.style.left = '-9999px';
+        hiddenContainer.appendChild(clone);
+        document.body.appendChild(hiddenContainer);
+
+        const canvas = await html2canvas(clone, { scale: 1, useCORS: true, backgroundColor: '#0B0112' });
         const imageBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+        document.body.removeChild(hiddenContainer);
 
         const res = await fetch('/api/publish', {
           method: 'POST',
