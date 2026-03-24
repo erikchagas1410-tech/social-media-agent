@@ -857,7 +857,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       await new Promise(r => setTimeout(r, 150));
 
       const canvas = await html2canvas(clone, {
-        scale: 2, // Imagem final 2160x2160: qualidade ABSURDA para as redes
+        scale: 1, // 1080x1080: Resolução nativa e ideal (o Instagram rejeita imagens > 1440px de largura)
         useCORS: true,
         backgroundColor: '#0B0112',
         logging: false,
@@ -1071,15 +1071,13 @@ export default async function handler(req: any, res: any) {
         return res.status(500).json({ success: false, error: 'IMGBB_API_KEY não configurada.' });
       }
 
-      // Converte o Base64 em um arquivo binário (Blob) para o ImgBB hospedar como imagem (e não como texto)
-      const buffer = Buffer.from(imageBase64, 'base64');
-      const imageBlob = new Blob([buffer], { type: 'image/jpeg' });
-      const formData = new FormData();
-      formData.append('image', imageBlob, 'erizon-post.jpg');
+      // Retornamos ao envio simplificado e seguro de Base64, agora que a imagem tem o tamanho correto
+      const form = new URLSearchParams();
+      form.append('image', imageBase64);
       
       const imgbbRes  = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`, { 
         method: 'POST', 
-        body: formData 
+        body: form 
       });
       const imgbbData = await imgbbRes.json() as any;
       if (!imgbbData.success) return res.status(500).json({ success: false, error: 'Erro ImgBB: ' + imgbbData.error?.message });
@@ -1106,13 +1104,11 @@ export default async function handler(req: any, res: any) {
       const imageUrls: string[] = [];
       for (let i = 0; i < imageBase64s.length; i++) {
         const b64 = imageBase64s[i];
-        const buffer = Buffer.from(b64, 'base64');
-        const imageBlob = new Blob([buffer], { type: 'image/jpeg' });
-        const formData = new FormData();
-        formData.append('image', imageBlob, `erizon-slide-${i}.jpg`);
+        const form = new URLSearchParams();
+        form.append('image', b64);
         const r    = await fetch(`https://api.imgbb.com/1/upload?key=${process.env.IMGBB_API_KEY}`, { 
           method: 'POST', 
-          body: formData 
+          body: form 
         });
         const d    = await r.json() as any;
         if (!d.success) return res.status(500).json({ success: false, error: 'Erro ImgBB slide: ' + d.error?.message });
