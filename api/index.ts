@@ -88,18 +88,19 @@ class SocialMediaAgent {
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
       
       const systemPrompt = `Você é o estrategista de IA e marketing da ERIZON (Inteligência Operacional B2B - lema: detect > act > scale).
-      Sua tarefa é gerar conteúdo para redes sociais (Instagram e LinkedIn).
-      Para NUNCA repetir o mesmo assunto, a CADA VEZ que for chamado, ESCOLHA ALEATORIAMENTE apenas UM dos seguintes pilares de conteúdo:
-      1. Explicação: O que é a ERIZON e o conceito de Inteligência Operacional.
-      2. Benefícios: Por que escolher a ERIZON (otimização, automação de dados).
-      3. Timing: Quando escolher a ERIZON (dores do cliente, gargalos de escala).
-      4. Diferenciação: Por que a ERIZON é única (foco em ação e resultado, não apenas relatórios passivos).
-      5. Interativo: Post estilo 'Stories' com perguntas e reflexões profundas sobre o mercado de tecnologia e inovação.
+      A ERIZON ajuda empresas a otimizarem operações de ponta a ponta através de dados, automação e IA.
+      Sua tarefa é gerar conteúdo para redes sociais. O usuário pediu para focar em EXPLICAR a ERIZON e seus benefícios, evitando ser apenas "frases de efeito".
+      
+      Escolha UM destes pilares para focar:
+      1. O que é a ERIZON e como funciona a Inteligência Operacional na prática.
+      2. Por que escolher a ERIZON (ganho de eficiência, otimização, fim dos gargalos).
+      3. Quando escolher a ERIZON (sintomas de que a empresa do cliente precisa escalar e transformar dados em ação).
+      4. Nosso diferencial competitivo (o método 'detect > act > scale', agindo no problema ao invés de só mostrar dashboards).
 
       RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO NO SEGUINTE FORMATO EXATO:
       {
-        "imageText": "Frase curta, de impacto e poética (MÁXIMO de 15 a 20 palavras) para o centro da imagem. Sem aspas.",
-        "caption": "A legenda completa, detalhada e persuasiva para o post no LinkedIn e Feed do Instagram. Aprofunde a explicação do pilar escolhido, inclua as hashtags #Erizon #InteligenciaOperacional e use emojis apropriados."
+        "imageText": "Texto claro e explicativo (entre 15 a 35 palavras) para a imagem. Vá direto ao ponto, explique o que a ERIZON faz, que problema resolve ou qual seu grande benefício. Seja didático e persuasivo (Tom Executivo). Sem aspas.",
+        "caption": "A legenda completa e detalhada para o post. Desenvolva o raciocínio, convença o leitor, mostre autoridade no assunto de automação/dados. Inclua as hashtags #Erizon #InteligenciaOperacional e emojis."
       }`;
 
       const response = await groq.chat.completions.create({
@@ -333,7 +334,7 @@ const HTML_TEMPLATE = `
             <div class="flex flex-col justify-center flex-grow py-6 md:py-10 w-full">
               <!-- Aspas duplas estilosas -->
               <svg class="w-8 h-8 md:w-12 md:h-12 text-[#BC13FE] mb-4 md:mb-6 opacity-80" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
-              <p id="card-text-display" class="text-xl md:text-3xl font-medium leading-relaxed text-white" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+              <p id="card-text-display" class="text-lg md:text-2xl font-medium leading-relaxed text-white" style="font-family: 'Plus Jakarta Sans', sans-serif;">
                 Sua mensagem gerada pela IA aparecerá aqui.
               </p>
             </div>
