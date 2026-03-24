@@ -98,6 +98,28 @@ interface CarouselContent {
   caption: string;
 }
 
+interface ImagePayload {
+  base64: string;
+  mimeType: string;
+  extension: 'png' | 'jpg' | 'jpeg' | 'webp';
+}
+
+function parseImagePayload(imageInput: string): ImagePayload {
+  const match = imageInput.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
+  if (match) {
+    const mimeType = match[1].toLowerCase();
+    const base64 = match[2];
+    const extension = mimeType === 'image/png'
+      ? 'png'
+      : mimeType === 'image/webp'
+        ? 'webp'
+        : 'jpg';
+    return { base64, mimeType, extension };
+  }
+
+  return { base64: imageInput, mimeType: 'image/jpeg', extension: 'jpg' };
+}
+
 // ============================================================
 // AGENT CLASS
 // ============================================================
@@ -338,7 +360,7 @@ RETORNE JSON VÁLIDO:
     return publishData.id;
   }
 
-  private async postToLinkedIn(content: string, imageBase64: string): Promise<void> {
+  private async postToLinkedIn(content: string, imageInput: string): Promise<void> {
     if (!process.env.LINKEDIN_ACCESS_TOKEN || !process.env.LINKEDIN_PERSON_URN) {
       throw new Error('LINKEDIN_ACCESS_TOKEN não configurada.');
     }
@@ -363,10 +385,11 @@ RETORNE JSON VÁLIDO:
     const uploadUrl = registerData.value.uploadMechanism['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'].uploadUrl;
     const assetUrn = registerData.value.asset;
 
-    const buffer = Buffer.from(imageBase64, 'base64');
+    const image = parseImagePayload(imageInput);
+    const buffer = Buffer.from(image.base64, 'base64');
     const uploadRes = await fetch(uploadUrl, {
       method: 'PUT', body: buffer,
-      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/octet-stream' }
+      headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': image.mimeType }
     });
     if (!uploadRes.ok) throw new Error(`LinkedIn Image Upload failed: ${await uploadRes.text()}`);
 
@@ -631,7 +654,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     let processedLogoUrl = null; // dataURL do logo sem fundo branco
 
     // Carrega o logo, remove fundo branco via canvas e armazena como dataURL
-    (async function loadLogo() {
+    const logoReadyPromise = (async function loadLogo() {
       try {
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -655,6 +678,16 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     })();
     let carouselSlides = [];
     let currentSlideIdx = 0;
+
+    async function waitForRenderAssets() {
+      try {
+        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+      } catch (e) {
+        console.warn('Font readiness error:', e);
+      }
+      await logoReadyPromise.catch(() => null);
+      await new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+    }
 
     // ============================================================
     // DOM REFS
@@ -844,6 +877,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // RENDER CARD → BASE64
     // ============================================================
     async function renderCard() {
+      await waitForRenderAssets();
       const originalCard = document.getElementById('capture-area');
       
       // 1. Clonamos fisicamente o card para escapar do "scale" e do quadro pequeno da tela
@@ -865,9 +899,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       // 3. Estúdio Fantasma: Colamos o card gigante na coordenada Y atual da tela 
       // (para o navegador renderizar perfeitamente), mas com z-index negativo para ficar invisível pra você!
       const container = document.createElement('div');
-      container.style.position = 'absolute';
-      container.style.top = window.scrollY + 'px';
-      container.style.left = '0';
+      container.style.position = 'fixed';
+      container.style.top = '0';
+      container.style.left = '-20000px';
       container.style.width = '1080px';
       container.style.height = '0'; // Altura zero para não criar barra de rolagem na sua tela
       container.style.overflow = 'visible';
@@ -892,7 +926,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       // Limpamos a bagunça
       document.body.removeChild(container);
       
-      return canvas.toDataURL('image/jpeg', 0.95).split(',')[1];
+      return canvas.toDataURL('image/png');
     }
 
     // Gera imagem 1080×1920 para Story: card centralizado + brand background nas faixas
@@ -901,7 +935,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const cardImg = await new Promise((resolve) => {
         const img = new Image();
         img.onload = () => resolve(img);
-        img.src = 'data:image/jpeg;base64,' + cardB64;
+        img.src = cardB64;
       });
 
       const W = 1080, H = 1920;
@@ -963,7 +997,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       ctx.beginPath(); ctx.moveTo(0, cardY - 1); ctx.lineTo(W, cardY - 1); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(0, cardY + W + 1); ctx.lineTo(W, cardY + W + 1); ctx.stroke();
 
-      return story.toDataURL('image/jpeg', 0.92).split(',')[1];
+      return story.toDataURL('image/png');
     }
 
     // ============================================================
@@ -1092,15 +1126,16 @@ export default async function handler(req: any, res: any) {
     if (url === '/api/publish' && method === 'POST') {
       const { content, imageBase64, platforms } = req.body || {};
       if (!content || !imageBase64) return res.status(400).json({ error: 'Texto ou imagem faltando.' });
+      const image = parseImagePayload(imageBase64);
 
       // Criação manual do Multipart-Form-Data (Bypass de bugs do FormData no Vercel)
       const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-      const bodyPrefix = `--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="erizon-post.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`;
+      const bodyPrefix = `--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="erizon-post.${image.extension}"\r\nContent-Type: ${image.mimeType}\r\n\r\n`;
       const bodySuffix = `\r\n--${boundary}--\r\n`;
       
       const bodyBuffer = Buffer.concat([
         Buffer.from(bodyPrefix, 'utf8'),
-        Buffer.from(imageBase64, 'base64'),
+        Buffer.from(image.base64, 'base64'),
         Buffer.from(bodySuffix, 'utf8')
       ]);
 
@@ -1131,14 +1166,14 @@ export default async function handler(req: any, res: any) {
       // Upload todos os slides pro Catbox (Sem API Key)
       const imageUrls: string[] = [];
       for (let i = 0; i < imageBase64s.length; i++) {
-        const b64 = imageBase64s[i];
+        const image = parseImagePayload(imageBase64s[i]);
         const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-        const bodyPrefix = `--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="slide-${i}.jpg"\r\nContent-Type: image/jpeg\r\n\r\n`;
+        const bodyPrefix = `--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="slide-${i}.${image.extension}"\r\nContent-Type: ${image.mimeType}\r\n\r\n`;
         const bodySuffix = `\r\n--${boundary}--\r\n`;
         
         const bodyBuffer = Buffer.concat([
           Buffer.from(bodyPrefix, 'utf8'),
-          Buffer.from(b64, 'base64'),
+          Buffer.from(image.base64, 'base64'),
           Buffer.from(bodySuffix, 'utf8')
         ]);
 
