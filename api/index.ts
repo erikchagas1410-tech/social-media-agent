@@ -652,6 +652,12 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // ============================================================
     let currentPostType = 'instagram-feed';
     let processedLogoUrl = null; // dataURL do logo sem fundo branco
+    let currentVisualState = {
+      palette: { t:'rgba(188,19,254,', b:'rgba(255,0,229,', o:'rgba(188,19,254,' },
+      layout: 'center',
+      gradClass: 'grad',
+      bgVariant: 'orbital'
+    };
 
     // Carrega o logo, remove fundo branco via canvas e armazena como dataURL
     const logoReadyPromise = (async function loadLogo() {
@@ -776,6 +782,82 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // ============================================================
     // VISUAL RANDOMIZATION
     // ============================================================
+    function applyDomVisualState(state, h1Text) {
+      const lightT = document.querySelector('.light-t');
+      const lightB = document.querySelector('.light-b');
+      const orbCenter = document.querySelector('.orb-center');
+      const orbGlow = document.querySelector('.orb-glow');
+      const rings = document.querySelectorAll('.ring');
+
+      lightT.style.display = 'block';
+      lightB.style.display = 'block';
+      orbCenter.style.display = 'block';
+      orbGlow.style.display = 'block';
+      rings.forEach(r => r.style.display = 'block');
+
+      const p = state.palette;
+      const rx = (Math.floor(Math.random()*80)+10) + '% ';
+      const ry = (Math.floor(Math.random()*80)+10) + '%';
+
+      if (state.bgVariant === 'orbital') {
+        lightT.style.background = 'radial-gradient(ellipse,' + p.t + '.35) 0%,transparent 70%)';
+        lightB.style.background = 'radial-gradient(ellipse,' + p.b + '.2) 0%,transparent 70%)';
+        orbCenter.style.background = 'radial-gradient(circle at ' + rx + ry + ',' + p.o + '.28) 0%,' + p.b + '.12) 45%,transparent 70%)';
+      } else if (state.bgVariant === 'diagonal') {
+        lightT.style.background = 'linear-gradient(135deg,' + p.t + '.34) 0%,transparent 52%)';
+        lightB.style.background = 'linear-gradient(315deg,' + p.b + '.22) 0%,transparent 58%)';
+        orbCenter.style.background = 'linear-gradient(135deg,' + p.o + '.10) 0%,transparent 60%)';
+        orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+      } else if (state.bgVariant === 'split') {
+        lightT.style.background = 'radial-gradient(circle at 12% 50%,' + p.t + '.32) 0%,transparent 44%)';
+        lightB.style.background = 'radial-gradient(circle at 88% 50%,' + p.b + '.22) 0%,transparent 42%)';
+        orbCenter.style.background = 'radial-gradient(circle at 50% 50%, rgba(255,255,255,.03) 0%, transparent 55%)';
+        orbGlow.style.display = 'none';
+      } else if (state.bgVariant === 'corner-burst') {
+        lightT.style.background = 'radial-gradient(circle at 0% 0%,' + p.t + '.34) 0%,transparent 42%)';
+        lightB.style.background = 'radial-gradient(circle at 100% 100%,' + p.b + '.24) 0%,transparent 44%)';
+        orbCenter.style.background = 'radial-gradient(circle at 50% 50%,' + p.o + '.08) 0%, transparent 48%)';
+        orbGlow.style.display = 'none';
+      } else if (state.bgVariant === 'tunnel') {
+        lightT.style.background = 'radial-gradient(circle at 50% 50%,' + p.t + '.18) 0%,transparent 58%)';
+        lightB.style.background = 'radial-gradient(circle at 50% 50%,' + p.b + '.12) 0%,transparent 70%)';
+        orbCenter.style.background = 'radial-gradient(circle at 50% 50%, rgba(255,255,255,.02) 0%, transparent 52%)';
+        rings.forEach((r, idx) => r.style.borderColor = idx === 0 ? 'rgba(255,255,255,.18)' : idx === 1 ? 'rgba(188,19,254,.14)' : 'rgba(0,242,255,.08)');
+      } else if (state.bgVariant === 'bands') {
+        lightT.style.background = 'linear-gradient(180deg,' + p.t + '.26) 0%,transparent 38%)';
+        lightB.style.background = 'linear-gradient(0deg,' + p.b + '.20) 0%,transparent 34%)';
+        orbCenter.style.background = 'linear-gradient(90deg,transparent,' + p.o + '.08,transparent)';
+        orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+      } else if (state.bgVariant === 'crosslight') {
+        lightT.style.background = 'linear-gradient(135deg,' + p.t + '.22) 0%,transparent 48%)';
+        lightB.style.background = 'linear-gradient(225deg,' + p.b + '.18) 0%,transparent 48%)';
+        orbCenter.style.background = 'radial-gradient(circle at 50% 50%,' + p.o + '.10) 0%, transparent 44%)';
+        rings.forEach((r, idx) => r.style.borderColor = idx === 0 ? 'rgba(255,0,229,.14)' : idx === 1 ? 'rgba(0,242,255,.1)' : 'rgba(188,19,254,.06)');
+      } else {
+        lightT.style.background = 'radial-gradient(ellipse at top,' + p.t + '.26) 0%,transparent 66%)';
+        lightB.style.background = 'radial-gradient(ellipse at bottom,' + p.b + '.18) 0%,transparent 68%)';
+        orbCenter.style.background = 'radial-gradient(circle at 50% 50%,' + p.o + '.14) 0%, transparent 52%)';
+        rings.forEach((r, idx) => r.style.borderColor = idx === 0 ? 'rgba(0,242,255,.22)' : idx === 1 ? 'rgba(188,19,254,.12)' : 'rgba(255,0,229,.08)');
+      }
+
+      const cont = document.getElementById('content-container');
+      const av = document.getElementById('card-accent-v');
+      const ah = document.getElementById('card-accent-h');
+      const dl = document.getElementById('card-div-line');
+      av.style.display = 'none';
+      ah.style.display = 'none';
+      dl.style.margin = '28px auto';
+      if (state.layout === 'center') { cont.className = 'cc'; }
+      else if (state.layout === 'left-v') { cont.className = 'lc'; av.style.display = 'block'; dl.style.margin = '28px 0'; }
+      else { cont.className = 'lc'; ah.style.display = 'block'; dl.style.margin = '28px 0'; }
+
+      let txt = (h1Text || '').replace(/class=["']grad\\d*["']/g, 'class="' + state.gradClass + '"');
+      if (!txt.includes('class=')) txt = txt.replace(/<span/g, '<span class="' + state.gradClass + '"');
+      document.getElementById('card-h1').innerHTML = txt;
+    }
+
     function randomizeVisuals(h1Text) {
       const schemes = [
         { t:'rgba(188,19,254,', b:'rgba(255,0,229,', o:'rgba(188,19,254,' },
@@ -783,30 +865,16 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         { t:'rgba(255,0,100,',  b:'rgba(255,68,136,', o:'rgba(255,0,100,' },
         { t:'rgba(255,255,255,', b:'rgba(0,242,255,', o:'rgba(188,19,254,' }
       ];
-      const p = schemes[Math.floor(Math.random() * schemes.length)];
-      const rx = (Math.floor(Math.random()*80)+10) + '% ';
-      const ry = (Math.floor(Math.random()*80)+10) + '%';
-      document.querySelector('.light-t').style.background = 'radial-gradient(ellipse,' + p.t + '.35) 0%,transparent 70%)';
-      document.querySelector('.light-b').style.background = 'radial-gradient(ellipse,' + p.b + '.2) 0%,transparent 70%)';
-      document.querySelector('.orb-center').style.background = 'radial-gradient(circle at ' + rx + ry + ',' + p.o + '.28) 0%,' + p.b + '.12) 45%,transparent 70%)';
-
       const layouts = ['center', 'left-v', 'left-h'];
-      const layout  = layouts[Math.floor(Math.random() * layouts.length)];
-      const cont    = document.getElementById('content-container');
-      const av      = document.getElementById('card-accent-v');
-      const ah      = document.getElementById('card-accent-h');
-      const dl      = document.getElementById('card-div-line');
-      av.style.display = 'none'; ah.style.display = 'none';
-      dl.style.margin = '28px auto';
-      if (layout === 'center') { cont.className = 'cc'; }
-      else if (layout === 'left-v') { cont.className = 'lc'; av.style.display = 'block'; dl.style.margin = '28px 0'; }
-      else { cont.className = 'lc'; ah.style.display = 'block'; dl.style.margin = '28px 0'; }
-
       const grads = ['grad','grad2','grad3'];
-      const g = grads[Math.floor(Math.random() * grads.length)];
-      let txt = (h1Text || '').replace(/class=["']grad\\d*["']/g, 'class="' + g + '"');
-      if (!txt.includes('class=')) txt = txt.replace(/<span/g, '<span class="' + g + '"');
-      document.getElementById('card-h1').innerHTML = txt;
+      const variants = ['orbital', 'diagonal', 'split', 'halo', 'corner-burst', 'tunnel', 'bands', 'crosslight'];
+      currentVisualState = {
+        palette: schemes[Math.floor(Math.random() * schemes.length)],
+        layout: layouts[Math.floor(Math.random() * layouts.length)],
+        gradClass: grads[Math.floor(Math.random() * grads.length)],
+        bgVariant: variants[Math.floor(Math.random() * variants.length)]
+      };
+      applyDomVisualState(currentVisualState, h1Text);
     }
 
     // ============================================================
@@ -1042,6 +1110,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const showAccentV = document.getElementById('card-accent-v').style.display !== 'none';
       const showAccentH = document.getElementById('card-accent-h').style.display !== 'none';
       const showBadge = !slideBadge.classList.contains('hidden');
+      const visual = currentVisualState || {};
+      const palette = visual.palette || { t:'rgba(188,19,254,', b:'rgba(255,0,229,', o:'rgba(188,19,254,' };
       const eyebrow = stripHtml(document.getElementById('card-eyebrow').innerHTML);
       const h1Lines = parseRichLines(document.getElementById('card-h1').innerHTML);
       const subText = stripHtml(document.getElementById('card-sub').innerHTML);
@@ -1054,25 +1124,119 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
       for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
-      let glow = ctx.createRadialGradient(W / 2, -40, 20, W / 2, -40, 420);
-      glow.addColorStop(0, 'rgba(188,19,254,0.24)');
-      glow.addColorStop(1, 'rgba(11,1,18,0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, 0, W, 420);
+      if (visual.bgVariant === 'diagonal') {
+        let glow = ctx.createLinearGradient(0, 0, W, H);
+        glow.addColorStop(0, palette.t + '.24)');
+        glow.addColorStop(0.35, 'rgba(11,1,18,0)');
+        glow.addColorStop(1, palette.b + '.14)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
 
-      glow = ctx.createRadialGradient(W / 2, H + 20, 20, W / 2, H + 20, 420);
-      glow.addColorStop(0, 'rgba(255,0,229,0.16)');
-      glow.addColorStop(1, 'rgba(11,1,18,0)');
-      ctx.fillStyle = glow;
-      ctx.fillRect(0, H - 420, W, 420);
+        glow = ctx.createLinearGradient(W, 0, 0, H);
+        glow.addColorStop(0, palette.o + '.10)');
+        glow.addColorStop(0.5, 'rgba(11,1,18,0)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+      } else if (visual.bgVariant === 'split') {
+        let glow = ctx.createRadialGradient(80, H / 2, 20, 80, H / 2, 340);
+        glow.addColorStop(0, palette.t + '.28)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
 
-      [230, 320, 410].forEach((r, idx) => {
-        ctx.lineWidth = 1;
-        ctx.strokeStyle = idx === 0 ? 'rgba(188,19,254,0.28)' : idx === 1 ? 'rgba(188,19,254,0.14)' : 'rgba(188,19,254,0.07)';
-        ctx.beginPath();
-        ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
-        ctx.stroke();
-      });
+        glow = ctx.createRadialGradient(W - 80, H / 2, 20, W - 80, H / 2, 340);
+        glow.addColorStop(0, palette.b + '.20)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+      } else if (visual.bgVariant === 'halo') {
+        let glow = ctx.createRadialGradient(W / 2, H / 2, 140, W / 2, H / 2, 420);
+        glow.addColorStop(0, palette.o + '.16)');
+        glow.addColorStop(0.55, 'rgba(11,1,18,0)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        [250, 360, 470].forEach((r, idx) => {
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = idx === 0 ? 'rgba(0,242,255,0.18)' : idx === 1 ? 'rgba(188,19,254,0.12)' : 'rgba(255,0,229,0.07)';
+          ctx.beginPath();
+          ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+      } else if (visual.bgVariant === 'corner-burst') {
+        let glow = ctx.createRadialGradient(0, 0, 20, 0, 0, 360);
+        glow.addColorStop(0, palette.t + '.30)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        glow = ctx.createRadialGradient(W, H, 20, W, H, 380);
+        glow.addColorStop(0, palette.b + '.22)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+      } else if (visual.bgVariant === 'tunnel') {
+        [220, 300, 390, 500].forEach((r, idx) => {
+          ctx.lineWidth = idx === 0 ? 1.4 : 1;
+          ctx.strokeStyle = idx === 0 ? 'rgba(255,255,255,0.16)' : idx === 1 ? 'rgba(188,19,254,0.16)' : idx === 2 ? 'rgba(0,242,255,0.08)' : 'rgba(255,0,229,0.06)';
+          ctx.beginPath();
+          ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+        let glow = ctx.createRadialGradient(W / 2, H / 2, 120, W / 2, H / 2, 420);
+        glow.addColorStop(0, palette.o + '.16)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+      } else if (visual.bgVariant === 'bands') {
+        let glow = ctx.createLinearGradient(0, 0, 0, H);
+        glow.addColorStop(0, palette.t + '.24)');
+        glow.addColorStop(0.28, 'rgba(11,1,18,0)');
+        glow.addColorStop(0.72, 'rgba(11,1,18,0)');
+        glow.addColorStop(1, palette.b + '.18)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.02)';
+        ctx.fillRect(0, H * 0.3, W, 2);
+        ctx.fillRect(0, H * 0.7, W, 2);
+      } else if (visual.bgVariant === 'crosslight') {
+        let glow = ctx.createLinearGradient(0, 0, W, H);
+        glow.addColorStop(0, palette.t + '.18)');
+        glow.addColorStop(0.45, 'rgba(11,1,18,0)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        glow = ctx.createLinearGradient(W, 0, 0, H);
+        glow.addColorStop(0, palette.b + '.16)');
+        glow.addColorStop(0.45, 'rgba(11,1,18,0)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+      } else {
+        let glow = ctx.createRadialGradient(W / 2, -40, 20, W / 2, -40, 420);
+        glow.addColorStop(0, palette.t + '.24)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, 420);
+
+        glow = ctx.createRadialGradient(W / 2, H + 20, 20, W / 2, H + 20, 420);
+        glow.addColorStop(0, palette.b + '.16)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, H - 420, W, 420);
+
+        [230, 320, 410].forEach((r, idx) => {
+          ctx.lineWidth = 1;
+          ctx.strokeStyle = idx === 0 ? 'rgba(188,19,254,0.28)' : idx === 1 ? 'rgba(188,19,254,0.14)' : 'rgba(188,19,254,0.07)';
+          ctx.beginPath();
+          ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
+          ctx.stroke();
+        });
+      }
 
       function drawCorner(x, y, sx, sy) {
         ctx.strokeStyle = 'rgba(188,19,254,.5)';
