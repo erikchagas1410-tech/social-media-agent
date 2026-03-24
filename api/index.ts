@@ -273,6 +273,20 @@ RETORNE JSON VÁLIDO:
     return results;
   }
 
+  private async waitForInstagramMediaReady(creationId: string, token: string): Promise<void> {
+    for (let i = 0; i < 15; i++) {
+      await new Promise(r => setTimeout(r, 3000)); // Espera 3 segundos
+      const res = await fetch(`https://graph.facebook.com/v18.0/${creationId}?fields=status_code&access_token=${token}`);
+      if (res.ok) {
+        const data = await res.json() as any;
+        if (data.status_code === 'FINISHED' || data.status_code === 'PUBLISHED') return;
+        if (data.status_code === 'ERROR') throw new Error(`O Instagram falhou ao processar a mídia ${creationId}.`);
+        logger.info(`Aguardando mídia ${creationId} ficar pronta... Status: ${data.status_code}`);
+      }
+    }
+    logger.warn(`Timeout ao aguardar mídia ${creationId}. O Instagram pode recusar a publicação.`);
+  }
+
   async postCarouselToInstagram(imageUrls: string[], caption: string): Promise<string> {
     if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_ACCOUNT_ID) {
       throw new Error('Credenciais Instagram não configuradas.');
@@ -291,6 +305,7 @@ RETORNE JSON VÁLIDO:
       });
       if (!res.ok) throw new Error(`Erro ao criar slide: ${await res.text()}`);
       const data = await res.json() as any;
+      await this.waitForInstagramMediaReady(data.id, token);
       childIds.push(data.id);
     }
 
@@ -307,6 +322,8 @@ RETORNE JSON VÁLIDO:
     });
     if (!carouselRes.ok) throw new Error(`Erro ao criar carrossel: ${await carouselRes.text()}`);
     const carouselData = await carouselRes.json() as any;
+
+    await this.waitForInstagramMediaReady(carouselData.id, token);
 
     // 3. Publica
     const publishRes = await fetch(`https://graph.facebook.com/v18.0/${accountId}/media_publish`, {
@@ -387,6 +404,8 @@ RETORNE JSON VÁLIDO:
     if (!res.ok) throw new Error(`Instagram Feed Create ${res.status}: ${await res.text()}`);
     const data = await res.json() as any;
 
+    await this.waitForInstagramMediaReady(data.id, process.env.INSTAGRAM_ACCESS_TOKEN);
+
     const pub = await fetch(`https://graph.facebook.com/v18.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media_publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -408,6 +427,8 @@ RETORNE JSON VÁLIDO:
     });
     if (!res.ok) throw new Error(`Instagram Story Create ${res.status}: ${await res.text()}`);
     const data = await res.json() as any;
+
+    await this.waitForInstagramMediaReady(data.id, process.env.INSTAGRAM_ACCESS_TOKEN);
 
     const pub = await fetch(`https://graph.facebook.com/v18.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media_publish`, {
       method: 'POST',
