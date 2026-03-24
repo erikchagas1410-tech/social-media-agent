@@ -587,7 +587,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
               <input type="checkbox" id="pub-story"> 📱 Story
             </label>
             <label id="pub-linkedin-wrap" style="display:flex;align-items:center;gap:8px;cursor:pointer;color:rgba(255,255,255,.65);font-size:13px;">
-              <input type="checkbox" id="pub-linkedin" checked> 💼 LinkedIn
+              <input type="checkbox" id="pub-linkedin" checked> 💼 LinkedIn <span id="li-carousel-note" class="hidden" style="font-size:10px;color:rgba(188,19,254,.6);font-family:'JetBrains Mono',monospace;">(1º slide)</span>
             </label>
           </div>
         </div>
@@ -658,10 +658,12 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         pubStory.style.display = 'none';
         pubLi.style.display = 'flex';
         pubIg.checked = true;
+        document.getElementById('li-carousel-note').classList.remove('hidden');
       } else {
         pubIgWrap.style.display = 'flex';
         pubStory.style.display = 'flex';
         pubLi.style.display = 'flex';
+        document.getElementById('li-carousel-note').classList.add('hidden');
       }
     }
 
@@ -796,30 +798,38 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // RENDER CARD → BASE64
     // ============================================================
     async function renderCard() {
-      const orig  = document.getElementById('capture-area');
-      const clone = orig.cloneNode(true);
-      // Reseta transformações e garante tamanho/fundo explícitos
-      clone.style.transform     = 'none';
-      clone.style.width         = '1080px';
-      clone.style.height        = '1080px';
-      clone.style.background    = '#0B0112';
-      clone.style.backgroundColor = '#0B0112';
-      // Posiciona fora da tela mas visível ao renderer (fixed, não absolute)
-      const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:fixed;left:-1200px;top:0;width:1080px;height:1080px;overflow:hidden;z-index:-1;';
-      wrap.appendChild(clone);
-      document.body.appendChild(wrap);
-      const canvas = await html2canvas(clone, {
+      const card = document.getElementById('capture-area');
+
+      // Usa onclone para resetar o transform DENTRO do contexto do html2canvas
+      // (abordagem correta — o clone fica no documento clonado, não no DOM principal)
+      const canvas = await html2canvas(card, {
         scale: 1,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#0B0112',
         logging: false,
         width: 1080,
-        height: 1080
+        height: 1080,
+        onclone: (_doc, el) => {
+          el.style.transform       = 'none';
+          el.style.width           = '1080px';
+          el.style.height          = '1080px';
+          el.style.background      = '#0B0112';
+          el.style.backgroundColor = '#0B0112';
+        }
       });
-      document.body.removeChild(wrap);
-      return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
+
+      // Canvas duplo: pinta o fundo explicitamente antes de compor a imagem
+      // (garante que mesmo que html2canvas perca o background, ele sempre está lá)
+      const final = document.createElement('canvas');
+      final.width  = 1080;
+      final.height = 1080;
+      const ctx = final.getContext('2d');
+      ctx.fillStyle = '#0B0112';
+      ctx.fillRect(0, 0, 1080, 1080);
+      ctx.drawImage(canvas, 0, 0);
+
+      return final.toDataURL('image/jpeg', 0.92).split(',')[1];
     }
 
     // ============================================================
