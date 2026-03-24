@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 import path from 'path';
 import winston from 'winston';
-//import Groq from 'groq-sdk';
+import Groq from 'groq-sdk';
 import { TwitterApi } from 'twitter-api-v2';
 
 // Load environment variables
@@ -76,29 +76,50 @@ class SocialMediaAgent {
     }
   }
 
-  async generatePost(): Promise<string> {
+  async generatePost(): Promise<{ imageText: string, caption: string }> {
     try {
-        /*messages: [
-          {
-            role: 'system',
-            content: 'Você é um especialista em mídias sociais. Crie um post curto e engajador sobre inteligência artificial e tecnologia. O post DEVE ter menos de 280 caracteres. NÃO use aspas. NÃO use frases de introdução como "Aqui está o post". Inclua 2 hashtags. O TEXTO DEVE SER ESCRITO 100% EM PORTUGUÊS DO BRASIL.',
-          },
-          {
-            role: 'user',
-            content: 'Gere um novo post engajador para hoje.',
-          },
-        ],
-        model: 'llama-3.1-8b-instant', // Modelo atualizado e ativo do Groq
-*/
+      if (!process.env.GROQ_API_KEY) {
+        return {
+          imageText: 'Configure a GROQ_API_KEY no Vercel.',
+          caption: 'Sem a chave da API do Groq, a IA não pode gerar novos textos.'
+        };
+      }
+      
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      
+      const systemPrompt = `Você é o estrategista de IA e marketing da ERIZON (Inteligência Operacional B2B - lema: detect > act > scale).
+      Sua tarefa é gerar conteúdo para redes sociais (Instagram e LinkedIn).
+      Para NUNCA repetir o mesmo assunto, a CADA VEZ que for chamado, ESCOLHA ALEATORIAMENTE apenas UM dos seguintes pilares de conteúdo:
+      1. Explicação: O que é a ERIZON e o conceito de Inteligência Operacional.
+      2. Benefícios: Por que escolher a ERIZON (otimização, automação de dados).
+      3. Timing: Quando escolher a ERIZON (dores do cliente, gargalos de escala).
+      4. Diferenciação: Por que a ERIZON é única (foco em ação e resultado, não apenas relatórios passivos).
+      5. Interativo: Post estilo 'Stories' com perguntas e reflexões profundas sobre o mercado de tecnologia e inovação.
 
-      //const streamingResp = await model.generateContentStream(messages[1].content);
-      //const aggregatedResponse = await streamingResp.response;
-      return 'Default post content';//aggregatedResponse.candidates[0].content.parts[0].text || 
+      RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO NO SEGUINTE FORMATO EXATO:
+      {
+        "imageText": "Frase curta, de impacto e poética (MÁXIMO de 15 a 20 palavras) para o centro da imagem. Sem aspas.",
+        "caption": "A legenda completa, detalhada e persuasiva para o post no LinkedIn e Feed do Instagram. Aprofunde a explicação do pilar escolhido, inclua as hashtags #Erizon #InteligenciaOperacional e use emojis apropriados."
+      }`;
+
+      const response = await groq.chat.completions.create({
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: 'Gere um conteúdo criativo, inédito e engajador para a ERIZON. Escolha um pilar diferente do habitual.' }
+        ],
+        model: 'llama-3.1-8b-instant',
+        temperature: 0.9,
+        response_format: { type: 'json_object' }
+      });
+
+      const jsonContent = response.choices[0]?.message?.content || '{}';
+      return JSON.parse(jsonContent);
     } catch (error) {
       logger.error('Error generating post:', error);
-      console.log(error)
-      logger.error('Error generating post:', error);
-      return 'Fallback post content';
+      return {
+        imageText: 'A inteligência operacional é o motor invisível das empresas que escalam.',
+        caption: 'O futuro não é apenas previsto, ele é operado. A ERIZON transforma seus dados em ações concretas que escalam o seu negócio. #Erizon #IA'
+      };
     }
   }
 
@@ -189,49 +210,56 @@ class SocialMediaAgent {
       return;
     }
 
-    // Instagram posting via Meta Graph API
-    // Note: This requires a Facebook Business account and Instagram Business account
-    // Posting media content requires additional setup
-    const response = await fetch(`https://graph.facebook.com/v18.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        // Imagem agora é dinâmica e gerada por IA
+    const postMedia = async (isStory: boolean) => {
+      const body: any = {
         image_url: imageUrl,
-        caption: content,
         access_token: process.env.INSTAGRAM_ACCESS_TOKEN,
-      }),
-    });
+      };
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Instagram API (Media Create) returned ${response.status}: ${errorText}`);
-    }
-
-    const data = await response.json();
-    if (data.id) {
-      // Publish the media
-      const publishResponse = await fetch(`https://graph.facebook.com/v18.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media_publish`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          creation_id: data.id,
-          access_token: process.env.INSTAGRAM_ACCESS_TOKEN,
-        }),
-      });
-
-      if (!publishResponse.ok) {
-        const errorText = await publishResponse.text();
-        throw new Error(`Instagram API (Media Publish) returned ${publishResponse.status}: ${errorText}`);
+      if (isStory) {
+        body.media_type = 'STORIES';
+      } else {
+        body.caption = content;
       }
 
-      logger.info(`Posted to Instagram: ${data.id}`);
-    } else {
-      throw new Error(`Failed to create Instagram media: ${JSON.stringify(data)}`);
+      logger.info(`Creating Instagram ${isStory ? 'Story' : 'Feed'} Media...`);
+      const response = await fetch(`https://graph.facebook.com/v18.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+      if (!response.ok) {
+        throw new Error(`Instagram API (Media Create ${isStory ? 'Story' : 'Feed'}) returned ${response.status}: ${await response.text()}`);
+      }
+
+      const data = await response.json();
+      if (data.id) {
+        logger.info(`Publishing Instagram ${isStory ? 'Story' : 'Feed'} Media...`);
+        const publishResponse = await fetch(`https://graph.facebook.com/v18.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media_publish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            creation_id: data.id,
+            access_token: process.env.INSTAGRAM_ACCESS_TOKEN,
+          }),
+        });
+
+        if (!publishResponse.ok) {
+          throw new Error(`Instagram API (Media Publish ${isStory ? 'Story' : 'Feed'}) returned ${publishResponse.status}: ${await publishResponse.text()}`);
+        }
+        logger.info(`Successfully posted to Instagram ${isStory ? 'Story' : 'Feed'}: ${data.id}`);
+      } else {
+        throw new Error(`Failed to create Instagram media: ${JSON.stringify(data)}`);
+      }
+    };
+
+    try {
+      await postMedia(false); // 1. Posta no Feed
+      await postMedia(true);  // 2. Posta nos Stories
+    } catch (error) {
+      logger.error('Error in Instagram multi-post flow:', error);
+      throw error; // Repassa o erro para exibir no painel
     }
   }
 }
@@ -262,8 +290,13 @@ const HTML_TEMPLATE = `
 
     <div id="preview-section" class="hidden space-y-5">
       <div>
-        <label class="block text-sm font-bold text-gray-700 mb-2">Texto da Legenda (Live Preview)</label>
-        <textarea id="post-content" rows="4" class="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+        <label class="block text-sm font-bold text-gray-700 mb-2">Texto da Imagem (Para o Card / Story)</label>
+        <textarea id="image-text" rows="2" class="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
+      </div>
+
+      <div>
+        <label class="block text-sm font-bold text-gray-700 mb-2">Legenda do Post (Feed LinkedIn / Instagram)</label>
+        <textarea id="post-content" rows="6" class="w-full border border-gray-300 rounded-lg p-3 text-gray-800 focus:ring-2 focus:ring-indigo-500 outline-none"></textarea>
       </div>
 
       <div>
@@ -276,8 +309,8 @@ const HTML_TEMPLATE = `
           <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.07) 1px, transparent 0); background-size: 24px 24px;"></div>
           
           <!-- Orbes Suaves -->
-          <div class="absolute -top-32 -right-32 w-96 h-96 bg-[#BC13FE] rounded-full filter blur-[100px] opacity-30"></div>
-          <div class="absolute -bottom-32 -left-32 w-96 h-96 bg-[#00F2FF] rounded-full filter blur-[100px] opacity-20"></div>
+          <div id="orb-1" class="absolute -top-32 -right-32 w-96 h-96 bg-[#BC13FE] rounded-full filter blur-[100px] opacity-30 transition-colors duration-500"></div>
+          <div id="orb-2" class="absolute -bottom-32 -left-32 w-96 h-96 bg-[#00F2FF] rounded-full filter blur-[100px] opacity-20 transition-colors duration-500"></div>
 
           <!-- Container do Conteúdo (Design de Carta Premium) -->
           <div class="relative z-10 flex flex-col justify-between w-full h-full bg-[#1A1025]/80 border border-[#BC13FE]/20 rounded-3xl p-6 md:p-8 shadow-[0_0_40px_rgba(188,19,254,0.1)]">
@@ -335,12 +368,13 @@ const HTML_TEMPLATE = `
     const loading = document.getElementById('loading');
     const previewSection = document.getElementById('preview-section');
     const postContent = document.getElementById('post-content');
+    const imageText = document.getElementById('image-text');
     const cardTextDisplay = document.getElementById('card-text-display');
     const statusMessage = document.getElementById('status-message');
 
-    // Espelha o texto digitado direto pro Card
-    postContent.addEventListener('input', (e) => {
-      cardTextDisplay.innerText = e.target.value || 'Escreva o post aqui...';
+    // Espelha o texto da IMAGEM direto pro Card
+    imageText.addEventListener('input', (e) => {
+      cardTextDisplay.innerText = e.target.value || 'Sua mensagem gerada pela IA aparecerá aqui.';
     });
 
     btnGenerate.addEventListener('click', async () => {
@@ -352,8 +386,15 @@ const HTML_TEMPLATE = `
       try {
         const res = await fetch('/api/generate');
         const data = await res.json();
-        postContent.value = data.content;
-        cardTextDisplay.innerText = data.content;
+        postContent.value = data.caption || '';
+        imageText.value = data.imageText || '';
+        cardTextDisplay.innerText = data.imageText || '';
+
+        // Randomiza o visual do post
+        const colors = ['#BC13FE', '#00F2FF', '#FF00E5', '#6B21A8', '#0284C7', '#E879F9', '#38BDF8'];
+        document.getElementById('orb-1').style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+        document.getElementById('orb-2').style.backgroundColor = colors[Math.floor(Math.random() * colors.length)];
+
         previewSection.classList.remove('hidden');
       } catch (e) {
         alert('Erro ao gerar post: ' + e.message);
@@ -412,8 +453,8 @@ export default async function handler(req: any, res: any) {
 
     if (url === '/api/generate' && method === 'GET') {
       const agent = new SocialMediaAgent();
-      const content = await agent.generatePost();
-      return res.status(200).json({ content });
+      const generatedData = await agent.generatePost();
+      return res.status(200).json(generatedData);
     }
 
     if (url === '/api/publish' && method === 'POST') {
