@@ -144,60 +144,103 @@ class SocialMediaAgent {
     }
   }
 
-  async postToSocialMedia(content: string, imageUrl: string): Promise<void> {
-    const platforms = ['twitter', 'linkedin', 'instagram'];
-
-    for (const platform of platforms) {
+  async postToSocialMedia(content: string, imageUrl: string, imageBase64: string): Promise<string[]> {
+    const results: string[] = [];
       try {
-        switch (platform) {
-          case 'twitter':
-            await this.postToTwitter(content);
-            break;
-          case 'linkedin':
-            await this.postToLinkedIn(content);
-            break;
-          case 'instagram':
-            await this.postToInstagram(content, imageUrl);
-            break;
-        }
+        await this.postToTwitter(content, imageBase64);
+        results.push('🐦 Twitter: Sucesso');
       } catch (error) {
-        logger.error(`Error posting to ${platform}:`, error);
+        results.push(`🐦 Twitter: Ignorado ou Erro (${error.message || 'Sem chave'})`);
       }
-    }
+
+      try {
+        await this.postToLinkedIn(content, imageBase64);
+        results.push('💼 LinkedIn: Sucesso');
+      } catch (error: any) {
+        results.push(`💼 LinkedIn: Ignorado ou Erro (${error.message || 'Sem chave'})`);
+      }
+
+      try {
+        await this.postToInstagram(content, imageUrl);
+        results.push('📸 Instagram: Sucesso');
+      } catch (error: any) {
+        results.push(`📸 Instagram: Ignorado ou Erro (${error.message || 'Sem chave'})`);
+      }
+      
+      return results;
   }
 
-  private async postToTwitter(content: string): Promise<void> {
+  private async postToTwitter(content: string, imageBase64: string): Promise<void> {
     if (!this.twitterClient) {
       logger.warn('Twitter client not initialized. Skipping Twitter post.');
-      return;
+      throw new Error('TWITTER_API_KEY não configurada no Vercel.');
     }
 
-    const tweet = await this.twitterClient.v2.tweet(content);
-    logger.info(`Posted to Twitter: ${tweet.data.id}`);
+    // Anexa a imagem nativamente no Twitter
+    const buffer = Buffer.from(imageBase64, 'base64');
+    const mediaId = await this.twitterClient.v1.uploadMedia(buffer, { mimeType: 'image/jpeg' });
+    const tweet = await this.twitterClient.v2.tweet({ text: content, media: { media_ids: [mediaId] } });
+    
+    logger.info(`Posted to Twitter with media: ${tweet.data.id}`);
   }
 
-  private async postToLinkedIn(content: string): Promise<void> {
+  private async postToLinkedIn(content: string, imageBase64: string): Promise<void> {
     if (!process.env.LINKEDIN_ACCESS_TOKEN || !process.env.LINKEDIN_PERSON_URN) {
       logger.warn('LinkedIn credentials not provided. Skipping LinkedIn post.');
-      return;
+      throw new Error('LINKEDIN_ACCESS_TOKEN não configurada no Vercel.');
     }
+    
+    const token = process.env.LINKEDIN_ACCESS_TOKEN;
+    const personUrn = process.env.LINKEDIN_PERSON_URN;
 
+    // 1. Registra o Upload da Imagem no LinkedIn
+    const registerRes = await fetch('https://api.linkedin.com/v2/assets?action=registerUpload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'X-Restli-Protocol-Version': '2.0.0'
+      },
+      body: JSON.stringify({
+        registerUploadRequest: {
+          recipes: ['urn:li:digitalmediaRecipe:feedshare-image'],
+          owner: `urn:li:person:${personUrn}`,
+          serviceRelationships: [{ relationshipType: 'OWNER', identifier: 'urn:li:userGeneratedContent' }]
+        }
+      })
+    });
+
+    if (!registerRes.ok) throw new Error(`LinkedIn Upload Register failed: ${await registerRes.text()}`);
+    
+    const registerData = await registerRes.json();
+    const uploadUrl = registerData.value.uploadMechanism['com.linkedin.digitalmedia.uploading.MediaUploadHttpRequest'].uploadUrl;
+    const assetUrn = registerData.value.asset;
+
+    // 2. Faz o Upload da Imagem pro Servidor do LinkedIn (Buffer)
+    const buffer = Buffer.from(imageBase64, 'base64');
+    const uploadRes = await fetch(uploadUrl, { method: 'PUT', body: buffer, headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/octet-stream' }});
+    if (!uploadRes.ok) throw new Error(`LinkedIn Image Upload failed: ${await uploadRes.text()}`);
+
+    // 3. Cria a Publicação (UGC Post) anexando a Mídia
     const response = await fetch('https://api.linkedin.com/v2/ugcPosts', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${process.env.LINKEDIN_ACCESS_TOKEN}`,
+        'Authorization': `Bearer ${token}`,
         'X-Restli-Protocol-Version': '2.0.0',
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        author: `urn:li:person:${process.env.LINKEDIN_PERSON_URN}`,
+        author: `urn:li:person:${personUrn}`,
         lifecycleState: 'PUBLISHED',
         specificContent: {
           'com.linkedin.ugc.ShareContent': {
-            shareCommentary: {
-              text: content
-            },
-            shareMediaCategory: 'NONE'
+            shareCommentary: { text: content },
+            shareMediaCategory: 'IMAGE',
+            media: [{
+              status: 'READY',
+              media: assetUrn,
+              title: { text: 'Publicação ERIZON' }
+            }]
           }
         },
         visibility: {
@@ -218,7 +261,7 @@ class SocialMediaAgent {
   private async postToInstagram(content: string, imageUrl: string): Promise<void> {
     if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_ACCOUNT_ID) {
       logger.warn('Instagram credentials not provided. Skipping Instagram post.');
-      return;
+      throw new Error('INSTAGRAM_ACCESS_TOKEN não configurada no Vercel.');
     }
 
     const postMedia = async (isStory: boolean) => {
@@ -321,6 +364,12 @@ const HTML_TEMPLATE = `
     .h1 { font-family: 'Montserrat', sans-serif; font-weight: 900; line-height: 1.1; color: #fff; text-shadow: 0 0 40px rgba(188,19,254,.3); font-size: 72px; word-wrap: break-word; max-width: 100%; }
     .sub { font-family: 'Inter', sans-serif; font-size: 22px; color: rgba(255,255,255,.6); line-height: 1.6; max-width: 760px; }
     .sub strong { color: #fff; font-weight: 600; }
+
+    /* Layouts Alternativos (Copiados do seu BrandBook) */
+    .lc { position: absolute; top: 50%; left: 80px; transform: translateY(-50%); z-index: 10; width: 800px; display: flex; flex-direction: column; align-items: flex-start; justify-content: center; padding: 0; box-sizing: border-box; text-align: left; }
+    .lc .h1, .lc .sub { text-align: left; }
+    .accent-bar { position: absolute; left: 0; top: 0; bottom: 0; width: 6px; background: linear-gradient(to bottom, transparent, #BC13FE 30%, #FF00E5 70%, transparent); display: none; }
+    .accent-bar-top { position: absolute; top: 0; left: 0; right: 0; height: 6px; background: linear-gradient(90deg, #FF00E5, #BC13FE, #00F2FF); display: none; }
     
     .light-t { position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 500px; height: 400px; background: radial-gradient(ellipse, rgba(188,19,254,.35) 0%, transparent 70%); filter: blur(50px); transition: background 0.8s ease; }
     .light-b { position: absolute; bottom: -120px; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(255,0,229,.2) 0%, transparent 70%); filter: blur(50px); transition: background 0.8s ease; }
@@ -368,10 +417,14 @@ const HTML_TEMPLATE = `
             <div class="orb orb-center"></div><div class="orb orb-glow"></div>
             <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
             <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
-            <div class="cc">
+            
+            <div id="card-accent-v" class="accent-bar"></div>
+            <div id="card-accent-h" class="accent-bar-top"></div>
+
+            <div id="content-container" class="cc">
               <div id="card-eyebrow" class="eyebrow">// AI Marketing OS</div>
               <h1 id="card-h1" class="h1">Pare de<br><span class="grad">adivinhar.</span></h1>
-              <div class="div-line"></div>
+              <div id="card-div-line" class="div-line"></div>
               <p id="card-sub" class="sub">Deixe a IA <strong>decidir por você.</strong><br>Com dados reais. Em português.</p>
             </div>
             <div class="logo"><div class="logo-dot"></div><span class="logo-txt">Erizon</span><div class="logo-dot"></div></div>
@@ -418,13 +471,30 @@ const HTML_TEMPLATE = `
       const colorSchemes = [
         { t: 'rgba(188,19,254,', b: 'rgba(255,0,229,', o: 'rgba(188,19,254,' }, // Padrão Erizon (Roxo/Rosa)
         { t: 'rgba(0,242,255,', b: 'rgba(188,19,254,', o: 'rgba(0,242,255,' }, // Ciano Tech
-        { t: 'rgba(255,0,100,', b: 'rgba(255,68,136,', o: 'rgba(255,0,100,' }  // Vermelho Risk Radar
+        { t: 'rgba(255,0,100,', b: 'rgba(255,68,136,', o: 'rgba(255,0,100,' }, // Vermelho Risk Radar
+        { t: 'rgba(255,255,255,', b: 'rgba(0,242,255,', o: 'rgba(188,19,254,' } // Mix
       ];
       const pal = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
       
       document.querySelector('.light-t').style.background = 'radial-gradient(ellipse, ' + pal.t + '.35) 0%, transparent 70%)';
       document.querySelector('.light-b').style.background = 'radial-gradient(ellipse, ' + pal.b + '.2) 0%, transparent 70%)';
-      document.querySelector('.orb-center').style.background = 'radial-gradient(circle at 40% 40%, ' + pal.o + '.28) 0%, ' + pal.b + '.12) 45%, transparent 70%)';
+      document.querySelector('.orb-center').style.background = 'radial-gradient(circle at ' + (Math.floor(Math.random()*80)+10) + '% ' + (Math.floor(Math.random()*80)+10) + '%, ' + pal.o + '.28) 0%, ' + pal.b + '.12) 45%, transparent 70%)';
+
+      // Sorteia estruturalmente o Layout (Central, Linha Topo ou Linha Lateral)
+      const layouts = ['center', 'left-v', 'left-h'];
+      const layout = layouts[Math.floor(Math.random() * layouts.length)];
+      const container = document.getElementById('content-container');
+      const accentV = document.getElementById('card-accent-v');
+      const accentH = document.getElementById('card-accent-h');
+      const divLine = document.getElementById('card-div-line');
+      
+      accentV.style.display = 'none';
+      accentH.style.display = 'none';
+      divLine.style.margin = '28px auto';
+      
+      if (layout === 'center') { container.className = 'cc'; } 
+      else if (layout === 'left-v') { container.className = 'lc'; accentV.style.display = 'block'; divLine.style.margin = '28px 0'; } 
+      else if (layout === 'left-h') { container.className = 'lc'; accentH.style.display = 'block'; divLine.style.margin = '28px 0'; }
 
       // Sorteia o gradiente do texto principal (grad, grad2 ou grad3)
       const gradClasses = ['grad', 'grad2', 'grad3'];
@@ -492,7 +562,7 @@ const HTML_TEMPLATE = `
         const data = await res.json();
 
         if (data.success) {
-          statusMessage.innerHTML = '🚀 <b>Sucesso!</b> Post enviado para Twitter, LinkedIn e Instagram!';
+          statusMessage.innerHTML = '🚀 <b>Relatório de Publicação:</b><br><br>' + data.results.join('<br>');
           statusMessage.className = 'mt-6 text-center text-green-800 bg-green-100 p-4 rounded-lg block';
         } else {
           throw new Error(data.error || 'Erro desconhecido');
@@ -552,8 +622,8 @@ export default async function handler(req: any, res: any) {
       }
 
       const agent = new SocialMediaAgent();
-      await agent.postToSocialMedia(content, imageUrl);
-      return res.status(200).json({ success: true });
+      const postResults = await agent.postToSocialMedia(content, imageUrl, imageBase64);
+      return res.status(200).json({ success: true, results: postResults });
     }
 
     res.status(404).json({ error: 'Rota não encontrada' });
