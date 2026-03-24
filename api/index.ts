@@ -3,13 +3,10 @@ import path from 'path';
 import winston from 'winston';
 import Groq from 'groq-sdk';
 
-const envPath = path.resolve(__dirname, '../.env');
-const envConfig = dotenv.config({ path: envPath, override: true });
-if (envConfig.error) {
-  console.error('[DEBUG] Erro ao carregar .env:', envConfig.error);
-} else {
-  console.log('[DEBUG] .env carregado! Chaves:', Object.keys(envConfig.parsed || {}));
-}
+// Carrega .env e depois .env.local (local sobrescreve)
+dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
+dotenv.config({ path: path.resolve(__dirname, '../.env.local'), override: true });
+console.log('[DEBUG] Env carregado. INSTAGRAM_ACCOUNT_ID:', process.env.INSTAGRAM_ACCOUNT_ID ? 'OK' : 'FALTANDO');
 
 const transports: winston.transport[] = [new winston.transports.Console()];
 if (!process.env.VERCEL) {
@@ -801,14 +798,28 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     async function renderCard() {
       const orig  = document.getElementById('capture-area');
       const clone = orig.cloneNode(true);
-      clone.style.transform = 'none';
+      // Reseta transformações e garante tamanho/fundo explícitos
+      clone.style.transform     = 'none';
+      clone.style.width         = '1080px';
+      clone.style.height        = '1080px';
+      clone.style.background    = '#0B0112';
+      clone.style.backgroundColor = '#0B0112';
+      // Posiciona fora da tela mas visível ao renderer (fixed, não absolute)
       const wrap = document.createElement('div');
-      wrap.style.cssText = 'position:absolute;left:-9999px;top:-9999px;';
+      wrap.style.cssText = 'position:fixed;left:-1200px;top:0;width:1080px;height:1080px;overflow:hidden;z-index:-1;';
       wrap.appendChild(clone);
       document.body.appendChild(wrap);
-      const canvas = await html2canvas(clone, { scale:1, useCORS:true, backgroundColor:'#0B0112' });
+      const canvas = await html2canvas(clone, {
+        scale: 1,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#0B0112',
+        logging: false,
+        width: 1080,
+        height: 1080
+      });
       document.body.removeChild(wrap);
-      return canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
+      return canvas.toDataURL('image/jpeg', 0.92).split(',')[1];
     }
 
     // ============================================================
