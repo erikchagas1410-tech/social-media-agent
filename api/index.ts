@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import path from 'path';
+import fs from 'fs';
 import winston from 'winston';
 import Groq from 'groq-sdk';
 
@@ -442,9 +443,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     .tr { top:32px; right:32px; border-top:2px solid rgba(188,19,254,.5); border-right:2px solid rgba(188,19,254,.5); }
     .bl { bottom:32px; left:32px; border-bottom:2px solid rgba(188,19,254,.5); border-left:2px solid rgba(188,19,254,.5); }
     .br { bottom:32px; right:32px; border-bottom:2px solid rgba(188,19,254,.5); border-right:2px solid rgba(188,19,254,.5); }
-    .logo { position:absolute; bottom:48px; left:50%; transform:translateX(-50%); display:flex; align-items:center; gap:10px; white-space:nowrap; }
-    .logo-dot { width:8px; height:8px; border-radius:50%; background:#BC13FE; box-shadow:0 0 10px rgba(188,19,254,.9); }
-    .logo-txt { font-family:'Syne',sans-serif; font-weight:700; font-size:16px; letter-spacing:4px; text-transform:uppercase; }
+    .logo { position:absolute; bottom:40px; left:50%; transform:translateX(-50%); display:flex; align-items:center; justify-content:center; }
+    .logo img { height:52px; width:auto; object-fit:contain; }
     .grad  { background:linear-gradient(135deg,#BC13FE,#FF00E5); -webkit-background-clip:text; background-clip:text; color:transparent; }
     .grad2 { background:linear-gradient(135deg,#00F2FF,#BC13FE); -webkit-background-clip:text; background-clip:text; color:transparent; }
     .grad3 { background:linear-gradient(135deg,#FF00E5,#FF4488); -webkit-background-clip:text; background-clip:text; color:transparent; }
@@ -565,7 +565,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
                 <div id="card-div-line" class="div-line"></div>
                 <p id="card-sub" class="sub">Deixe a IA <strong>decidir por você.</strong></p>
               </div>
-              <div class="logo"><div class="logo-dot"></div><span class="logo-txt">Erizon</span><div class="logo-dot"></div></div>
+              <div class="logo"><img id="logo-img" src="/logo-erizon.png" style="height:52px;width:auto;object-fit:contain;" crossorigin="anonymous"></div>
             </div>
           </div>
         </div>
@@ -607,6 +607,31 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // STATE
     // ============================================================
     let currentPostType = 'instagram-feed';
+    let processedLogoUrl = null; // dataURL do logo sem fundo branco
+
+    // Carrega o logo, remove fundo branco via canvas e armazena como dataURL
+    (async function loadLogo() {
+      try {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = '/logo-erizon.png'; });
+        const c = document.createElement('canvas');
+        c.width = img.width; c.height = img.height;
+        const cx = c.getContext('2d');
+        cx.drawImage(img, 0, 0);
+        const id = cx.getImageData(0, 0, c.width, c.height);
+        const d = id.data;
+        for (let i = 0; i < d.length; i += 4) {
+          // Remove pixels brancos e quase-brancos (fundo)
+          if (d[i] > 230 && d[i+1] > 230 && d[i+2] > 230) d[i+3] = 0;
+        }
+        cx.putImageData(id, 0, 0);
+        processedLogoUrl = c.toDataURL('image/png');
+        // Atualiza a img do card com a versão sem fundo
+        const el = document.getElementById('logo-img');
+        if (el) el.src = processedLogoUrl;
+      } catch(e) { console.warn('Logo load error:', e); }
+    })();
     let carouselSlides = [];
     let currentSlideIdx = 0;
 
@@ -876,15 +901,19 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       ctx.drawImage(cardImg, 0, cardY);
 
       // Logo ERIZON embaixo do card
-      const logoY = cardY + W + 48;
-      ctx.fillStyle = 'rgba(188,19,254,0.8)';
-      ctx.beginPath(); ctx.arc(W/2 - 54, logoY + 6, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.beginPath(); ctx.arc(W/2 + 54, logoY + 6, 5, 0, Math.PI * 2); ctx.fill();
-      ctx.font = '700 18px "JetBrains Mono", monospace';
-      ctx.letterSpacing = '4px';
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#ffffff';
-      ctx.fillText('ERIZON', W/2, logoY + 10);
+      const logoSrc = processedLogoUrl || '/logo-erizon.png';
+      const logoImg = await new Promise((resolve) => {
+        const i = new Image(); i.crossOrigin = 'anonymous';
+        i.onload = () => resolve(i);
+        i.onerror = () => resolve(null);
+        i.src = logoSrc;
+      });
+      if (logoImg) {
+        const logoH = 72;
+        const logoW = logoH * (logoImg.width / logoImg.height);
+        const logoY = cardY + W + (420 - logoH) / 2;
+        ctx.drawImage(logoImg, (W - logoW) / 2, logoY, logoW, logoH);
+      }
 
       // Linha divisória acima do card
       const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
@@ -1089,6 +1118,18 @@ export default async function handler(req: any, res: any) {
       }
 
       return res.status(200).json({ success: true, results });
+    }
+
+    // Serve arquivos estáticos da pasta public/
+    if (method === 'GET') {
+      const filename = url.replace(/^\//, '');
+      const filePath = path.resolve(__dirname, '../public', filename);
+      if (fs.existsSync(filePath)) {
+        const ext = path.extname(filename).toLowerCase();
+        const mime: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
+        const buf = fs.readFileSync(filePath);
+        return res.status(200).setHeader('Content-Type', mime[ext] || 'application/octet-stream').setHeader('Cache-Control', 'public, max-age=86400').send(buf);
+      }
     }
 
     return res.status(404).json({ error: 'Rota não encontrada' });
