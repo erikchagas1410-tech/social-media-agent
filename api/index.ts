@@ -991,15 +991,39 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     }
 
     function fillCenteredText(ctx, segments, centerX, y) {
-      const widths = segments.map(seg => ctx.measureText(seg.text).width);
-      const total = widths.reduce((sum, w) => sum + w, 0);
-      let x = centerX - total / 2;
+      const metrics = segments.map(seg => {
+        const m = ctx.measureText(seg.text);
+        return {
+          width: m.width,
+          left: m.actualBoundingBoxLeft || 0,
+          right: m.actualBoundingBoxRight || m.width
+        };
+      });
+
+      let cursor = 0;
+      let minX = 0;
+      let maxX = 0;
+      metrics.forEach((m, idx) => {
+        const glyphLeft = cursor - m.left;
+        const glyphRight = cursor + m.right;
+        if (idx === 0) {
+          minX = glyphLeft;
+          maxX = glyphRight;
+        } else {
+          minX = Math.min(minX, glyphLeft);
+          maxX = Math.max(maxX, glyphRight);
+        }
+        cursor += m.width;
+      });
+
+      const totalWidth = maxX - minX;
+      let x = centerX - totalWidth / 2 - minX;
       const prevAlign = ctx.textAlign;
       ctx.textAlign = 'left';
       segments.forEach((seg, idx) => {
         ctx.fillStyle = seg.className === 'grad2' ? '#00F2FF' : seg.className === 'grad3' ? '#FF4488' : seg.className === 'grad' ? '#BC13FE' : '#FFFFFF';
         ctx.fillText(seg.text, x, y);
-        x += widths[idx];
+        x += metrics[idx].width;
       });
       ctx.textAlign = prevAlign;
     }
