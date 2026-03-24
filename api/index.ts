@@ -89,21 +89,25 @@ class SocialMediaAgent {
       
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
       
-      const systemPrompt = `Você é o estrategista de IA e marketing da ERIZON (Inteligência Operacional B2B - lema: detect > act > scale).
-      A ERIZON ajuda empresas a otimizarem operações de ponta a ponta através de dados, automação e IA.
-      Sua tarefa é gerar conteúdo para redes sociais. O usuário pediu para focar em EXPLICAR a ERIZON e seus benefícios, evitando ser apenas "frases de efeito".
+      const systemPrompt = `Você é o estrategista de IA e marketing da ERIZON (AI Marketing OS - lema: detect > act > scale).
+      A ERIZON é uma plataforma de Inteligência de Tráfego 100% brasileira. O sistema se conecta à conta Meta Ads do cliente para escalar campanhas e evitar desperdício de budget.
       
-      Escolha UM destes pilares para focar:
-      1. O que é a ERIZON e como funciona a Inteligência Operacional na prática.
-      2. Por que escolher a ERIZON (ganho de eficiência, otimização, fim dos gargalos).
-      3. Quando escolher a ERIZON (sintomas de que a empresa do cliente precisa escalar e transformar dados em ação).
-      4. Nosso diferencial competitivo (o método 'detect > act > scale', agindo no problema ao invés de só mostrar dashboards).
+      AQUI ESTÃO OS RECURSOS E DORES QUE A ERIZON RESOLVE (ESCOLHA APENAS 1 POR POST):
+      - Risk Radar / Campanhas Zumbi: Acha campanhas que queimam dinheiro e destroem ROAS por saturação de frequência.
+      - Decision Feed: Diz exatamente o que escalar, pausar ou trocar criativo e o porquê (sem adivinhação).
+      - Portal do Cliente: Relatórios automáticos e profissionais em 2 minutos (fim das planilhas de 4 horas).
+      - Copiloto 24/7 & Telegram: IA monitorando dados de madrugada, mandando alertas em tempo real.
+      - Anti-Vaidade: Educar que "ROAS alto mente se o CPL sobe e a margem cai". Foco no ROAS de break-even.
+
+      REGRAS VISUAIS DE PREVENÇÃO DE CORTE DE TEXTO (CRÍTICO):
+      - O texto será gerado em fonte GIGANTE no centro da imagem.
+      - 'h1' deve ter NO MÁXIMO 5 PALAVRAS! Use <br> para quebrar a linha na metade.
 
       RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO NO SEGUINTE FORMATO EXATO:
       {
-        "eyebrow": "// Categoria (Ex: // Meta Ads · Frequência ou // Inteligência de Dados)",
-        "h1": "Frase de impacto principal MÁXIMO de 8 palavras. USE OBRIGATORIAMENTE a tag <span class='grad'>palavra</span> para destacar 1 ou 2 palavras cruciais.",
-        "sub": "Subtítulo explicativo curto (MÁXIMO de 15 palavras). Use a tag <strong> para colocar em negrito a parte mais forte.",
+        "eyebrow": "// Categoria (ex: // Risk Radar ou // Copiloto IA 24/7)",
+        "h1": "Título GIGANTE, impactante e curtíssimo (MÁXIMO 5 PALAVRAS). Use a tag <span class='grad'>texto</span> na palavra forte.",
+        "sub": "Subtítulo descritivo de até 15 palavras explicando o benefício da Erizon. Use a tag <strong> para a parte importante.",
         "caption": "A legenda completa e detalhada para o post. Desenvolva o raciocínio, convença o leitor, mostre autoridade no assunto de automação/dados. Inclua as hashtags #Erizon #InteligenciaOperacional e emojis."
       }`;
 
@@ -312,13 +316,14 @@ const HTML_TEMPLATE = `
     
     .eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 13px; color: #00F2FF; letter-spacing: 4px; text-transform: uppercase; text-shadow: 0 0 14px rgba(0,242,255,.7); margin-bottom: 24px; }
     
-    .cc { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; z-index: 10; width: 860px; }
-    .h1 { font-family: 'Montserrat', sans-serif; font-weight: 900; line-height: 1.06; color: #fff; text-shadow: 0 0 40px rgba(188,19,254,.3); }
-    .sub { font-family: 'Inter', sans-serif; font-size: 20px; color: rgba(255,255,255,.6); line-height: 1.65; }
+    /* Anti-corte Flexível */
+    .cc { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%); text-align: center; z-index: 10; width: 90%; max-width: 900px; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 0 20px; box-sizing: border-box; }
+    .h1 { font-family: 'Montserrat', sans-serif; font-weight: 900; line-height: 1.1; color: #fff; text-shadow: 0 0 40px rgba(188,19,254,.3); font-size: 72px; word-wrap: break-word; max-width: 100%; }
+    .sub { font-family: 'Inter', sans-serif; font-size: 22px; color: rgba(255,255,255,.6); line-height: 1.6; max-width: 760px; }
     .sub strong { color: #fff; font-weight: 600; }
     
-    .light-t { position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 500px; height: 400px; background: radial-gradient(ellipse, rgba(188,19,254,.35) 0%, transparent 70%); filter: blur(50px); }
-    .light-b { position: absolute; bottom: -120px; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(255,0,229,.2) 0%, transparent 70%); filter: blur(50px); }
+    .light-t { position: absolute; top: -100px; left: 50%; transform: translateX(-50%); width: 500px; height: 400px; background: radial-gradient(ellipse, rgba(188,19,254,.35) 0%, transparent 70%); filter: blur(50px); transition: background 0.8s ease; }
+    .light-b { position: absolute; bottom: -120px; left: 50%; transform: translateX(-50%); width: 600px; height: 300px; background: radial-gradient(ellipse, rgba(255,0,229,.2) 0%, transparent 70%); filter: blur(50px); transition: background 0.8s ease; }
 
     /* Wrapper responsivo para o preview não vazar da tela */
     #card-wrapper { width: 100%; max-width: 500px; aspect-ratio: 1/1; position: relative; overflow: hidden; margin: 0 auto; border-radius: 12px; }
@@ -365,7 +370,7 @@ const HTML_TEMPLATE = `
             <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
             <div class="cc">
               <div id="card-eyebrow" class="eyebrow">// AI Marketing OS</div>
-              <h1 id="card-h1" class="h1" style="font-size:78px">Pare de<br><span class="grad">adivinhar.</span></h1>
+              <h1 id="card-h1" class="h1">Pare de<br><span class="grad">adivinhar.</span></h1>
               <div class="div-line"></div>
               <p id="card-sub" class="sub">Deixe a IA <strong>decidir por você.</strong><br>Com dados reais. Em português.</p>
             </div>
@@ -408,6 +413,28 @@ const HTML_TEMPLATE = `
     h1Input.addEventListener('input', e => document.getElementById('card-h1').innerHTML = e.target.value);
     subInput.addEventListener('input', e => document.getElementById('card-sub').innerHTML = e.target.value);
 
+    // Randomiza as orbes de fundo do card para a arte parecer sempre inédita!
+    function randomizeVisuals(h1Text) {
+      const colorSchemes = [
+        { t: 'rgba(188,19,254,', b: 'rgba(255,0,229,', o: 'rgba(188,19,254,' }, // Padrão Erizon (Roxo/Rosa)
+        { t: 'rgba(0,242,255,', b: 'rgba(188,19,254,', o: 'rgba(0,242,255,' }, // Ciano Tech
+        { t: 'rgba(255,0,100,', b: 'rgba(255,68,136,', o: 'rgba(255,0,100,' }  // Vermelho Risk Radar
+      ];
+      const pal = colorSchemes[Math.floor(Math.random() * colorSchemes.length)];
+      
+      document.querySelector('.light-t').style.background = 'radial-gradient(ellipse, ' + pal.t + '.35) 0%, transparent 70%)';
+      document.querySelector('.light-b').style.background = 'radial-gradient(ellipse, ' + pal.b + '.2) 0%, transparent 70%)';
+      document.querySelector('.orb-center').style.background = 'radial-gradient(circle at 40% 40%, ' + pal.o + '.28) 0%, ' + pal.b + '.12) 45%, transparent 70%)';
+
+      // Sorteia o gradiente do texto principal (grad, grad2 ou grad3)
+      const gradClasses = ['grad', 'grad2', 'grad3'];
+      const randomGrad = gradClasses[Math.floor(Math.random() * gradClasses.length)];
+      let textToInsert = h1Text.replace(/class=["']grad\d*["']/g, 'class="' + randomGrad + '"'); // substitui caso a IA gere com o número errado
+      if(!textToInsert.includes('class=')) textToInsert = textToInsert.replace(/<span/g, '<span class="' + randomGrad + '"'); // se esquecer a classe
+      
+      document.getElementById('card-h1').innerHTML = textToInsert;
+    }
+
     btnGenerate.addEventListener('click', async () => {
       loading.classList.remove('hidden');
       previewSection.classList.add('hidden');
@@ -423,8 +450,9 @@ const HTML_TEMPLATE = `
         subInput.value = data.sub || '';
         
         document.getElementById('card-eyebrow').innerHTML = data.eyebrow || '';
-        document.getElementById('card-h1').innerHTML = data.h1 || '';
         document.getElementById('card-sub').innerHTML = data.sub || '';
+
+        randomizeVisuals(data.h1 || '');
 
         previewSection.classList.remove('hidden');
         setTimeout(scaleCard, 100);
