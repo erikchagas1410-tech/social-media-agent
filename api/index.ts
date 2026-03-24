@@ -1088,20 +1088,24 @@ export default async function handler(req: any, res: any) {
       const { content, imageBase64, platforms } = req.body || {};
       if (!content || !imageBase64) return res.status(400).json({ error: 'Texto ou imagem faltando.' });
 
-      // Fazemos o upload para o Catbox.moe que aceita bots do Facebook sem bloquear (O ImgBB bloqueia o crawler do Insta)
-      const buffer = Buffer.from(imageBase64, 'base64');
-      const blob = new Blob([buffer], { type: 'image/jpeg' });
-      const form = new FormData();
-      form.append('reqtype', 'fileupload');
-      form.append('fileToUpload', blob, 'erizon-post.jpg');
+      if (!process.env.IMGUR_CLIENT_ID) {
+        return res.status(500).json({ success: false, error: 'IMGUR_CLIENT_ID não configurada no Vercel.' });
+      }
 
-      const uploadRes = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form });
-      if (!uploadRes.ok) return res.status(500).json({ success: false, error: 'Erro ao fazer upload da imagem.' });
-      
-      const imageUrl = await uploadRes.text();
-      if (!imageUrl.startsWith('http')) return res.status(500).json({ success: false, error: 'URL de imagem inválida gerada.' });
+      // Upload para o Imgur: API robusta e 100% compatível com o crawler do Instagram
+      const form = new URLSearchParams();
+      form.append('image', imageBase64);
 
-      logger.info(`Catbox Upload Success: ${imageUrl}`);
+      const uploadRes = await fetch('https://api.imgur.com/3/image', {
+        method: 'POST',
+        headers: { 'Authorization': `Client-ID ${process.env.IMGUR_CLIENT_ID}` },
+        body: form
+      });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.success) return res.status(500).json({ success: false, error: `Erro Imgur: ${uploadData.data.error}` });
+
+      const imageUrl = uploadData.data.link;
+      logger.info(`Imgur Upload Success: ${imageUrl}`);
       const agent    = new SocialMediaAgent();
       const results  = await agent.postToSocialMedia(content, imageUrl, imageBase64, platforms || ['instagram', 'linkedin']);
       return res.status(200).json({ success: true, results });
@@ -1112,21 +1116,20 @@ export default async function handler(req: any, res: any) {
       const { caption, imageBase64s, platforms } = req.body || {};
       if (!caption || !imageBase64s?.length) return res.status(400).json({ error: 'Caption ou imagens faltando.' });
 
-      // Upload todos os slides pro Catbox
+      if (!process.env.IMGUR_CLIENT_ID) {
+        return res.status(500).json({ success: false, error: 'IMGUR_CLIENT_ID não configurada.' });
+      }
+
+      // Upload todos os slides para o Imgur
       const imageUrls: string[] = [];
       for (let i = 0; i < imageBase64s.length; i++) {
         const b64 = imageBase64s[i];
-        const buffer = Buffer.from(b64, 'base64');
-        const blob = new Blob([buffer], { type: 'image/jpeg' });
-        const form = new FormData();
-        form.append('reqtype', 'fileupload');
-        form.append('fileToUpload', blob, `slide-${i}.jpg`);
-        
-        const r = await fetch('https://catbox.moe/user/api.php', { method: 'POST', body: form });
-        if (!r.ok) return res.status(500).json({ success: false, error: `Erro Catbox slide ${i}: ` + r.statusText });
-        const url = await r.text();
-        if (!url.startsWith('http')) return res.status(500).json({ success: false, error: 'URL inválida no slide ' + i });
-        imageUrls.push(url);
+        const form = new URLSearchParams();
+        form.append('image', b64);
+        const r = await fetch('https://api.imgur.com/3/image', { method: 'POST', headers: { 'Authorization': `Client-ID ${process.env.IMGUR_CLIENT_ID}` }, body: form });
+        const d = await r.json();
+        if (!d.success) return res.status(500).json({ success: false, error: `Erro Imgur slide ${i}: ${d.data.error}` });
+        imageUrls.push(d.data.link);
       }
 
       const agent   = new SocialMediaAgent();
