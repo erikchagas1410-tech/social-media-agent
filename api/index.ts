@@ -269,30 +269,54 @@ const HTML_TEMPLATE = `
       <div>
         <label class="block text-sm font-bold text-gray-700 mb-2">Imagem para o Instagram</label>
         
-        <!-- Template ERIZON para Captura -->
-        <div id="capture-area" class="bg-[#0B0112] text-white p-8 border border-[#BC13FE]/30 shadow-[0_0_30px_rgba(188,19,254,0.2)] flex flex-col justify-between relative overflow-hidden mx-auto" style="width: 100%; aspect-ratio: 1/1; max-width: 500px;">
-          <!-- Orbes de Luz Neo-futuristas -->
-          <div class="absolute -top-20 -left-20 w-64 h-64 bg-[#BC13FE] rounded-full mix-blend-screen filter blur-[80px] opacity-50"></div>
-          <div class="absolute -bottom-20 -right-20 w-64 h-64 bg-[#00F2FF] rounded-full mix-blend-screen filter blur-[80px] opacity-30"></div>
-          <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full h-full bg-[#FF00E5] rounded-full mix-blend-screen filter blur-[120px] opacity-10"></div>
+        <!-- Template ERIZON para Captura (Design Premium & html2canvas friendly) -->
+        <div id="capture-area" class="relative flex flex-col justify-center items-center bg-[#0A0510] p-6 md:p-10 mx-auto overflow-hidden shadow-2xl" style="width: 100%; aspect-ratio: 1/1; max-width: 600px;">
           
-          <!-- Topo -->
-          <div class="flex justify-between items-center z-10">
-            <div class="font-extrabold text-3xl tracking-wider" style="font-family: 'Syne', sans-serif;">E<span class="text-[#BC13FE]">RI</span>ZON</div>
-            <div class="text-[#00F2FF] text-xs font-mono tracking-widest uppercase" style="font-family: 'JetBrains Mono', monospace;">Inteligência Operacional</div>
-          </div>
+          <!-- Efeitos de Fundo (Compatíveis com html2canvas) -->
+          <div class="absolute inset-0" style="background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.07) 1px, transparent 0); background-size: 24px 24px;"></div>
+          
+          <!-- Orbes Suaves -->
+          <div class="absolute -top-32 -right-32 w-96 h-96 bg-[#BC13FE] rounded-full filter blur-[100px] opacity-30"></div>
+          <div class="absolute -bottom-32 -left-32 w-96 h-96 bg-[#00F2FF] rounded-full filter blur-[100px] opacity-20"></div>
 
-          <!-- Centro (Live Text) -->
-          <div class="z-10 flex-grow flex items-center justify-center my-6">
-            <p id="card-text-display" class="text-xl md:text-2xl font-medium leading-relaxed text-center px-4" style="font-family: 'Plus Jakarta Sans', sans-serif;">
-              Sua mensagem gerada pela IA aparecerá aqui.
-            </p>
-          </div>
+          <!-- Container do Conteúdo (Design de Carta Premium) -->
+          <div class="relative z-10 flex flex-col justify-between w-full h-full bg-[#1A1025]/80 border border-[#BC13FE]/20 rounded-3xl p-6 md:p-8 shadow-[0_0_40px_rgba(188,19,254,0.1)]">
+            
+            <!-- Topo / Marca -->
+            <div class="flex justify-between items-start w-full">
+              <div class="flex items-center gap-3 md:gap-4">
+                <div class="w-10 h-10 md:w-14 md:h-14 rounded-xl bg-gradient-to-br from-[#BC13FE] to-[#FF00E5] flex items-center justify-center text-white font-extrabold text-xl md:text-3xl shadow-lg" style="font-family: 'Syne', sans-serif;">E</div>
+                <div class="flex flex-col">
+                  <div class="font-extrabold text-xl md:text-3xl text-white tracking-widest" style="font-family: 'Syne', sans-serif;">ERIZON</div>
+                  <div class="text-[#00F2FF] text-[8px] md:text-[10px] font-mono tracking-widest uppercase mt-0.5">Inteligência Operacional</div>
+                </div>
+              </div>
+              <div class="px-3 py-1.5 rounded-full border border-[#BC13FE]/30 bg-[#BC13FE]/10 text-white/90 text-[8px] md:text-[10px] font-mono tracking-widest uppercase flex items-center gap-2">
+                <span class="w-1.5 h-1.5 md:w-2 md:h-2 rounded-full bg-[#00F2FF]"></span> IA Insight
+              </div>
+            </div>
 
-          <!-- Rodapé -->
-          <div class="z-10 flex justify-between items-end border-t border-[#BC13FE]/30 pt-4">
-            <div class="text-[10px] text-gray-400 uppercase tracking-widest" style="font-family: 'JetBrains Mono', monospace;">detect &gt; act &gt; scale</div>
-            <div class="text-[#FF00E5] text-sm font-bold tracking-wide" style="font-family: 'Syne', sans-serif;">ERIZON.COM.BR</div>
+            <!-- Centro / Mensagem Principal -->
+            <div class="flex flex-col justify-center flex-grow py-6 md:py-10 w-full">
+              <!-- Aspas duplas estilosas -->
+              <svg class="w-8 h-8 md:w-12 md:h-12 text-[#BC13FE] mb-4 md:mb-6 opacity-80" fill="currentColor" viewBox="0 0 24 24"><path d="M14.017 21v-7.391c0-5.704 3.731-9.57 8.983-10.609l.995 2.151c-2.432.917-3.995 3.638-3.995 5.849h4v10h-9.983zm-14.017 0v-7.391c0-5.704 3.748-9.57 9-10.609l.996 2.151c-2.433.917-3.996 3.638-3.996 5.849h3.983v10h-9.983z"/></svg>
+              <p id="card-text-display" class="text-xl md:text-3xl font-medium leading-relaxed text-white" style="font-family: 'Plus Jakarta Sans', sans-serif;">
+                Sua mensagem gerada pela IA aparecerá aqui.
+              </p>
+            </div>
+
+            <!-- Rodapé / Assinatura -->
+            <div class="flex justify-between items-end w-full pt-5 md:pt-6 border-t border-[#BC13FE]/20">
+              <div class="flex flex-col gap-1.5">
+                <div class="text-[8px] md:text-[11px] text-[#00F2FF]/70 uppercase tracking-[0.2em]" style="font-family: 'JetBrains Mono', monospace;">detect > act > scale</div>
+                <div class="text-white text-xs md:text-base font-bold tracking-wider" style="font-family: 'Syne', sans-serif;">ERIZON.COM.BR</div>
+              </div>
+              <div class="flex gap-1.5 md:gap-2 mb-1">
+                <div class="h-1.5 md:h-2 w-6 md:w-8 bg-[#BC13FE] rounded-full"></div>
+                <div class="h-1.5 md:h-2 w-3 md:w-4 bg-[#00F2FF] rounded-full"></div>
+                <div class="h-1.5 md:h-2 w-1.5 md:w-2 bg-[#FF00E5] rounded-full"></div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -345,8 +369,8 @@ const HTML_TEMPLATE = `
       statusMessage.classList.add('hidden');
 
       try {
-        // Tira o "print" do Card ERIZON e converte pra base64 (ignora o fundo branco, pega qualidade alta)
-        const canvas = await html2canvas(document.getElementById('capture-area'), { scale: 2, useCORS: true, backgroundColor: '#0B0112' });
+        // Tira o print com o scale 3 para aumentar bastante a qualidade da imagem, pronto para as redes!
+        const canvas = await html2canvas(document.getElementById('capture-area'), { scale: 3, useCORS: true, backgroundColor: '#0A0510' });
         const imageBase64 = canvas.toDataURL('image/jpeg', 0.9).split(',')[1];
 
         const res = await fetch('/api/publish', {
