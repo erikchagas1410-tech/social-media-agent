@@ -901,12 +901,19 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const container = document.createElement('div');
       container.style.position = 'fixed';
       container.style.top = '0';
-      container.style.left = '-20000px';
+      container.style.left = '0';
       container.style.width = '1080px';
+      container.style.height = '1080px';
       container.style.height = '0'; // Altura zero para não criar barra de rolagem na sua tela
       container.style.overflow = 'visible';
-      container.style.zIndex = '-9999';
+      container.style.height = '1080px';
+      container.style.zIndex = '0';
       container.style.pointerEvents = 'none';
+      container.style.opacity = '0.01';
+      container.style.zIndex = '-1';
+      clone.style.width = '1080px';
+      clone.style.height = '1080px';
+      clone.style.background = '#0B0112';
       
       container.appendChild(clone);
       document.body.appendChild(container);
@@ -917,8 +924,11 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const canvas = await html2canvas(clone, {
         scale: 1, // 1080x1080 exatos pro Instagram engolir feliz
         useCORS: true,
+        foreignObjectRendering: true,
         backgroundColor: '#0B0112',
         logging: false,
+        windowWidth: 1080,
+        windowHeight: 1080,
         width: 1080,
         height: 1080
       });
@@ -931,6 +941,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
     // Gera imagem 1080×1920 para Story: card centralizado + brand background nas faixas
     async function renderStory() {
+      await waitForRenderAssets();
       const cardB64 = await renderCard(); // 1080×1080
       const cardImg = await new Promise((resolve) => {
         const img = new Image();
