@@ -6,6 +6,7 @@
   },
   "rewrites": [
     { "source": "/", "destination": "/api" },
+    { "source": "/strategy", "destination": "/api" },
     { "source": "/api/:path*", "destination": "/api" }
   ]
 }
