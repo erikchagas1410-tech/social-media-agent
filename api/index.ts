@@ -100,6 +100,9 @@ interface PostContent {
   h1: string;
   sub: string;
   caption: string;
+  supporting?: string[];
+  stats?: Array<{ value: string; label: string }>;
+  formatHint?: 'fact' | 'checklist' | 'stats';
 }
 
 interface CarouselContent {
@@ -203,21 +206,26 @@ HISTORICO RECENTE DE POSTS DA ERIZON:
 ${this.buildRecentPostsBlock(recentPosts)}
 
 REGRAS ABSOLUTAS DE COPYWRITING VIRAL:
-1. H1 deve PARAR O SCROLL: máximo 5 palavras, cria curiosidade OU choca OU faz o leitor concordar instantaneamente
+1. H1 deve PARAR O SCROLL: máximo 6 palavras, cria curiosidade OU choca OU faz o leitor concordar instantaneamente
 2. Cada post foca em UM único pilar editorial — nunca misture temas
 3. Caption: hook → desenvolvimento → dado/prova → CTA (salva / comenta / compartilha)
 4. Nunca use linguagem corporativa genérica. Fale como expert que domina tráfego pago
 5. Use dados e números específicos quando relevante (aumentam autoridade e credibilidade)
-6. H1: MÁXIMO 5 PALAVRAS com <br> na metade e <span class='grad'>palavra-impacto</span> na palavra mais forte
+6. H1: MÁXIMO 6 PALAVRAS com <br> na metade e <span class='grad'>palavra-impacto</span> na palavra mais forte
 7. Nunca repita ângulo, promessa, dor principal ou CTA dominante do histórico recente
 8. Instagram deve maximizar salvamento, compartilhamento e resposta no direct
 9. LinkedIn deve maximizar autoridade, clareza estratégica e percepção premium da ERIZON
+10. O card precisa ter densidade visual e intelectual: headline forte + subtítulo mais desenvolvido + blocos auxiliares de conteúdo
+11. Sempre que possível, inclua checklist, mini-provas, comparativos curtos ou métricas rápidas inspiradas em posts premium de performance marketing
 
 RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
 {
   "eyebrow": "// Categoria (ex: // Risk Radar | // Decision Feed | // Anti-Vaidade | // Copiloto IA)",
-  "h1": "Máx 5 palavras com <br> e <span class='grad'>palavra</span>",
-  "sub": "Subtítulo até 15 palavras com <strong> na parte que mais convence",
+  "h1": "Máx 6 palavras com <br> e <span class='grad'>palavra</span>",
+  "sub": "Subtítulo até 26 palavras com <strong> na parte que mais convence",
+  "supporting": ["bloco curto 1", "bloco curto 2", "bloco curto 3"],
+  "stats": [{"value":"3x","label":"mais rápido"},{"value":"24h","label":"monitoramento"},{"value":"-28%","label":"desperdício"}],
+  "formatHint": "fact ou checklist ou stats",
   "caption": "Caption viral completa com emojis, dados, CTA e hashtags estratégicas."
 }`;
 
@@ -238,7 +246,18 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
       return {
         eyebrow: '// Risk Radar',
         h1: 'Seu ROAS<br><span class="grad">mente.</span>',
-        sub: 'ROAS de vaidade destrói margem. <strong>Aprenda a diferença.</strong>',
+        sub: 'ROAS de vaidade destrói margem sem fazer barulho. <strong>Aprenda a separar número bonito de operação saudável.</strong>',
+        supporting: [
+          'ROAS alto não garante lucro.',
+          'Frequência subindo pode mascarar queda de eficiência.',
+          'Break-even real decide se escalar faz sentido.'
+        ],
+        stats: [
+          { value: '24h', label: 'alerta crítico' },
+          { value: '3x', label: 'mais clareza' },
+          { value: '-28%', label: 'gasto evitado' }
+        ],
+        formatHint: 'stats',
         caption: '🚨 Seu ROAS está alto, mas sua margem está caindo?\n\nIsso não é coincidência. É a armadilha das métricas de vaidade.\n\nA Erizon calcula o ROAS de break-even real das suas campanhas — e te diz exatamente quando o "sucesso" está te custando dinheiro.\n\nSalve esse post. Você vai precisar. 📌\n\n#GestordeTrafego #MetaAds #Erizon #ROAS #Performance'
       };
     }
@@ -661,9 +680,25 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     .div-line { width:60px; height:2px; background:linear-gradient(90deg,transparent,#BC13FE,transparent); margin:28px auto; box-shadow:0 0 12px rgba(188,19,254,.8); }
     .eyebrow { font-family:'JetBrains Mono',monospace; font-size:13px; color:#00F2FF; letter-spacing:4px; text-transform:uppercase; text-shadow:0 0 14px rgba(0,242,255,.7); margin-bottom:24px; }
     .cc { position:absolute; top:0; left:0; right:0; bottom:0; text-align:center; z-index:10; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 90px; box-sizing:border-box; margin:auto; }
-    .h1 { font-family:'Syne',sans-serif; font-weight:800; line-height:1.1; color:#fff; text-shadow:0 0 40px rgba(188,19,254,.3); font-size:72px; word-wrap:break-word; max-width:100%; }
-    .sub { font-family:'Plus Jakarta Sans',sans-serif; font-size:22px; color:rgba(255,255,255,.6); line-height:1.6; max-width:760px; }
+    .h1 { font-family:'Syne',sans-serif; font-weight:800; line-height:1.06; color:#fff; text-shadow:0 0 40px rgba(188,19,254,.3); font-size:62px; word-wrap:break-word; max-width:100%; }
+    .sub { font-family:'Plus Jakarta Sans',sans-serif; font-size:20px; color:rgba(255,255,255,.72); line-height:1.55; max-width:760px; }
     .sub strong { color:#fff; font-weight:600; }
+    .support-wrap { width:100%; max-width:780px; margin-top:26px; display:none; }
+    .support-wrap.active { display:block; }
+    .support-fact { background:rgba(188,19,254,.08); border:1px solid rgba(188,19,254,.22); border-radius:16px; padding:20px 22px; text-align:left; display:none; }
+    .support-fact.active { display:block; }
+    .support-kicker { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:2px; color:#BC13FE; text-transform:uppercase; margin-bottom:8px; }
+    .support-fact p { font-size:15px; color:rgba(255,255,255,.72); line-height:1.6; }
+    .support-list { display:none; flex-direction:column; gap:14px; }
+    .support-list.active { display:flex; }
+    .support-item { display:flex; gap:14px; align-items:flex-start; background:rgba(188,19,254,.06); border:1px solid rgba(188,19,254,.16); border-radius:12px; padding:14px 16px; text-align:left; }
+    .support-num { font-family:'JetBrains Mono',monospace; color:#BC13FE; font-size:16px; min-width:28px; }
+    .support-copy { font-size:15px; line-height:1.45; color:#fff; }
+    .support-stats { display:none; grid-template-columns:repeat(3,1fr); gap:14px; }
+    .support-stats.active { display:grid; }
+    .support-stat { background:rgba(255,255,255,.04); border:1px solid rgba(188,19,254,.18); border-radius:12px; padding:16px 12px; text-align:center; }
+    .support-stat-value { font-family:'JetBrains Mono',monospace; font-size:28px; font-weight:700; color:#fff; text-shadow:0 0 18px rgba(188,19,254,.35); }
+    .support-stat-label { font-size:11px; letter-spacing:1.5px; text-transform:uppercase; color:rgba(255,255,255,.48); margin-top:6px; }
     .lc { position:absolute; top:0; left:80px; bottom:0; height:100%; z-index:10; width:800px; display:flex; flex-direction:column; align-items:flex-start; justify-content:center; padding:0; box-sizing:border-box; text-align:left; }
     .lc .h1, .lc .sub { text-align:left; }
     .accent-bar { position:absolute; left:0; top:0; bottom:0; width:6px; background:linear-gradient(to bottom,transparent,#BC13FE 30%,#FF00E5 70%,transparent); display:none; }
@@ -769,6 +804,22 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
                 <h1 id="card-h1" class="h1">Pare de<br><span class="grad">adivinhar.</span></h1>
                 <div id="card-div-line" class="div-line"></div>
                 <p id="card-sub" class="sub">Deixe a IA <strong>decidir por você.</strong></p>
+                <div id="support-wrap" class="support-wrap">
+                  <div id="support-fact" class="support-fact">
+                    <div class="support-kicker">Insight</div>
+                    <p id="support-fact-text"></p>
+                  </div>
+                  <div id="support-list" class="support-list">
+                    <div class="support-item"><div class="support-num">01</div><div id="support-item-1" class="support-copy"></div></div>
+                    <div class="support-item"><div class="support-num">02</div><div id="support-item-2" class="support-copy"></div></div>
+                    <div class="support-item"><div class="support-num">03</div><div id="support-item-3" class="support-copy"></div></div>
+                  </div>
+                  <div id="support-stats" class="support-stats">
+                    <div class="support-stat"><div id="support-stat-value-1" class="support-stat-value"></div><div id="support-stat-label-1" class="support-stat-label"></div></div>
+                    <div class="support-stat"><div id="support-stat-value-2" class="support-stat-value"></div><div id="support-stat-label-2" class="support-stat-label"></div></div>
+                    <div class="support-stat"><div id="support-stat-value-3" class="support-stat-value"></div><div id="support-stat-label-3" class="support-stat-label"></div></div>
+                  </div>
+                </div>
               </div>
               <div class="logo"><img id="logo-img" src="${LOGO_DATA_URL || '/logo-erizon.png'}" style="height:52px;width:auto;object-fit:contain;"></div>
             </div>
@@ -882,6 +933,47 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     })();
     let carouselSlides = [];
     let currentSlideIdx = 0;
+    let currentContentExtras = { supporting: [], stats: [], formatHint: 'fact' };
+
+    function normalizeContentExtras(data) {
+      const supporting = Array.isArray(data?.supporting) ? data.supporting.filter(Boolean).slice(0, 3) : [];
+      const stats = Array.isArray(data?.stats) ? data.stats.filter(Boolean).slice(0, 3) : [];
+      const formatHint = data?.formatHint || (stats.length ? 'stats' : supporting.length > 1 ? 'checklist' : 'fact');
+      return { supporting, stats, formatHint };
+    }
+
+    function applySupportModules() {
+      const wrap = document.getElementById('support-wrap');
+      const fact = document.getElementById('support-fact');
+      const factText = document.getElementById('support-fact-text');
+      const list = document.getElementById('support-list');
+      const stats = document.getElementById('support-stats');
+      const extras = currentContentExtras || { supporting: [], stats: [], formatHint: 'fact' };
+
+      wrap.classList.remove('active');
+      fact.classList.remove('active');
+      list.classList.remove('active');
+      stats.classList.remove('active');
+
+      if (extras.formatHint === 'stats' && extras.stats.length) {
+        wrap.classList.add('active');
+        stats.classList.add('active');
+        extras.stats.slice(0, 3).forEach((item, idx) => {
+          document.getElementById('support-stat-value-' + (idx + 1)).textContent = item.value || '';
+          document.getElementById('support-stat-label-' + (idx + 1)).textContent = item.label || '';
+        });
+      } else if (extras.formatHint === 'checklist' && extras.supporting.length) {
+        wrap.classList.add('active');
+        list.classList.add('active');
+        for (let i = 0; i < 3; i++) {
+          document.getElementById('support-item-' + (i + 1)).textContent = extras.supporting[i] || '';
+        }
+      } else if (extras.supporting.length) {
+        wrap.classList.add('active');
+        fact.classList.add('active');
+        factText.textContent = extras.supporting[0];
+      }
+    }
 
     async function waitForRenderAssets() {
       try {
@@ -1182,6 +1274,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // ============================================================
     function showSlide(idx) {
       if (!carouselSlides.length) return;
+      currentContentExtras = { supporting: [], stats: [], formatHint: 'fact' };
+      applySupportModules();
       currentSlideIdx = Math.max(0, Math.min(idx, carouselSlides.length - 1));
       const s = carouselSlides[currentSlideIdx];
       eyebrowInput.value = s.eyebrow || '';
@@ -1220,6 +1314,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
         if (isCarousel) {
           carouselSlides = data.slides || [];
+          currentContentExtras = { supporting: [], stats: [], formatHint: 'fact' };
           postContent.value = data.caption || '';
           carouselNav.classList.remove('hidden');
           slideBadge.classList.remove('hidden');
@@ -1235,6 +1330,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           carouselSlides = [];
           carouselNav.classList.add('hidden');
           slideBadge.classList.add('hidden');
+          currentContentExtras = normalizeContentExtras(data);
           postContent.value    = data.caption || '';
           eyebrowInput.value   = data.eyebrow || '';
           h1Input.value        = data.h1      || '';
@@ -1242,6 +1338,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           document.getElementById('card-eyebrow').innerHTML = data.eyebrow || '';
           document.getElementById('card-sub').innerHTML     = data.sub     || '';
           randomizeVisuals(data.h1 || '');
+          applySupportModules();
           rememberPost({
             platform: currentPostType,
             eyebrow: data.eyebrow || '',
@@ -1462,6 +1559,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const showGrid = visual.showGrid !== false;
       const showCorners = visual.showCorners !== false;
       const showRings = visual.showRings !== false;
+      const extras = currentContentExtras || { supporting: [], stats: [], formatHint: 'fact' };
       const eyebrow = stripHtml(document.getElementById('card-eyebrow').innerHTML);
       const h1Lines = parseRichLines(document.getElementById('card-h1').innerHTML);
       const subText = stripHtml(document.getElementById('card-sub').innerHTML);
@@ -1758,6 +1856,81 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         else ctx.fillText(line, leftX, subY);
         subY += 34;
       });
+
+      const blockWidth = isCenterLayout ? 760 : 720;
+      const blockX = isCenterLayout ? (W - blockWidth) / 2 : isRightLayout ? rightX - blockWidth : leftX;
+      let moduleY = subY + 24;
+
+      function drawModuleText(text, x, y, width, color, lineHeight) {
+        ctx.textAlign = 'left';
+        ctx.fillStyle = color;
+        wrapText(ctx, text, width).forEach(line => {
+          ctx.fillText(line, x, y);
+          y += lineHeight;
+        });
+        return y;
+      }
+
+      if (extras.formatHint === 'stats' && extras.stats?.length) {
+        const statWidth = Math.floor((blockWidth - 28) / 3);
+        const statHeight = 92;
+        extras.stats.slice(0, 3).forEach((item, idx) => {
+          const x = blockX + idx * (statWidth + 14);
+          ctx.fillStyle = 'rgba(255,255,255,0.04)';
+          ctx.strokeStyle = 'rgba(188,19,254,0.18)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(x, moduleY, statWidth, statHeight, 12);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.textAlign = 'center';
+          ctx.font = '700 28px "JetBrains Mono", monospace';
+          ctx.fillStyle = '#FFFFFF';
+          ctx.fillText(item.value || '', x + statWidth / 2, moduleY + 34);
+          ctx.font = '500 10px "JetBrains Mono", monospace';
+          ctx.fillStyle = 'rgba(255,255,255,0.5)';
+          ctx.fillText((item.label || '').toUpperCase(), x + statWidth / 2, moduleY + 60);
+        });
+        moduleY += statHeight + 12;
+      } else if (extras.formatHint === 'checklist' && extras.supporting?.length) {
+        extras.supporting.slice(0, 3).forEach((item, idx) => {
+          const itemHeight = 68;
+          ctx.fillStyle = idx === 0 ? 'rgba(188,19,254,0.12)' : 'rgba(188,19,254,0.06)';
+          ctx.strokeStyle = idx === 0 ? 'rgba(188,19,254,0.4)' : 'rgba(188,19,254,0.16)';
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          ctx.roundRect(blockX, moduleY, blockWidth, itemHeight, 12);
+          ctx.fill();
+          ctx.stroke();
+
+          ctx.textAlign = 'left';
+          ctx.font = '700 16px "JetBrains Mono", monospace';
+          ctx.fillStyle = '#BC13FE';
+          ctx.fillText('0' + (idx + 1), blockX + 18, moduleY + 28);
+          ctx.font = '500 15px "Plus Jakarta Sans", sans-serif';
+          ctx.fillStyle = '#FFFFFF';
+          drawModuleText(item, blockX + 58, moduleY + 26, blockWidth - 76, '#FFFFFF', 18);
+          moduleY += itemHeight + 12;
+        });
+      } else if (extras.supporting?.length) {
+        const factHeight = 110;
+        ctx.fillStyle = 'rgba(188,19,254,0.08)';
+        ctx.strokeStyle = 'rgba(188,19,254,0.22)';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.roundRect(blockX, moduleY, blockWidth, factHeight, 16);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.textAlign = 'left';
+        ctx.font = '500 10px "JetBrains Mono", monospace';
+        ctx.fillStyle = '#BC13FE';
+        ctx.fillText('INSIGHT', blockX + 20, moduleY + 24);
+        ctx.font = '500 15px "Plus Jakarta Sans", sans-serif';
+        drawModuleText(extras.supporting[0], blockX + 20, moduleY + 52, blockWidth - 40, 'rgba(255,255,255,0.75)', 20);
+        moduleY += factHeight + 12;
+      }
 
       const logoSrc = processedLogoUrl || '/logo-erizon.png';
       const logoImg = await new Promise((resolve) => {
