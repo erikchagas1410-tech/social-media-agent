@@ -149,6 +149,20 @@ function parseImagePayload(imageInput: string): ImagePayload {
   return { base64: imageInput, mimeType: 'image/jpeg', extension: 'jpg' };
 }
 
+type EditorialTab = 'erizon' | 'specialists' | 'market' | 'diagnostics' | 'stories' | 'social-proof' | 'anti-myth' | 'series' | 'uploads';
+
+const TAB_CONTEXTS: Record<string, string> = {
+  'erizon': 'Foque 100% na ERIZON: o que a plataforma calcula, como funciona o copiloto, pulse, decision feed, risk radar. Provas de valor, economia de tempo, bastidores, objeções comuns.',
+  'specialists': 'Foque em dicas de especialistas: interpretação de ROAS, CPA, frequência, CTR. Erros de escala, sinais de fadiga de criativo, checklists e frameworks de otimização no Meta/Google Ads.',
+  'market': 'Foque em notícias e atualizações de mercado: mudanças no Meta Ads, novidades de tracking, IA, criativos e leitura estratégica para quem compra mídia.',
+  'diagnostics': 'Foque em diagnósticos de cenário real: ex: "ROAS caiu 30%", "frequência 4.2", "campanha boa no CTR, ruim no lucro". O que olhar primeiro, como resolver.',
+  'stories': 'Foque em stories interativos: enquetes, quiz, pergunta aberta, reações. Crie conteúdo que force a resposta ou voto da audiência.',
+  'social-proof': 'Foque em prova social: antes/depois, tempo economizado, problema detectado antes da perda, cases resumidos.',
+  'anti-myth': 'Foque em quebrar mitos: "ROAS alto não significa lucro", "mais orçamento não corrige campanha ruim", "dashboard não é decisão".',
+  'series': 'Foque em uma série fixa: "Radar da Semana", "Erro Caro", "Decisão de Hoje", "Raio-X de Campanha" ou "1 Minuto de Operação".',
+  'uploads': 'Foque em feedback de clientes: celebre um resultado, agradeça o cliente, crie um hook mostrando que o método funciona. Se houver contexto adicional do usuário, use-o.'
+};
+
 // ============================================================
 // AGENT CLASS
 // ============================================================
@@ -176,7 +190,7 @@ class SocialMediaAgent {
       .join('\n');
   }
 
-  async generatePost(postType: PostType = 'instagram-feed', recentPosts: PostMemoryEntry[] = []): Promise<PostContent> {
+  async generatePost(postType: PostType = 'instagram-feed', recentPosts: PostMemoryEntry[] = [], editorialTab: string = 'erizon', uploadContext: string = ''): Promise<PostContent> {
     try {
       if (!process.env.GROQ_API_KEY) {
         return {
@@ -196,11 +210,19 @@ class SocialMediaAgent {
         'linkedin': 'Feed LinkedIn para profissionais de marketing. Tom analítico e de autoridade. Caption mais longa com insights e dados. Menos emojis, mais substância. 3-5 hashtags profissionais.'
       };
 
+      const tabPrompt = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
+      let userContext = `Gere um conteúdo VIRAL e INÉDITO para a ERIZON. Escolha um pilar editorial inesperado, com potencial real de engajamento e aquisição. Não repita o histórico recente. Tipo: ${postType}`;
+      
+      if (editorialTab === 'uploads' && uploadContext) {
+        userContext = `Gere um conteúdo VIRAL baseado neste feedback/print enviado pelo usuário: "${uploadContext}". Destaque o resultado, crie um hook forte e uma prova social inquestionável. Tipo: ${postType}`;
+      }
+
       const systemPrompt = `Você é o estrategista-chefe de marketing e social media da ERIZON — especialista em criar conteúdo viral que engaja gestores de tráfego, faz o perfil explodir e gera leads qualificados no Brasil.
 
 ${ERIZON_BRAND_CONTEXT}
 
 TIPO DE POST: ${platformHints[postType]}
+FOCO EDITORIAL: ${tabPrompt}
 
 HISTORICO RECENTE DE POSTS DA ERIZON:
 ${this.buildRecentPostsBlock(recentPosts)}
@@ -232,7 +254,7 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
       const response = await groq.chat.completions.create({
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Gere um conteúdo VIRAL e INÉDITO para a ERIZON. Escolha um pilar editorial inesperado, com potencial real de engajamento e aquisição. Não repita o histórico recente. Tipo: ${postType}` }
+          { role: 'user', content: userContext }
         ],
         model: 'llama-3.3-70b-versatile',
         temperature: 0.92,
@@ -263,7 +285,7 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
     }
   }
 
-  async generateCarousel(recentPosts: PostMemoryEntry[] = []): Promise<CarouselContent> {
+  async generateCarousel(recentPosts: PostMemoryEntry[] = [], editorialTab: string = 'erizon'): Promise<CarouselContent> {
     try {
       if (!process.env.GROQ_API_KEY) {
         return {
@@ -680,6 +702,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     .div-line { width:60px; height:2px; background:linear-gradient(90deg,transparent,#BC13FE,transparent); margin:28px auto; box-shadow:0 0 12px rgba(188,19,254,.8); }
     .eyebrow { font-family:'JetBrains Mono',monospace; font-size:13px; color:#00F2FF; letter-spacing:4px; text-transform:uppercase; text-shadow:0 0 14px rgba(0,242,255,.7); margin-bottom:24px; }
     .cc { position:absolute; top:0; left:0; right:0; bottom:0; text-align:center; z-index:10; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 90px; box-sizing:border-box; margin:auto; }
+    .cc.layout-feedback { padding-top:520px; }
     .h1 { font-family:'Montserrat',sans-serif; font-weight:900; line-height:1.06; color:#fff; text-shadow:0 0 40px rgba(188,19,254,.3); font-size:62px; word-wrap:break-word; max-width:100%; }
     .sub { font-family:'Plus Jakarta Sans',sans-serif; font-size:20px; color:rgba(255,255,255,.72); line-height:1.55; max-width:760px; }
     .sub strong { color:#fff; font-weight:600; }
@@ -706,6 +729,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     .slide-badge { position:absolute; top:48px; right:56px; font-family:'JetBrains Mono',monospace; font-size:11px; color:rgba(188,19,254,.7); letter-spacing:2px; z-index:20; }
     #card-wrapper { width:100%; max-width:500px; aspect-ratio:1/1; position:relative; overflow:hidden; margin:0 auto; border-radius:12px; }
     #capture-area { transform-origin:top left; }
+    .feedback-frame { position:absolute; top:120px; left:0; right:0; margin:auto; width:680px; height:500px; background:rgba(255,255,255,.05); border:1px solid rgba(0,242,255,.5); border-radius:20px; overflow:hidden; box-shadow:0 0 40px rgba(0,242,255,.2); display:none; z-index:15; }
+    .feedback-frame img { width:100%; height:100%; object-fit:contain; backdrop-filter:blur(8px); }
+    .feedback-frame.active { display:block; }
 
     /* UI Styles */
     body { background:#080010; min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif; }
@@ -714,6 +740,11 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     .field-label { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.15em; color:rgba(255,255,255,.4); text-transform:uppercase; margin-bottom:6px; display:block; }
     .field { width:100%; background:rgba(255,255,255,.04); border:0.5px solid rgba(188,19,254,.25); border-radius:8px; padding:10px 12px; color:#fff; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; outline:none; transition:border-color .2s; resize:vertical; }
     .field:focus { border-color:rgba(188,19,254,.6); }
+    .tab-btn { background:rgba(255,255,255,.03); border:0.5px solid rgba(255,255,255,.1); color:rgba(255,255,255,.6); padding:8px 14px; border-radius:8px; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; font-size:12px; font-weight:600; transition:all .2s; white-space:nowrap; }
+    .tab-btn:hover { border-color:rgba(188,19,254,.4); color:rgba(255,255,255,.9); }
+    .tab-btn.active { background:rgba(188,19,254,.15); border-color:#BC13FE; color:#BC13FE; }
+    .tab-btn.upload-tab { background:rgba(0,242,255,.08); border-color:rgba(0,242,255,.3); color:#00F2FF; }
+    .tab-btn.upload-tab.active { background:rgba(0,242,255,.2); border-color:#00F2FF; }
     .type-btn { display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(255,255,255,.03); border:0.5px solid rgba(255,255,255,.1); color:rgba(255,255,255,.45); padding:10px 16px; border-radius:10px; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:500; transition:all .2s; width:100%; }
     .type-btn:hover { border-color:rgba(188,19,254,.4); color:rgba(255,255,255,.8); }
     .type-btn.active { background:rgba(188,19,254,.1); border-color:rgba(188,19,254,.5); color:#BC13FE; }
@@ -744,6 +775,29 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     </div>
 
     <div class="panel">
+
+      <!-- Editorial Tabs -->
+      <div class="mb-6">
+        <span class="field-label">Pilar Editorial</span>
+        <div class="flex flex-wrap gap-2" id="editorial-tabs">
+          <button class="tab-btn active" data-tab="erizon">ERIZON</button>
+          <button class="tab-btn" data-tab="specialists">Especialistas</button>
+          <button class="tab-btn" data-tab="market">Mercado</button>
+          <button class="tab-btn" data-tab="diagnostics">Diagnósticos</button>
+          <button class="tab-btn" data-tab="stories">Stories Interativos</button>
+          <button class="tab-btn" data-tab="social-proof">Prova Social</button>
+          <button class="tab-btn" data-tab="anti-myth">Anti-Mitos</button>
+          <button class="tab-btn" data-tab="series">Séries Fixas</button>
+          <button class="tab-btn upload-tab" data-tab="uploads">⇧ Uploads / Feedbacks</button>
+        </div>
+      </div>
+
+      <!-- Upload Section -->
+      <div id="upload-section" class="mb-6 hidden" style="background:rgba(0,242,255,.05); border:1px dashed rgba(0,242,255,.3); border-radius:12px; padding:16px;">
+        <span class="field-label" style="color:#00F2FF;">Upload de Print / Feedback</span>
+        <input type="file" id="upload-input" accept="image/*" class="field mb-3" style="background:transparent; border:none; padding:0; cursor:pointer;" />
+        <input type="text" id="upload-context" placeholder="Contexto do print (ex: ROAS 10x na black friday)" class="field" style="border-color:rgba(0,242,255,.3);" />
+      </div>
 
       <!-- Post Type Selector -->
       <div class="mb-6">
@@ -799,6 +853,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
               <div id="card-accent-v" class="accent-bar"></div>
               <div id="card-accent-h" class="accent-bar-top"></div>
               <div id="slide-badge" class="slide-badge hidden"></div>
+              <div id="feedback-frame" class="feedback-frame">
+                <img id="feedback-img" src="" />
+              </div>
               <div id="content-container" class="cc">
                 <div id="card-eyebrow" class="eyebrow">// AI Marketing OS</div>
                 <h1 id="card-h1" class="h1">Pare de<br><span class="grad">adivinhar.</span></h1>
@@ -863,6 +920,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // STATE
     // ============================================================
     let currentPostType = 'instagram-feed';
+    let currentEditorialTab = 'erizon';
+    let uploadedImageBase64 = null;
     let processedLogoUrl = null; // dataURL do logo sem fundo branco
     let currentVisualState = {
       palette: { t:'rgba(188,19,254,', b:'rgba(255,0,229,', o:'rgba(188,19,254,' },
@@ -1026,6 +1085,29 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     const carouselNav   = document.getElementById('carousel-nav');
     const slideCounter  = document.getElementById('slide-counter');
     const slideBadge    = document.getElementById('slide-badge');
+
+    // ============================================================
+    // EDITORIAL TABS & UPLOAD
+    // ============================================================
+    document.getElementById('editorial-tabs').addEventListener('click', e => {
+      const btn = e.target.closest('.tab-btn');
+      if (!btn) return;
+      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentEditorialTab = btn.dataset.tab;
+      document.getElementById('upload-section').classList.toggle('hidden', currentEditorialTab !== 'uploads');
+    });
+
+    document.getElementById('upload-input').addEventListener('change', e => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = ev => {
+        uploadedImageBase64 = ev.target.result;
+        document.getElementById('feedback-img').src = uploadedImageBase64;
+      };
+      reader.readAsDataURL(file);
+    });
 
     // ============================================================
     // TYPE SELECTOR
@@ -1218,6 +1300,16 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         rings.forEach(r => r.style.borderRadius = '50%');
       }
 
+      const feedbackFrame = document.getElementById('feedback-frame');
+      if (currentEditorialTab === 'uploads' && uploadedImageBase64) {
+        state.layout = 'center'; // Force center for feedback
+        feedbackFrame.classList.add('active');
+        cont.classList.add('layout-feedback');
+      } else {
+        feedbackFrame.classList.remove('active');
+        cont.classList.remove('layout-feedback');
+      }
+
       if (state.layout === 'center') {
         cont.className = 'cc';
       } else {
@@ -1326,7 +1418,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             type: currentPostType,
-            recentPosts: getPostHistory()
+            recentPosts: getPostHistory(),
+            editorialTab: currentEditorialTab,
+            uploadContext: document.getElementById('upload-context') ? document.getElementById('upload-context').value : ''
           })
         });
 
@@ -1618,476 +1712,138 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         glow.addColorStop(1, 'rgba(11,1,18,0)');
         ctx.fillStyle = glow;
         ctx.fillRect(0, 0, W, H);
-      } else if (visual.bgVariant === 'halo') {
-        let glow = ctx.createRadialGradient(W / 2, H / 2, 140, W / 2, H / 2, 420);
-        glow.addColorStop(0, palette.o + '.16)');
-        glow.addColorStop(0.55, 'rgba(11,1,18,0)');
+      } else { // orbital, halo, etc.
+        let glow = ctx.createRadialGradient(W / 2, 200, 100, W / 2, 200, 500);
+        glow.addColorStop(0, palette.t + '.22)');
         glow.addColorStop(1, 'rgba(11,1,18,0)');
         ctx.fillStyle = glow;
         ctx.fillRect(0, 0, W, H);
 
-        if (showRings) {
-          [250, 360, 470].forEach((r, idx) => {
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = idx === 0 ? 'rgba(0,242,255,0.18)' : idx === 1 ? 'rgba(188,19,254,0.12)' : 'rgba(255,0,229,0.07)';
-            ctx.beginPath();
-            ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
-            ctx.stroke();
-          });
-        }
-      } else if (visual.bgVariant === 'corner-burst') {
-        let glow = ctx.createRadialGradient(0, 0, 20, 0, 0, 360);
-        glow.addColorStop(0, palette.t + '.30)');
-        glow.addColorStop(1, 'rgba(11,1,18,0)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-
-        glow = ctx.createRadialGradient(W, H, 20, W, H, 380);
-        glow.addColorStop(0, palette.b + '.22)');
-        glow.addColorStop(1, 'rgba(11,1,18,0)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-      } else if (visual.bgVariant === 'tunnel') {
-        if (showRings) {
-          [220, 300, 390, 500].forEach((r, idx) => {
-            ctx.lineWidth = idx === 0 ? 1.4 : 1;
-            ctx.strokeStyle = idx === 0 ? 'rgba(255,255,255,0.16)' : idx === 1 ? 'rgba(188,19,254,0.16)' : idx === 2 ? 'rgba(0,242,255,0.08)' : 'rgba(255,0,229,0.06)';
-            ctx.beginPath();
-            ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
-            ctx.stroke();
-          });
-        }
-        let glow = ctx.createRadialGradient(W / 2, H / 2, 120, W / 2, H / 2, 420);
-        glow.addColorStop(0, palette.o + '.16)');
-        glow.addColorStop(1, 'rgba(11,1,18,0)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-      } else if (visual.bgVariant === 'bands') {
-        let glow = ctx.createLinearGradient(0, 0, 0, H);
-        glow.addColorStop(0, palette.t + '.24)');
-        glow.addColorStop(0.28, 'rgba(11,1,18,0)');
-        glow.addColorStop(0.72, 'rgba(11,1,18,0)');
-        glow.addColorStop(1, palette.b + '.18)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-
-        ctx.fillStyle = 'rgba(255,255,255,0.02)';
-        ctx.fillRect(0, H * 0.3, W, 2);
-        ctx.fillRect(0, H * 0.7, W, 2);
-      } else if (visual.bgVariant === 'crosslight') {
-        let glow = ctx.createLinearGradient(0, 0, W, H);
-        glow.addColorStop(0, palette.t + '.18)');
-        glow.addColorStop(0.45, 'rgba(11,1,18,0)');
-        glow.addColorStop(1, 'rgba(11,1,18,0)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-
-        glow = ctx.createLinearGradient(W, 0, 0, H);
-        glow.addColorStop(0, palette.b + '.16)');
-        glow.addColorStop(0.45, 'rgba(11,1,18,0)');
-        glow.addColorStop(1, 'rgba(11,1,18,0)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-      } else if (visual.bgVariant === 'data-stream') {
-        let glow = ctx.createLinearGradient(0, 0, W, 0);
-        glow.addColorStop(0, palette.t + '.18)');
-        glow.addColorStop(0.18, 'rgba(11,1,18,0)');
-        glow.addColorStop(0.5, palette.o + '.08)');
-        glow.addColorStop(0.82, 'rgba(11,1,18,0)');
-        glow.addColorStop(1, palette.b + '.16)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-
-        ctx.fillStyle = 'rgba(255,255,255,0.03)';
-        [180, 240, 820, 880].forEach(x => ctx.fillRect(x, 120, 2, H - 240));
-      } else if (visual.bgVariant === 'signal-columns') {
-        let glow = ctx.createLinearGradient(0, 0, W, 0);
-        glow.addColorStop(0, palette.t + '.16)');
-        glow.addColorStop(0.5, 'rgba(11,1,18,0)');
-        glow.addColorStop(1, palette.b + '.14)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-
-        ctx.fillStyle = palette.o + '.10)';
-        ctx.fillRect(230, 120, 24, H - 240);
-        ctx.fillRect(540, 200, 12, H - 400);
-        ctx.fillRect(804, 160, 20, H - 320);
-      } else if (visual.bgVariant === 'neon-wedge') {
-        let glow = ctx.createLinearGradient(0, 0, W, H);
-        glow.addColorStop(0, palette.t + '.24)');
-        glow.addColorStop(0.45, 'rgba(11,1,18,0)');
-        glow.addColorStop(1, 'rgba(11,1,18,0)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-
-        ctx.fillStyle = palette.o + '.10)';
-        ctx.beginPath();
-        ctx.moveTo(W * 0.22, 0);
-        ctx.lineTo(W * 0.64, 0);
-        ctx.lineTo(W * 0.38, H);
-        ctx.lineTo(0, H);
-        ctx.closePath();
-        ctx.fill();
-      } else if (visual.bgVariant === 'horizon') {
-        let glow = ctx.createLinearGradient(0, 0, 0, H);
-        glow.addColorStop(0, palette.t + '.18)');
-        glow.addColorStop(0.5, 'rgba(11,1,18,0)');
-        glow.addColorStop(1, palette.b + '.18)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-
-        ctx.fillStyle = palette.o + '.12)';
-        ctx.fillRect(90, H * 0.52, W - 180, 2);
-        ctx.fillRect(170, H * 0.68, W - 340, 1.5);
-      } else if (visual.bgVariant === 'frame-shift') {
-        let glow = ctx.createLinearGradient(0, 0, W, H);
-        glow.addColorStop(0, palette.t + '.14)');
-        glow.addColorStop(1, palette.b + '.14)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, H);
-
-        [96, 146, 196].forEach((offset, idx) => {
-          ctx.lineWidth = idx === 0 ? 2 : 1;
-          ctx.strokeStyle = idx === 0 ? 'rgba(0,242,255,0.18)' : idx === 1 ? 'rgba(188,19,254,0.12)' : 'rgba(255,0,229,0.08)';
-          ctx.strokeRect(offset, offset, W - offset * 2, H - offset * 2);
-        });
-      } else {
-        let glow = ctx.createRadialGradient(W / 2, -40, 20, W / 2, -40, 420);
-        glow.addColorStop(0, palette.t + '.24)');
-        glow.addColorStop(1, 'rgba(11,1,18,0)');
-        ctx.fillStyle = glow;
-        ctx.fillRect(0, 0, W, 420);
-
-        glow = ctx.createRadialGradient(W / 2, H + 20, 20, W / 2, H + 20, 420);
+        glow = ctx.createRadialGradient(W / 2, H - 220, 100, W / 2, H - 220, 600);
         glow.addColorStop(0, palette.b + '.16)');
         glow.addColorStop(1, 'rgba(11,1,18,0)');
         ctx.fillStyle = glow;
-        ctx.fillRect(0, H - 420, W, 420);
+        ctx.fillRect(0, 0, W, H);
 
-        if (showRings) {
-          [230, 320, 410].forEach((r, idx) => {
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = idx === 0 ? 'rgba(188,19,254,0.28)' : idx === 1 ? 'rgba(188,19,254,0.14)' : 'rgba(188,19,254,0.07)';
-            ctx.beginPath();
-            ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
-            ctx.stroke();
-          });
-        }
+        glow = ctx.createRadialGradient(W / 2, H / 2, 50, W / 2, H / 2, 290);
+        glow.addColorStop(0, palette.o + '.35)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.globalAlpha = 0.5;
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1;
       }
 
-      function drawCorner(x, y, sx, sy) {
+      if (showRings) {
+        ctx.lineWidth = 1;
+        const ringRadii = [230, 320, 410];
+        const ringColors = [
+          visual.bgVariant === 'tunnel' ? 'rgba(0,242,255,.18)' : 'rgba(188,19,254,.3)',
+          visual.bgVariant === 'tunnel' ? 'rgba(188,19,254,.14)' : 'rgba(188,19,254,.15)',
+          visual.bgVariant === 'tunnel' ? 'rgba(255,0,229,.08)' : 'rgba(188,19,254,.07)'
+        ];
+        ringRadii.forEach((radius, i) => {
+          ctx.strokeStyle = ringColors[i];
+          ctx.beginPath();
+          if (visual.bgVariant === 'frame-shift') {
+            ctx.roundRect(W/2 - radius, H/2 - radius, radius*2, radius*2, 24);
+          } else {
+            ctx.arc(W / 2, H / 2, radius, 0, 2 * Math.PI);
+          }
+          ctx.stroke();
+        });
+      }
+
+      if (showCorners) {
         ctx.strokeStyle = 'rgba(188,19,254,.5)';
         ctx.lineWidth = 2;
+        const s = 40, o = 32;
         ctx.beginPath();
-        ctx.moveTo(x, y + 40 * sy);
-        ctx.lineTo(x, y);
-        ctx.lineTo(x + 40 * sx, y);
+        ctx.moveTo(o, o + s); ctx.lineTo(o, o); ctx.lineTo(o + s, o);
+        ctx.moveTo(W - o, o + s); ctx.lineTo(W - o, o); ctx.lineTo(W - o - s, o);
+        ctx.moveTo(o, H - o - s); ctx.lineTo(o, H - o); ctx.lineTo(o + s, H - o);
+        ctx.moveTo(W - o, H - o - s); ctx.lineTo(W - o, H - o); ctx.lineTo(W - o - s, H - o);
         ctx.stroke();
-      }
-      if (showCorners) {
-        drawCorner(32, 32, 1, 1);
-        drawCorner(W - 32, 32, -1, 1);
-        drawCorner(32, H - 32, 1, -1);
-        drawCorner(W - 32, H - 32, -1, -1);
       }
 
       if (showAccentV) {
-        const vg = ctx.createLinearGradient(0, 0, 0, H);
-        vg.addColorStop(0, 'rgba(255,0,229,0)');
-        vg.addColorStop(0.3, '#BC13FE');
-        vg.addColorStop(0.7, '#FF00E5');
-        vg.addColorStop(1, 'rgba(255,0,229,0)');
-        ctx.fillStyle = vg;
-        ctx.fillRect(0, 0, 6, H);
+        const grad = ctx.createLinearGradient(0, 0, 0, H);
+        grad.addColorStop(0, 'transparent');
+        grad.addColorStop(0.3, '#BC13FE');
+        grad.addColorStop(0.7, '#FF00E5');
+        grad.addColorStop(1, 'transparent');
+        ctx.fillStyle = grad;
+        ctx.fillRect(isRightLayout ? W - 80 - 6 : 80, 0, 6, H);
       }
       if (showAccentH) {
-        const hg = ctx.createLinearGradient(0, 0, W, 0);
-        hg.addColorStop(0, '#FF00E5');
-        hg.addColorStop(0.5, '#BC13FE');
-        hg.addColorStop(1, '#00F2FF');
-        ctx.fillStyle = hg;
-        ctx.fillRect(0, 0, W, 6);
+        const grad = ctx.createLinearGradient(0, 0, W, 0);
+        grad.addColorStop(0, '#FF00E5');
+        grad.addColorStop(0.5, '#BC13FE');
+        grad.addColorStop(1, '#00F2FF');
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, isRightLayout ? H - 80 - 6 : 80, W, 6);
       }
 
-      if (showBadge) {
-        ctx.font = '500 11px "JetBrains Mono", monospace';
-        ctx.fillStyle = 'rgba(188,19,254,.7)';
-        ctx.textAlign = 'right';
-        ctx.fillText(slideBadge.textContent || '', W - 56, 48);
+      if (processedLogoUrl) {
+        const img = new Image();
+        await new Promise(res => { img.onload = res; img.src = processedLogoUrl; });
+        ctx.drawImage(img, (W - 208) / 2, H - 40 - 52, 208, 52);
       }
 
-      const centerX = W / 2;
-      const leftX = 80;
-      const rightX = W - 80;
+      // Text rendering
+      const centerX = isCenterLayout ? W / 2 : isRightLayout ? W - 80 - 400 : 80 + 400;
+      const startX = isCenterLayout ? 90 : isRightLayout ? W - 80 - 760 : 80;
+      const textWidth = isCenterLayout ? W - 180 : 760;
       ctx.textAlign = isCenterLayout ? 'center' : isRightLayout ? 'right' : 'left';
-      ctx.font = '500 13px "JetBrains Mono", monospace';
-      ctx.fillStyle = '#00F2FF';
-      if (isCenterLayout) ctx.fillText(eyebrow, centerX, 355);
-      else if (isRightLayout) ctx.fillText(eyebrow, rightX, 355);
-      else ctx.fillText(eyebrow, leftX, 355);
 
-      ctx.shadowColor = 'rgba(188,19,254,.18)';
-      ctx.shadowBlur = 10;
-      ctx.font = '900 72px "Montserrat", sans-serif';
-      let h1Y = 500;
-      h1Lines.forEach(line => {
-        if (isCenterLayout) fillCenteredText(ctx, line, centerX, h1Y);
-        else if (isRightLayout) {
-          let totalWidth = 0;
-          line.forEach(seg => { totalWidth += ctx.measureText(seg.text).width; });
-          let x = rightX - totalWidth;
-          line.forEach(seg => {
-            ctx.fillStyle = seg.className === 'grad2' ? '#00F2FF' : seg.className === 'grad3' ? '#FF4488' : seg.className === 'grad' ? '#BC13FE' : '#FFFFFF';
-            ctx.fillText(seg.text, x, h1Y);
-            x += ctx.measureText(seg.text).width;
-          });
-        }
-        else {
-          let x = leftX;
-          line.forEach(seg => {
-            ctx.fillStyle = seg.className === 'grad2' ? '#00F2FF' : seg.className === 'grad3' ? '#FF4488' : seg.className === 'grad' ? '#BC13FE' : '#FFFFFF';
-            ctx.fillText(seg.text, x, h1Y);
-            x += ctx.measureText(seg.text).width;
-          });
-        }
-        h1Y += 86;
-      });
+      ctx.font = "500 13px 'JetBrains Mono'";
+      ctx.fillStyle = '#00F2FF';
+      ctx.shadowColor = 'rgba(0,242,255,.7)';
+      ctx.shadowBlur = 14;
+      ctx.fillText(eyebrow, centerX, 320);
       ctx.shadowBlur = 0;
 
-      const lineY = h1Y - 20;
-      const divWidth = 60;
-      const divX = isCenterLayout ? (W - divWidth) / 2 : isRightLayout ? rightX - divWidth : leftX;
-      const divGrad = ctx.createLinearGradient(divX, 0, divX + divWidth, 0);
-      divGrad.addColorStop(0, 'rgba(188,19,254,0)');
-      divGrad.addColorStop(0.5, '#BC13FE');
-      divGrad.addColorStop(1, 'rgba(188,19,254,0)');
-      ctx.fillStyle = divGrad;
-      ctx.fillRect(divX, lineY, divWidth, 2);
+      ctx.font = "900 62px 'Montserrat'";
+      ctx.textBaseline = 'middle';
+      let y = 420;
+      h1Lines.forEach(line => {
+        if (isCenterLayout) {
+          fillCenteredText(ctx, line, centerX, y);
+        } else {
+          const xPos = isRightLayout ? startX + textWidth : startX;
+          ctx.textAlign = isRightLayout ? 'right' : 'left';
+          line.forEach(seg => {
+            ctx.fillStyle = seg.className === 'grad2' ? '#00F2FF' : seg.className === 'grad3' ? '#FF4488' : seg.className === 'grad' ? '#BC13FE' : '#FFFFFF';
+            ctx.fillText(seg.text, xPos, y);
+          });
+        }
+        y += 62 * 1.06;
+      });
 
-      ctx.font = '500 22px "Plus Jakarta Sans", sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,.82)';
-      const subLines = wrapText(ctx, subText, isCenterLayout ? 760 : 720);
-      let subY = lineY + 54;
+      y -= 20;
+      ctx.fillStyle = '#BC13FE';
+      ctx.shadowColor = 'rgba(188,19,254,.8)';
+      ctx.shadowBlur = 12;
+      ctx.fillRect(isCenterLayout ? centerX - 30 : isRightLayout ? startX + textWidth - 60 : startX, y, 60, 2);
+      ctx.shadowBlur = 0;
+      y += 40;
+
+      ctx.font = "400 20px 'Plus Jakarta Sans'";
+      ctx.fillStyle = 'rgba(255,255,255,.72)';
+      const subLines = wrapText(ctx, subText, textWidth);
       subLines.forEach(line => {
-        if (isCenterLayout) ctx.fillText(line, centerX, subY);
-        else if (isRightLayout) ctx.fillText(line, rightX, subY);
-        else ctx.fillText(line, leftX, subY);
-        subY += 34;
+        ctx.fillText(line, isCenterLayout ? centerX : isRightLayout ? startX + textWidth : startX, y);
+        y += 20 * 1.55;
       });
 
-      const blockWidth = isCenterLayout ? 760 : 720;
-      const blockX = isCenterLayout ? (W - blockWidth) / 2 : isRightLayout ? rightX - blockWidth : leftX;
-      let moduleY = subY + 24;
-
-      function drawModuleText(text, x, y, width, color, lineHeight) {
-        ctx.textAlign = 'left';
-        ctx.fillStyle = color;
-        wrapText(ctx, text, width).forEach(line => {
-          ctx.fillText(line, x, y);
-          y += lineHeight;
-        });
-        return y;
-      }
-
-      if (extras.formatHint === 'stats' && extras.stats?.length) {
-        const statWidth = Math.floor((blockWidth - 28) / 3);
-        const statHeight = 92;
-        extras.stats.slice(0, 3).forEach((item, idx) => {
-          const x = blockX + idx * (statWidth + 14);
-          ctx.fillStyle = 'rgba(255,255,255,0.04)';
-          ctx.strokeStyle = 'rgba(188,19,254,0.18)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.roundRect(x, moduleY, statWidth, statHeight, 12);
-          ctx.fill();
-          ctx.stroke();
-
-          ctx.textAlign = 'center';
-          ctx.font = '700 28px "JetBrains Mono", monospace';
-          ctx.fillStyle = '#FFFFFF';
-          ctx.fillText(item.value || '', x + statWidth / 2, moduleY + 34);
-          ctx.font = '500 10px "JetBrains Mono", monospace';
-          ctx.fillStyle = 'rgba(255,255,255,0.5)';
-          ctx.fillText((item.label || '').toUpperCase(), x + statWidth / 2, moduleY + 60);
-        });
-        moduleY += statHeight + 12;
-      } else if (extras.formatHint === 'checklist' && extras.supporting?.length) {
-        extras.supporting.slice(0, 3).forEach((item, idx) => {
-          const itemHeight = 68;
-          ctx.fillStyle = idx === 0 ? 'rgba(188,19,254,0.12)' : 'rgba(188,19,254,0.06)';
-          ctx.strokeStyle = idx === 0 ? 'rgba(188,19,254,0.4)' : 'rgba(188,19,254,0.16)';
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          ctx.roundRect(blockX, moduleY, blockWidth, itemHeight, 12);
-          ctx.fill();
-          ctx.stroke();
-
-          ctx.textAlign = 'left';
-          ctx.font = '700 16px "JetBrains Mono", monospace';
-          ctx.fillStyle = '#BC13FE';
-          ctx.fillText('0' + (idx + 1), blockX + 18, moduleY + 28);
-          ctx.font = '500 15px "Plus Jakarta Sans", sans-serif';
-          ctx.fillStyle = '#FFFFFF';
-          drawModuleText(item, blockX + 58, moduleY + 26, blockWidth - 76, '#FFFFFF', 18);
-          moduleY += itemHeight + 12;
-        });
-      } else if (extras.supporting?.length) {
-        const factHeight = 110;
-        ctx.fillStyle = 'rgba(188,19,254,0.08)';
-        ctx.strokeStyle = 'rgba(188,19,254,0.22)';
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.roundRect(blockX, moduleY, blockWidth, factHeight, 16);
-        ctx.fill();
-        ctx.stroke();
-
-        ctx.textAlign = 'left';
-        ctx.font = '500 10px "JetBrains Mono", monospace';
-        ctx.fillStyle = '#BC13FE';
-        ctx.fillText('INSIGHT', blockX + 20, moduleY + 24);
-        ctx.font = '500 15px "Plus Jakarta Sans", sans-serif';
-        drawModuleText(extras.supporting[0], blockX + 20, moduleY + 52, blockWidth - 40, 'rgba(255,255,255,0.75)', 20);
-        moduleY += factHeight + 12;
-      }
-
-      const logoSrc = processedLogoUrl || '/logo-erizon.png';
-      const logoImg = await new Promise((resolve) => {
-        const i = new Image(); i.crossOrigin = 'anonymous';
-        i.onload = () => resolve(i);
-        i.onerror = () => resolve(null);
-        i.src = logoSrc;
-      });
-      if (logoImg) {
-        const logoH = 52;
-        const logoW = logoH * (logoImg.width / logoImg.height);
-        ctx.drawImage(logoImg, (W - logoW) / 2, H - 40 - logoH, logoW, logoH);
+      if (showBadge) {
+        ctx.font = "500 11px 'JetBrains Mono'";
+        ctx.fillStyle = 'rgba(188,19,254,.7)';
+        ctx.textAlign = 'right';
+        ctx.fillText((currentSlideIdx + 1) + ' / ' + carouselSlides.length, W - 56, 48 + 11);
       }
 
       return canvas.toDataURL('image/jpeg', 0.92);
-    }
-
-    async function renderInstagramFeedCanvas() {
-      await waitForRenderAssets();
-      const cardB64 = await renderCardCanvas();
-      const cardImg = await new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.src = cardB64;
-      });
-
-      const W = 1080, H = 1080;
-      const canvas = document.createElement('canvas');
-      canvas.width = W;
-      canvas.height = H;
-      const ctx = canvas.getContext('2d');
-
-      ctx.fillStyle = '#0B0112';
-      ctx.fillRect(0, 0, W, H);
-
-      ctx.strokeStyle = 'rgba(188,19,254,0.05)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-      for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-
-      const topGlow = ctx.createRadialGradient(W / 2, 32, 20, W / 2, 32, 420);
-      topGlow.addColorStop(0, 'rgba(188,19,254,0.22)');
-      topGlow.addColorStop(1, 'rgba(11,1,18,0)');
-      ctx.fillStyle = topGlow;
-      ctx.fillRect(0, 0, W, 420);
-
-      const bottomGlow = ctx.createRadialGradient(W / 2, H - 32, 20, W / 2, H - 32, 420);
-      bottomGlow.addColorStop(0, 'rgba(255,0,229,0.14)');
-      bottomGlow.addColorStop(1, 'rgba(11,1,18,0)');
-      ctx.fillStyle = bottomGlow;
-      ctx.fillRect(0, H - 420, W, 420);
-
-      const cardSize = 900;
-      const cardX = (W - cardSize) / 2;
-      const cardY = (H - cardSize) / 2;
-
-      ctx.drawImage(cardImg, cardX, cardY, cardSize, cardSize);
-
-      const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
-      lineGrad.addColorStop(0, 'transparent');
-      lineGrad.addColorStop(0.5, '#BC13FE');
-      lineGrad.addColorStop(1, 'transparent');
-      ctx.strokeStyle = lineGrad;
-      ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(88, cardY - 26); ctx.lineTo(W - 88, cardY - 26); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(88, cardY + cardSize + 26); ctx.lineTo(W - 88, cardY + cardSize + 26); ctx.stroke();
-
-      return canvas.toDataURL('image/jpeg', 0.92);
-    }
-
-    async function renderStory() {
-      await waitForRenderAssets();
-      const cardB64 = await renderCardCanvas(); // 1080×1080
-      const cardImg = await new Promise((resolve) => {
-        const img = new Image();
-        img.onload = () => resolve(img);
-        img.src = cardB64;
-      });
-
-      const W = 1080, H = 1920;
-      const story = document.createElement('canvas');
-      story.width  = W;
-      story.height = H;
-      const ctx = story.getContext('2d');
-
-      // Fundo #0B0112
-      ctx.fillStyle = '#0B0112';
-      ctx.fillRect(0, 0, W, H);
-
-      // Grade sutil (mesmo padrão do card)
-      ctx.strokeStyle = 'rgba(188,19,254,0.05)';
-      ctx.lineWidth   = 1;
-      for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-      for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
-
-      // Glow superior
-      const gtop = ctx.createRadialGradient(W/2, 0, 0, W/2, 0, 420);
-      gtop.addColorStop(0, 'rgba(188,19,254,0.30)');
-      gtop.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = gtop;
-      ctx.fillRect(0, 0, W, 500);
-
-      // Glow inferior
-      const gbot = ctx.createRadialGradient(W/2, H, 0, W/2, H, 420);
-      gbot.addColorStop(0, 'rgba(255,0,229,0.20)');
-      gbot.addColorStop(1, 'rgba(0,0,0,0)');
-      ctx.fillStyle = gbot;
-      ctx.fillRect(0, H - 500, W, 500);
-
-      // Card centralizado verticalmente
-      const cardY = (H - W) / 2; // (1920 - 1080) / 2 = 420
-      ctx.drawImage(cardImg, 0, cardY, W, W); // Desenha a imagem exatamente em 1080x1080 para evitar crop
-
-      // Logo ERIZON embaixo do card
-      const logoSrc = processedLogoUrl || '/logo-erizon.png';
-      const logoImg = await new Promise((resolve) => {
-        const i = new Image(); i.crossOrigin = 'anonymous';
-        i.onload = () => resolve(i);
-        i.onerror = () => resolve(null);
-        i.src = logoSrc;
-      });
-      if (logoImg) {
-        const logoH = 72;
-        const logoW = logoH * (logoImg.width / logoImg.height);
-        const logoY = cardY + W + (420 - logoH) / 2;
-        ctx.drawImage(logoImg, (W - logoW) / 2, logoY, logoW, logoH);
-      }
-
-      // Linha divisória acima do card
-      const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
-      lineGrad.addColorStop(0,   'transparent');
-      lineGrad.addColorStop(0.5, '#BC13FE');
-      lineGrad.addColorStop(1,   'transparent');
-      ctx.strokeStyle = lineGrad;
-      ctx.lineWidth   = 1.5;
-      ctx.beginPath(); ctx.moveTo(0, cardY - 1); ctx.lineTo(W, cardY - 1); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(0, cardY + W + 1); ctx.lineTo(W, cardY + W + 1); ctx.stroke();
-
-      return story.toDataURL('image/jpeg', 0.92);
     }
 
     // ============================================================
@@ -2095,321 +1851,218 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // ============================================================
     btnPublish.addEventListener('click', async () => {
       btnPublish.disabled = true;
-      const origTxt = btnPublish.innerText;
-      statusMsg.classList.add('hidden');
-
-      const platforms = [];
-      if (document.getElementById('pub-instagram').checked) platforms.push('instagram');
-      if (document.getElementById('pub-story').checked) platforms.push('instagram-story');
-      if (document.getElementById('pub-linkedin').checked) platforms.push('linkedin');
+      btnPublish.innerHTML = 'PUBLICANDO...';
+      statusMsg.classList.remove('hidden');
+      statusMsg.style.background = 'rgba(188,19,254,.1)';
+      statusMsg.style.color = '#BC13FE';
+      statusMsg.innerHTML = 'Preparando e enviando imagens para as plataformas...';
 
       try {
-        const isCarousel = currentPostType === 'instagram-carousel' && carouselSlides.length > 0;
+        const platforms = [];
+        if (document.getElementById('pub-instagram').checked) platforms.push('instagram');
+        if (document.getElementById('pub-story').checked) platforms.push('instagram-story');
+        if (document.getElementById('pub-linkedin').checked) platforms.push('linkedin');
 
-        if (isCarousel) {
-          const base64s = [];
+        const caption = postContent.value;
+        let results = [];
+
+        if (currentPostType === 'instagram-carousel') {
+          const imageUrls = [];
           for (let i = 0; i < carouselSlides.length; i++) {
-            btnPublish.innerText = 'Renderizando slide ' + (i+1) + '/' + carouselSlides.length + '...';
             showSlide(i);
-            await new Promise(r => setTimeout(r, 350));
-            base64s.push(await renderCardCanvas());
+            await new Promise(r => setTimeout(r, 50)); // Pequeno delay para DOM atualizar
+            const imgData = await renderCard();
+            imageUrls.push(imgData);
           }
-          showSlide(0);
-          btnPublish.innerText = 'Publicando carrossel...';
-          const data = await fetchJson('/api/publish-carousel', {
-            method:'POST', headers:{'Content-Type':'application/json'},
-            body: JSON.stringify({ caption: postContent.value, imageBase64s: base64s, platforms })
+          showSlide(0); // Volta pro primeiro
+
+          const res = await fetchJson('/api/publish-carousel', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              images: imageUrls,
+              caption: caption,
+              platforms: platforms
+            })
           });
-          if (!data.success) throw new Error(data.error || 'Erro desconhecido');
-          showStatus('success', data.results);
+          results = res.results || ['Carrossel publicado.'];
+
         } else {
-          const hasStory = platforms.includes('instagram-story');
-          const hasInstagramFeed = platforms.includes('instagram');
-          const hasLinkedIn = platforms.includes('linkedin');
-
-          // Renderiza imagem de feed (1080×1080)
-
-          // Se tiver story, renderiza versão 1080×1920 separada
-          let b64Story = null;
-          if (hasStory) {
-            btnPublish.innerText = 'Renderizando story (9:16)...';
-            b64Story = await renderStory();
-          }
-
-          const allResults = [];
-
-          if (hasInstagramFeed) {
-            btnPublish.innerText = 'Renderizando Instagram (1:1 safe)...';
-            const b64Instagram = await renderInstagramFeedCanvas();
-            const data = await fetchJson('/api/publish', {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ content: postContent.value, imageBase64: b64Instagram, platforms: ['instagram'] })
-            });
-            if (!data.success) throw new Error(data.error || 'Erro desconhecido');
-            allResults.push(...data.results);
-          }
-
-          if (hasLinkedIn) {
-            btnPublish.innerText = 'Renderizando LinkedIn (1:1)...';
-            const b64LinkedIn = await renderCardCanvas();
-            const data = await fetchJson('/api/publish', {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ content: postContent.value, imageBase64: b64LinkedIn, platforms: ['linkedin'] })
-            });
-            if (!data.success) throw new Error(data.error || 'Erro desconhecido');
-            allResults.push(...data.results);
-          }
-
-          // Posta story com a imagem 9:16 otimizada
-          if (hasStory && b64Story) {
-            btnPublish.innerText = 'Publicando story...';
-            const data = await fetchJson('/api/publish', {
-              method:'POST', headers:{'Content-Type':'application/json'},
-              body: JSON.stringify({ content: postContent.value, imageBase64: b64Story, platforms: ['instagram-story'] })
-            });
-            if (!data.success) throw new Error(data.error || 'Erro desconhecido');
-            allResults.push(...data.results);
-          }
-
-          showStatus('success', allResults);
+          const imageBase64 = await renderCard();
+          const res = await fetchJson('/api/publish', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              content: caption,
+              imageBase64: imageBase64,
+              platforms: platforms
+            })
+          });
+          results = res.results || ['Publicado.'];
         }
-      } catch(e) {
-        showStatus('error', ['❌ ' + e.message]);
+
+        statusMsg.style.background = 'rgba(16,185,129,.1)';
+        statusMsg.style.color = '#10b981';
+        statusMsg.innerHTML = '<strong>Sucesso!</strong><br>' + results.join('<br>');
+
+      } catch (e) {
+        statusMsg.style.background = 'rgba(239,68,68,.1)';
+        statusMsg.style.color = '#ef4444';
+        statusMsg.innerHTML = '<strong>Erro ao publicar:</strong><br>' + e.message;
       } finally {
-        btnPublish.disabled  = false;
-        btnPublish.innerText = origTxt;
+        btnPublish.disabled = false;
+        btnPublish.innerHTML = '✦ &nbsp;Aprovar e Publicar nas Redes';
       }
     });
 
-    function showStatus(type, lines) {
-      statusMsg.innerHTML = (type === 'success' ? '🚀 <strong>Relatório de Publicação:</strong><br><br>' : '') + lines.join('<br>');
-      statusMsg.style.cssText = type === 'success'
-        ? 'background:rgba(16,185,129,.08);border:0.5px solid rgba(16,185,129,.3);color:#10b981;border-radius:10px;padding:16px;font-size:13px;line-height:1.9;'
-        : 'background:rgba(239,68,68,.08);border:0.5px solid rgba(239,68,68,.3);color:#ef4444;border-radius:10px;padding:16px;font-size:13px;';
-      statusMsg.classList.remove('hidden');
-    }
   </script>
 </body>
 </html>`;
 
-const STRATEGY_TEMPLATE = `<!DOCTYPE html>
+// ============================================================
+// VERCEL HANDLER
+// ============================================================
+export default async function handler(req: any, res: any) {
+  const agent = new SocialMediaAgent();
+  const url = new URL(req.url, `http://${req.headers.host}`);
+
+  if (req.method === 'GET' && url.pathname === '/api/strategy') {
+    try {
+      const strategy = await agent.generateStrategy();
+      const html = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ERIZON · Estratégia de Crescimento</title>
+  <title>ERIZON · Estratégia de Conteúdo</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
-    body { background:#080010; min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif; color:#fff; }
-    .panel { background:rgba(255,255,255,.03); border:0.5px solid rgba(188,19,254,.2); border-radius:18px; padding:24px; }
+    body { background:#080010; font-family:'Plus Jakarta Sans',sans-serif; color:#fff; }
+    .panel { background:rgba(255,255,255,.03); border:0.5px solid rgba(188,19,254,.2); border-radius:16px; padding:24px; }
     .mono { font-family:'JetBrains Mono',monospace; }
-    .btn-nav { background:rgba(188,19,254,.12); border:0.5px solid rgba(188,19,254,.3); color:#BC13FE; padding:8px 16px; border-radius:8px; text-decoration:none; font-family:'JetBrains Mono',monospace; font-size:12px; }
-    .section-title { font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.15rem; margin-bottom:12px; }
-    .item { border-left:2px solid rgba(0,242,255,.35); padding-left:14px; color:rgba(255,255,255,.82); line-height:1.7; }
-    .pill { display:inline-flex; align-items:center; border:1px solid rgba(0,242,255,.18); color:#00F2FF; border-radius:999px; padding:6px 10px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+    .btn-nav { background:rgba(188,19,254,.12); border:0.5px solid rgba(188,19,254,.3); color:#BC13FE; padding:8px 16px; border-radius:8px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:12px; transition:all .2s; }
+    .btn-nav:hover { background:rgba(188,19,254,.2); }
+    h2 { font-family:'JetBrains Mono',monospace; font-size:10px; letter-spacing:0.15em; color:#00F2FF; text-transform:uppercase; margin-bottom:12px; margin-top:24px; }
+    ul { list-style:none; padding-left:0; }
+    li { background:rgba(255,255,255,.04); border-left:2px solid #BC13FE; padding:12px 16px; margin-bottom:8px; border-radius:0 8px 8px 0; font-size:14px; color:rgba(255,255,255,.75); line-height:1.6; }
   </style>
 </head>
 <body class="p-4 md:p-8">
-  <div class="max-w-5xl mx-auto">
+  <div class="max-w-2xl mx-auto">
     <div class="text-center mb-8">
-      <div class="mono" style="font-size:10px;letter-spacing:.25em;color:#BC13FE;text-transform:uppercase;margin-bottom:10px;">Plano de Crescimento · ERIZON</div>
-      <h1 style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:2.4rem;color:#fff;letter-spacing:2px;">Estratégia de <span style="color:#BC13FE;">Engajamento</span></h1>
-      <p style="color:rgba(255,255,255,.45);max-width:780px;margin:12px auto 0;">Direcionamento prático para acelerar autoridade, seguidores e desejo pela plataforma no Instagram e no LinkedIn.</p>
+      <div class="mono" style="font-size:10px;letter-spacing:.25em;color:#BC13FE;text-transform:uppercase;margin-bottom:10px;">Estratégia de Conteúdo · 2025</div>
+      <h1 style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:2.2rem;color:#fff;letter-spacing:3px;">ERI<span style="color:#BC13FE;">ZON</span></h1>
+      <p style="color:rgba(255,255,255,.3);font-size:12px;margin-top:6px;letter-spacing:.05em;">Inteligência que antecipa. Performance que escala.</p>
       <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
-        <a href="/" class="btn-nav">Estúdio</a>
-        <a href="/strategy" class="btn-nav">Estratégia</a>
+        <a href="/" class="btn-nav" style="text-decoration:none;">Estúdio</a>
+        <a href="/strategy" class="btn-nav" style="text-decoration:none;">Estratégia</a>
       </div>
     </div>
-
-    <div class="panel mb-6">
-      <div class="flex items-center justify-between gap-4 flex-wrap">
-        <div>
-          <div class="pill">Exclusive ERIZON</div>
-          <p style="margin-top:10px;color:rgba(255,255,255,.68);">A lógica aqui é simples: parecer premium, ensinar sem soar básico e transformar curiosidade em intenção comercial.</p>
-        </div>
-        <button id="refresh-strategy" class="btn-nav" type="button">Atualizar Estratégia</button>
-      </div>
+    <div class="panel">
+      <h2>// Posicionamento Central</h2>
+      <ul>${strategy.positioning.map(s => `<li>${s}</li>`).join('')}</ul>
+      <h2>// Instagram</h2>
+      <ul>${strategy.instagram.map(s => `<li>${s}</li>`).join('')}</ul>
+      <h2>// LinkedIn</h2>
+      <ul>${strategy.linkedin.map(s => `<li>${s}</li>`).join('')}</ul>
+      <h2>// Growth Loops</h2>
+      <ul>${strategy.growthLoops.map(s => `<li>${s}</li>`).join('')}</ul>
+      <h2>// Cadência Semanal</h2>
+      <ul>${strategy.weeklyCadence.map(s => `<li>${s}</li>`).join('')}</ul>
     </div>
-
-    <div id="strategy-grid" class="grid md:grid-cols-2 gap-5"></div>
   </div>
-
-  <script>
-    const grid = document.getElementById('strategy-grid');
-    const button = document.getElementById('refresh-strategy');
-
-    function renderSection(title, items) {
-      return '<div class="panel"><div class="section-title">' + title + '</div><div style="display:grid;gap:12px;">' +
-        (items || []).map(item => '<div class="item">' + item + '</div>').join('') +
-        '</div></div>';
-    }
-
-    async function loadStrategy() {
-      button.disabled = true;
-      grid.innerHTML = '<div class="panel">Gerando estratégia...</div>';
-      try {
-        const data = await fetchJson('/api/strategy');
-        grid.innerHTML = [
-          renderSection('Posicionamento', data.positioning),
-          renderSection('Instagram', data.instagram),
-          renderSection('LinkedIn', data.linkedin),
-          renderSection('Loops de Crescimento', data.growthLoops),
-          renderSection('Cadência Semanal', data.weeklyCadence)
-        ].join('');
-      } catch (e) {
-        grid.innerHTML = '<div class="panel">Falha ao carregar estratégia: ' + e.message + '</div>';
-      } finally {
-        button.disabled = false;
-      }
-    }
-
-    button.addEventListener('click', loadStrategy);
-    loadStrategy();
-  </script>
 </body>
 </html>`;
-
-// ============================================================
-// IMGBB UPLOAD HELPER
-// ============================================================
-async function uploadToImgBB(image: ImagePayload): Promise<string> {
-  const apiKey = process.env.IMGBB_API_KEY;
-  if (!apiKey) throw new Error('IMGBB_API_KEY não configurada.');
-
-  const params = new URLSearchParams();
-  params.set('key', apiKey);
-  params.set('image', image.base64);
-  params.set('name', `erizon-${Date.now()}`);
-
-  const uploadRes = await fetch('https://api.imgbb.com/1/upload', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: params.toString()
-  });
-
-  const responseText = await uploadRes.text();
-  let uploadData: any;
-  try { uploadData = JSON.parse(responseText); }
-  catch { throw new Error('ImgBB resposta inválida: ' + responseText.slice(0, 200)); }
-
-  if (!uploadData.success) {
-    throw new Error('ImgBB falhou: ' + JSON.stringify(uploadData.error || uploadData).slice(0, 300));
+      res.setHeader('Content-Type', 'text/html');
+      res.status(200).send(html);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+    return;
   }
 
-  const imageUrl = uploadData.data?.image?.url || uploadData.data?.url;
-  if (!imageUrl) throw new Error('ImgBB não retornou URL. data: ' + JSON.stringify(uploadData.data).slice(0, 300));
+  if (req.method === 'GET') {
+    res.setHeader('Content-Type', 'text/html');
+    res.status(200).send(HTML_TEMPLATE);
+    return;
+  }
 
-  logger.info('ImgBB upload OK: ' + imageUrl);
-  return imageUrl;
+  if (req.method === 'POST') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+
+      if (url.pathname === '/api/generate') {
+        const { type, recentPosts, editorialTab, uploadContext } = body;
+        const content = await agent.generatePost(type, recentPosts, editorialTab, uploadContext);
+        res.status(200).json(content);
+      } else if (url.pathname === '/api/generate-carousel') {
+        const { recentPosts, editorialTab } = body;
+        const content = await agent.generateCarousel(recentPosts, editorialTab);
+        res.status(200).json(content);
+      } else if (url.pathname === '/api/publish') {
+        const { content, imageBase64, platforms } = body;
+        const imageUrl = await uploadToVercelBlob(imageBase64);
+        const results = await agent.postToSocialMedia(content, imageUrl, imageBase64, platforms);
+        res.status(200).json({ results });
+      } else if (url.pathname === '/api/publish-carousel') {
+        const { images, caption, platforms } = body;
+        const imageUrls = await Promise.all(images.map((img: any) => uploadToVercelBlob(img)));
+        const results = [];
+        if (platforms.includes('instagram')) {
+          try {
+            await agent.postCarouselToInstagram(imageUrls, caption);
+            results.push('🎠 Instagram Carrossel: Sucesso');
+          } catch (e: any) {
+            results.push(`🎠 Instagram Carrossel: Erro (${e.message})`);
+          }
+        }
+        if (platforms.includes('linkedin')) {
+           try {
+            await agent.postToSocialMedia(caption, imageUrls[0], images[0], ['linkedin']);
+            results.push('💼 LinkedIn (1º slide): Sucesso');
+          } catch (e: any) {
+            results.push(`💼 LinkedIn: Erro (${e.message})`);
+          }
+        }
+        res.status(200).json({ results });
+      } else {
+        res.status(404).json({ error: 'Not Found' });
+      }
+    } catch (error: any) {
+      logger.error('API Error:', error);
+      res.status(500).json({ error: error.message || 'Internal Server Error' });
+    }
+  } else {
+    res.setHeader('Allow', ['GET', 'POST']);
+    res.status(405).end(`Method ${req.method} Not Allowed`);
+  }
 }
 
-// ============================================================
-// HANDLER
-// ============================================================
-export default async function handler(req: any, res: any) {
-  const url    = req.url?.split('?')[0] || '/';
-  const query  = new URLSearchParams(req.url?.split('?')[1] || '');
-  const method = req.method || 'GET';
-
-  try {
-    // Dashboard
-    if (url === '/' && method === 'GET') {
-      return res.status(200).setHeader('Content-Type', 'text/html').send(HTML_TEMPLATE);
-    }
-
-    if (url === '/strategy' && method === 'GET') {
-      return res.status(200).setHeader('Content-Type', 'text/html').send(STRATEGY_TEMPLATE);
-    }
-
-    // Generate single post
-    if (url === '/api/generate' && (method === 'GET' || method === 'POST')) {
-      const type = ((method === 'POST' ? req.body?.type : query.get('type')) || 'instagram-feed') as PostType;
-      const recentPosts = Array.isArray(req.body?.recentPosts) ? req.body.recentPosts : [];
-      const agent = new SocialMediaAgent();
-      return res.status(200).json(await agent.generatePost(type, recentPosts));
-    }
-
-    // Generate carousel
-    if (url === '/api/generate-carousel' && (method === 'GET' || method === 'POST')) {
-      const recentPosts = Array.isArray(req.body?.recentPosts) ? req.body.recentPosts : [];
-      const agent = new SocialMediaAgent();
-      return res.status(200).json(await agent.generateCarousel(recentPosts));
-    }
-
-    if (url === '/api/strategy' && method === 'GET') {
-      const agent = new SocialMediaAgent();
-      return res.status(200).json(await agent.generateStrategy());
-    }
-
-    // Publish single post
-    if (url === '/api/publish' && method === 'POST') {
-      const { content, imageBase64, platforms } = req.body || {};
-      if (!content || !imageBase64) return res.status(400).json({ error: 'Texto ou imagem faltando.' });
-      const image = parseImagePayload(imageBase64);
-
-      const imageUrl = await uploadToImgBB(image);
-      const agent    = new SocialMediaAgent();
-      const results  = await agent.postToSocialMedia(content, imageUrl, imageBase64, platforms || ['instagram', 'linkedin']);
-      return res.status(200).json({ success: true, results });
-    }
-
-    // Publish carousel
-    if (url === '/api/publish-carousel' && method === 'POST') {
-      const { caption, imageBase64s, platforms } = req.body || {};
-      if (!caption || !imageBase64s?.length) return res.status(400).json({ error: 'Caption ou imagens faltando.' });
-
-      // Upload todos os slides pro ImgBB
-      const imageUrls: string[] = [];
-      for (let i = 0; i < imageBase64s.length; i++) {
-        const image = parseImagePayload(imageBase64s[i]);
-        const url = await uploadToImgBB(image);
-        imageUrls.push(url);
-      }
-
-      const agent   = new SocialMediaAgent();
-      const results: string[] = [];
-
-      if ((platforms || []).includes('instagram')) {
-        try {
-          await agent.postCarouselToInstagram(imageUrls, caption);
-          results.push('🎠 Instagram Carrossel: Sucesso');
-        } catch (e: any) {
-          results.push('🎠 Instagram Carrossel: Erro (' + e.message + ')');
-        }
-      }
-
-      // LinkedIn recebe primeiro slide como post normal
-      if ((platforms || []).includes('linkedin')) {
-        try {
-          const agent2 = new SocialMediaAgent();
-          // @ts-ignore — acessa método privado via cast
-          await (agent2 as any).postToLinkedIn(caption, imageBase64s[0]);
-          results.push('💼 LinkedIn: Sucesso');
-        } catch (e: any) {
-          results.push('💼 LinkedIn: Erro (' + e.message + ')');
-        }
-      }
-
-      return res.status(200).json({ success: true, results });
-    }
-
-    // Serve arquivos estáticos da pasta public/
-    if (method === 'GET') {
-      const filename = url.replace(/^\//, '');
-      const filePath = path.resolve(__dirname, '../public', filename);
-      if (fs.existsSync(filePath)) {
-        const ext = path.extname(filename).toLowerCase();
-        const mime: Record<string, string> = { '.png': 'image/png', '.jpg': 'image/jpeg', '.svg': 'image/svg+xml', '.webp': 'image/webp' };
-        const buf = fs.readFileSync(filePath);
-        return res.status(200).setHeader('Content-Type', mime[ext] || 'application/octet-stream').setHeader('Cache-Control', 'public, max-age=86400').send(buf);
-      }
-    }
-
-    return res.status(404).json({ error: 'Rota não encontrada' });
-  } catch (error: any) {
-    logger.error('API Error:', error);
-    return res.status(500).json({ success: false, error: error.message });
+async function uploadToVercelBlob(base64Data: string): Promise<string> {
+  if (!process.env.BLOB_UPLOAD_TOKEN) {
+    logger.warn('BLOB_UPLOAD_TOKEN não configurado. Retornando data URI.');
+    return base64Data;
   }
+
+  const image = parseImagePayload(base64Data);
+  const filename = `erizon-post-${Date.now()}.${image.extension}`;
+  const buffer = Buffer.from(image.base64, 'base64');
+
+  const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${process.env.BLOB_UPLOAD_TOKEN}`,
+      'Content-Type': image.mimeType,
+    },
+    body: buffer,
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Falha no upload para o Vercel Blob: ${errorText}`);
+  }
+
+  const data = await response.json();
+  return data.url;
 }

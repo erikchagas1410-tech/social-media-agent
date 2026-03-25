@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -E \"\\\\.\\(config|yaml|yml|json\\)$\")",
+      "Bash(npm run:*)",
+      "Bash(node -e \":*)"
+    ]
+  }
+}
