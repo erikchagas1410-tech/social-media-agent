@@ -651,7 +651,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     /* ============================================
        ERIZON DESIGN SYSTEM — Card 1080×1080
@@ -680,7 +680,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     .div-line { width:60px; height:2px; background:linear-gradient(90deg,transparent,#BC13FE,transparent); margin:28px auto; box-shadow:0 0 12px rgba(188,19,254,.8); }
     .eyebrow { font-family:'JetBrains Mono',monospace; font-size:13px; color:#00F2FF; letter-spacing:4px; text-transform:uppercase; text-shadow:0 0 14px rgba(0,242,255,.7); margin-bottom:24px; }
     .cc { position:absolute; top:0; left:0; right:0; bottom:0; text-align:center; z-index:10; width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:0 90px; box-sizing:border-box; margin:auto; }
-    .h1 { font-family:'Syne',sans-serif; font-weight:800; line-height:1.06; color:#fff; text-shadow:0 0 40px rgba(188,19,254,.3); font-size:62px; word-wrap:break-word; max-width:100%; }
+    .h1 { font-family:'Montserrat',sans-serif; font-weight:900; line-height:1.06; color:#fff; text-shadow:0 0 40px rgba(188,19,254,.3); font-size:62px; word-wrap:break-word; max-width:100%; }
     .sub { font-family:'Plus Jakarta Sans',sans-serif; font-size:20px; color:rgba(255,255,255,.72); line-height:1.55; max-width:760px; }
     .sub strong { color:#fff; font-weight:600; }
     .support-wrap { width:100%; max-width:780px; margin-top:26px; display:none; }
@@ -717,9 +717,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     .type-btn { display:flex; align-items:center; justify-content:center; gap:8px; background:rgba(255,255,255,.03); border:0.5px solid rgba(255,255,255,.1); color:rgba(255,255,255,.45); padding:10px 16px; border-radius:10px; cursor:pointer; font-family:'Plus Jakarta Sans',sans-serif; font-size:13px; font-weight:500; transition:all .2s; width:100%; }
     .type-btn:hover { border-color:rgba(188,19,254,.4); color:rgba(255,255,255,.8); }
     .type-btn.active { background:rgba(188,19,254,.1); border-color:rgba(188,19,254,.5); color:#BC13FE; }
-    .btn-primary { width:100%; background:linear-gradient(135deg,#BC13FE,#FF00E5); color:#fff; font-family:'Syne',sans-serif; font-weight:700; padding:14px; border-radius:10px; border:none; cursor:pointer; font-size:15px; letter-spacing:1px; transition:opacity .2s; }
+    .btn-primary { width:100%; background:linear-gradient(135deg,#BC13FE,#FF00E5); color:#fff; font-family:'Montserrat',sans-serif; font-weight:800; padding:14px; border-radius:10px; border:none; cursor:pointer; font-size:15px; letter-spacing:1px; transition:opacity .2s; }
     .btn-primary:disabled { opacity:.5; cursor:not-allowed; }
-    .btn-publish { width:100%; background:rgba(16,185,129,.08); border:0.5px solid rgba(16,185,129,.35); color:#10b981; font-family:'Syne',sans-serif; font-weight:700; padding:14px; border-radius:10px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:all .2s; }
+    .btn-publish { width:100%; background:rgba(16,185,129,.08); border:0.5px solid rgba(16,185,129,.35); color:#10b981; font-family:'Montserrat',sans-serif; font-weight:800; padding:14px; border-radius:10px; cursor:pointer; font-size:15px; letter-spacing:1px; transition:all .2s; }
     .btn-publish:disabled { opacity:.5; cursor:not-allowed; }
     .btn-nav { background:rgba(188,19,254,.12); border:0.5px solid rgba(188,19,254,.3); color:#BC13FE; padding:8px 16px; border-radius:8px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:12px; transition:all .2s; }
     .btn-nav:hover { background:rgba(188,19,254,.2); }
@@ -735,7 +735,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     <!-- Header -->
     <div class="text-center mb-8">
       <div class="mono" style="font-size:10px;letter-spacing:.25em;color:#BC13FE;text-transform:uppercase;margin-bottom:10px;">Estúdio de Conteúdo · 2025</div>
-      <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:2.2rem;color:#fff;letter-spacing:3px;">ERI<span style="color:#BC13FE;">ZON</span></h1>
+      <h1 style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:2.2rem;color:#fff;letter-spacing:3px;">ERI<span style="color:#BC13FE;">ZON</span></h1>
       <p style="color:rgba(255,255,255,.3);font-size:12px;margin-top:6px;letter-spacing:.05em;">Inteligência que antecipa. Performance que escala.</p>
       <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
         <a href="/" class="btn-nav" style="text-decoration:none;">Estúdio</a>
@@ -774,7 +774,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           <label class="field-label">Eyebrow</label>
           <input id="eyebrow-input" type="text" class="field" style="margin-bottom:12px;">
           <label class="field-label">Título Principal (H1)</label>
-          <textarea id="h1-input" rows="2" class="field" style="font-family:'Syne',sans-serif;font-weight:700;margin-bottom:12px;"></textarea>
+          <textarea id="h1-input" rows="2" class="field" style="font-family:'Montserrat',sans-serif;font-weight:800;margin-bottom:12px;"></textarea>
           <label class="field-label">Subtítulo</label>
           <textarea id="sub-input" rows="2" class="field"></textarea>
         </div>
@@ -998,7 +998,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       try {
         if (document.fonts && document.fonts.ready) {
           await Promise.all([
-            document.fonts.load('800 72px "Syne"'),
+            document.fonts.load('900 72px "Montserrat"'),
             document.fonts.load('600 22px "Plus Jakarta Sans"'),
             document.fonts.load('500 13px "JetBrains Mono"'),
             document.fonts.ready
@@ -1828,7 +1828,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
       ctx.shadowColor = 'rgba(188,19,254,.18)';
       ctx.shadowBlur = 10;
-      ctx.font = '800 72px "Syne", sans-serif';
+      ctx.font = '900 72px "Montserrat", sans-serif';
       let h1Y = 500;
       h1Lines.forEach(line => {
         if (isCenterLayout) fillCenteredText(ctx, line, centerX, h1Y);
@@ -2200,13 +2200,13 @@ const STRATEGY_TEMPLATE = `<!DOCTYPE html>
   <title>ERIZON · Estratégia de Crescimento</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
   <style>
     body { background:#080010; min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif; color:#fff; }
     .panel { background:rgba(255,255,255,.03); border:0.5px solid rgba(188,19,254,.2); border-radius:18px; padding:24px; }
     .mono { font-family:'JetBrains Mono',monospace; }
     .btn-nav { background:rgba(188,19,254,.12); border:0.5px solid rgba(188,19,254,.3); color:#BC13FE; padding:8px 16px; border-radius:8px; text-decoration:none; font-family:'JetBrains Mono',monospace; font-size:12px; }
-    .section-title { font-family:'Syne',sans-serif; font-size:1.15rem; margin-bottom:12px; }
+    .section-title { font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.15rem; margin-bottom:12px; }
     .item { border-left:2px solid rgba(0,242,255,.35); padding-left:14px; color:rgba(255,255,255,.82); line-height:1.7; }
     .pill { display:inline-flex; align-items:center; border:1px solid rgba(0,242,255,.18); color:#00F2FF; border-radius:999px; padding:6px 10px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
   </style>
@@ -2215,7 +2215,7 @@ const STRATEGY_TEMPLATE = `<!DOCTYPE html>
   <div class="max-w-5xl mx-auto">
     <div class="text-center mb-8">
       <div class="mono" style="font-size:10px;letter-spacing:.25em;color:#BC13FE;text-transform:uppercase;margin-bottom:10px;">Plano de Crescimento · ERIZON</div>
-      <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:2.4rem;color:#fff;letter-spacing:2px;">Estratégia de <span style="color:#BC13FE;">Engajamento</span></h1>
+      <h1 style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:2.4rem;color:#fff;letter-spacing:2px;">Estratégia de <span style="color:#BC13FE;">Engajamento</span></h1>
       <p style="color:rgba(255,255,255,.45);max-width:780px;margin:12px auto 0;">Direcionamento prático para acelerar autoridade, seguidores e desejo pela plataforma no Instagram e no LinkedIn.</p>
       <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
         <a href="/" class="btn-nav">Estúdio</a>
