@@ -9,6 +9,15 @@ dotenv.config({ path: path.resolve(__dirname, '../.env'), override: true });
 dotenv.config({ path: path.resolve(__dirname, '../.env.local'), override: true });
 console.log('[DEBUG] Env carregado. INSTAGRAM_ACCOUNT_ID:', process.env.INSTAGRAM_ACCOUNT_ID ? 'OK' : 'FALTANDO');
 
+// Logo embutido como base64 (sem dependência de HTTP request no Vercel)
+const LOGO_DATA_URL: string = (() => {
+  try {
+    const p = path.resolve(__dirname, '../public/logo-erizon.png');
+    if (fs.existsSync(p)) return 'data:image/png;base64,' + fs.readFileSync(p).toString('base64');
+  } catch { /* fallback para HTTP */ }
+  return '';
+})();
+
 const transports: winston.transport[] = [new winston.transports.Console()];
 if (!process.env.VERCEL) {
   transports.push(new winston.transports.File({ filename: 'error.log', level: 'error' }));
@@ -609,7 +618,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
                 <div id="card-div-line" class="div-line"></div>
                 <p id="card-sub" class="sub">Deixe a IA <strong>decidir por você.</strong></p>
               </div>
-              <div class="logo"><img id="logo-img" src="/logo-erizon.png" style="height:52px;width:auto;object-fit:contain;" crossorigin="anonymous"></div>
+              <div class="logo"><img id="logo-img" src="${LOGO_DATA_URL || '/logo-erizon.png'}" style="height:52px;width:auto;object-fit:contain;"></div>
             </div>
           </div>
         </div>
@@ -663,8 +672,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     const logoReadyPromise = (async function loadLogo() {
       try {
         const img = new Image();
-        img.crossOrigin = 'anonymous';
-        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = '/logo-erizon.png'; });
+        const logoSrc = ${JSON.stringify(LOGO_DATA_URL || '/logo-erizon.png')};
+        await new Promise((res, rej) => { img.onload = res; img.onerror = rej; img.src = logoSrc; });
         const c = document.createElement('canvas');
         c.width = img.width; c.height = img.height;
         const cx = c.getContext('2d');
@@ -1116,7 +1125,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       // Limpamos a bagunça
       document.body.removeChild(container);
       
-      return canvas.toDataURL('image/png');
+      return canvas.toDataURL('image/jpeg', 0.92);
     }
 
     // Gera imagem 1080×1920 para Story: card centralizado + brand background nas faixas
@@ -1484,7 +1493,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       ctx.beginPath(); ctx.moveTo(0, cardY - 1); ctx.lineTo(W, cardY - 1); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(0, cardY + W + 1); ctx.lineTo(W, cardY + W + 1); ctx.stroke();
 
-      return story.toDataURL('image/png');
+      return story.toDataURL('image/jpeg', 0.92);
     }
 
     // ============================================================
@@ -1594,6 +1603,40 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 </html>`;
 
 // ============================================================
+// IMGBB UPLOAD HELPER
+// ============================================================
+async function uploadToImgBB(image: ImagePayload): Promise<string> {
+  const apiKey = process.env.IMGBB_API_KEY;
+  if (!apiKey) throw new Error('IMGBB_API_KEY não configurada.');
+
+  const params = new URLSearchParams();
+  params.set('key', apiKey);
+  params.set('image', image.base64);
+  params.set('name', `erizon-${Date.now()}`);
+
+  const uploadRes = await fetch('https://api.imgbb.com/1/upload', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: params.toString()
+  });
+
+  const responseText = await uploadRes.text();
+  let uploadData: any;
+  try { uploadData = JSON.parse(responseText); }
+  catch { throw new Error('ImgBB resposta inválida: ' + responseText.slice(0, 200)); }
+
+  if (!uploadData.success) {
+    throw new Error('ImgBB falhou: ' + JSON.stringify(uploadData.error || uploadData).slice(0, 300));
+  }
+
+  const imageUrl = uploadData.data?.image?.url || uploadData.data?.url;
+  if (!imageUrl) throw new Error('ImgBB não retornou URL. data: ' + JSON.stringify(uploadData.data).slice(0, 300));
+
+  logger.info('ImgBB upload OK: ' + imageUrl);
+  return imageUrl;
+}
+
+// ============================================================
 // HANDLER
 // ============================================================
 export default async function handler(req: any, res: any) {
@@ -1626,31 +1669,7 @@ export default async function handler(req: any, res: any) {
       if (!content || !imageBase64) return res.status(400).json({ error: 'Texto ou imagem faltando.' });
       const image = parseImagePayload(imageBase64);
 
-      // Criação manual do Multipart-Form-Data (Bypass de bugs do FormData no Vercel)
-      const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-      const bodyPrefix = `--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="erizon-post.${image.extension}"\r\nContent-Type: ${image.mimeType}\r\n\r\n`;
-      const bodySuffix = `\r\n--${boundary}--\r\n`;
-      
-      const bodyBuffer = Buffer.concat([
-        Buffer.from(bodyPrefix, 'utf8'),
-        Buffer.from(image.base64, 'base64'),
-        Buffer.from(bodySuffix, 'utf8')
-      ]);
-
-      const uploadRes = await fetch('https://catbox.moe/user/api.php', { 
-        method: 'POST', 
-        headers: {
-          'Content-Type': `multipart/form-data; boundary=${boundary}`,
-          'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36)'
-        },
-        body: bodyBuffer 
-      });
-      if (!uploadRes.ok) return res.status(500).json({ success: false, error: `Erro upload da imagem: ${uploadRes.status}` });
-
-      const imageUrl = await uploadRes.text();
-      if (!imageUrl.startsWith('http')) return res.status(500).json({ success: false, error: `URL de imagem inválida: ${imageUrl}` });
-
-      logger.info(`Catbox Upload Success: ${imageUrl}`);
+      const imageUrl = await uploadToImgBB(image);
       const agent    = new SocialMediaAgent();
       const results  = await agent.postToSocialMedia(content, imageUrl, imageBase64, platforms || ['instagram', 'linkedin']);
       return res.status(200).json({ success: true, results });
@@ -1661,31 +1680,11 @@ export default async function handler(req: any, res: any) {
       const { caption, imageBase64s, platforms } = req.body || {};
       if (!caption || !imageBase64s?.length) return res.status(400).json({ error: 'Caption ou imagens faltando.' });
 
-      // Upload todos os slides pro Catbox (Sem API Key)
+      // Upload todos os slides pro ImgBB
       const imageUrls: string[] = [];
       for (let i = 0; i < imageBase64s.length; i++) {
         const image = parseImagePayload(imageBase64s[i]);
-        const boundary = '----WebKitFormBoundary' + Math.random().toString(36).substring(2);
-        const bodyPrefix = `--${boundary}\r\nContent-Disposition: form-data; name="reqtype"\r\n\r\nfileupload\r\n--${boundary}\r\nContent-Disposition: form-data; name="fileToUpload"; filename="slide-${i}.${image.extension}"\r\nContent-Type: ${image.mimeType}\r\n\r\n`;
-        const bodySuffix = `\r\n--${boundary}--\r\n`;
-        
-        const bodyBuffer = Buffer.concat([
-          Buffer.from(bodyPrefix, 'utf8'),
-          Buffer.from(image.base64, 'base64'),
-          Buffer.from(bodySuffix, 'utf8')
-        ]);
-
-        const r = await fetch('https://catbox.moe/user/api.php', { 
-          method: 'POST', 
-          headers: {
-            'Content-Type': `multipart/form-data; boundary=${boundary}`,
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64 AppleWebKit/537.36)'
-          },
-          body: bodyBuffer 
-        });
-        if (!r.ok) return res.status(500).json({ success: false, error: `Erro Catbox req slide ${i}: ` + r.statusText });
-        const url = await r.text();
-        if (!url.startsWith('http')) return res.status(500).json({ success: false, error: `URL inválida no slide ${i}: ${url}` });
+        const url = await uploadToImgBB(image);
         imageUrls.push(url);
       }
 
