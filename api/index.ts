@@ -908,6 +908,25 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       savePostHistory(history);
     }
 
+    async function fetchJson(url, options) {
+      const res = await fetch(url, options);
+      const raw = await res.text();
+      let data = null;
+
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch (e) {
+        const snippet = (raw || 'Resposta vazia do servidor.').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 220);
+        throw new Error(snippet || 'Resposta inválida do servidor.');
+      }
+
+      if (!res.ok) {
+        throw new Error(data?.error || data?.message || ('Erro HTTP ' + res.status));
+      }
+
+      return data;
+    }
+
     // Carrega o logo, remove fundo branco via canvas e armazena como dataURL
     const logoReadyPromise = (async function loadLogo() {
       try {
@@ -1302,7 +1321,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       try {
         const isCarousel = currentPostType === 'instagram-carousel';
         const url = isCarousel ? '/api/generate-carousel' : '/api/generate';
-        const res  = await fetch(url, {
+        const data = await fetchJson(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -1310,7 +1329,6 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
             recentPosts: getPostHistory()
           })
         });
-        const data = await res.json();
 
         if (isCarousel) {
           carouselSlides = data.slides || [];
@@ -2098,11 +2116,10 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           }
           showSlide(0);
           btnPublish.innerText = 'Publicando carrossel...';
-          const res  = await fetch('/api/publish-carousel', {
+          const data = await fetchJson('/api/publish-carousel', {
             method:'POST', headers:{'Content-Type':'application/json'},
             body: JSON.stringify({ caption: postContent.value, imageBase64s: base64s, platforms })
           });
-          const data = await res.json();
           if (!data.success) throw new Error(data.error || 'Erro desconhecido');
           showStatus('success', data.results);
         } else {
@@ -2124,11 +2141,10 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           if (hasInstagramFeed) {
             btnPublish.innerText = 'Renderizando Instagram (1:1 safe)...';
             const b64Instagram = await renderInstagramFeedCanvas();
-            const res  = await fetch('/api/publish', {
+            const data = await fetchJson('/api/publish', {
               method:'POST', headers:{'Content-Type':'application/json'},
               body: JSON.stringify({ content: postContent.value, imageBase64: b64Instagram, platforms: ['instagram'] })
             });
-            const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Erro desconhecido');
             allResults.push(...data.results);
           }
@@ -2136,11 +2152,10 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           if (hasLinkedIn) {
             btnPublish.innerText = 'Renderizando LinkedIn (1:1)...';
             const b64LinkedIn = await renderCardCanvas();
-            const res  = await fetch('/api/publish', {
+            const data = await fetchJson('/api/publish', {
               method:'POST', headers:{'Content-Type':'application/json'},
               body: JSON.stringify({ content: postContent.value, imageBase64: b64LinkedIn, platforms: ['linkedin'] })
             });
-            const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Erro desconhecido');
             allResults.push(...data.results);
           }
@@ -2148,11 +2163,10 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           // Posta story com a imagem 9:16 otimizada
           if (hasStory && b64Story) {
             btnPublish.innerText = 'Publicando story...';
-            const res  = await fetch('/api/publish', {
+            const data = await fetchJson('/api/publish', {
               method:'POST', headers:{'Content-Type':'application/json'},
               body: JSON.stringify({ content: postContent.value, imageBase64: b64Story, platforms: ['instagram-story'] })
             });
-            const data = await res.json();
             if (!data.success) throw new Error(data.error || 'Erro desconhecido');
             allResults.push(...data.results);
           }
@@ -2236,8 +2250,7 @@ const STRATEGY_TEMPLATE = `<!DOCTYPE html>
       button.disabled = true;
       grid.innerHTML = '<div class="panel">Gerando estratégia...</div>';
       try {
-        const res = await fetch('/api/strategy');
-        const data = await res.json();
+        const data = await fetchJson('/api/strategy');
         grid.innerHTML = [
           renderSection('Posicionamento', data.positioning),
           renderSection('Instagram', data.instagram),
