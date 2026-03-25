@@ -508,6 +508,10 @@ Retorne JSON válido neste formato:
   }
 
   async postCarouselToInstagram(imageUrls: string[], caption: string): Promise<string> {
+    if (imageUrls.some(url => url.startsWith('data:'))) {
+      throw new Error('O Meta exige uma URL pública para as imagens. Adicione a variável IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN no seu arquivo .env.');
+    }
+
     if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_ACCOUNT_ID) {
       throw new Error('Credenciais Instagram não configuradas.');
     }
@@ -613,6 +617,10 @@ Retorne JSON válido neste formato:
   }
 
   private async postToInstagramFeed(content: string, imageUrl: string): Promise<void> {
+    if (imageUrl.startsWith('data:')) {
+      throw new Error('O Meta exige uma URL pública da imagem. Adicione a variável IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN no seu arquivo .env para hospedar a imagem automaticamente.');
+    }
+
     if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_ACCOUNT_ID) {
       throw new Error('Credenciais Instagram não configuradas.');
     }
@@ -637,6 +645,10 @@ Retorne JSON válido neste formato:
   }
 
   private async postToInstagramStory(imageUrl: string): Promise<void> {
+    if (imageUrl.startsWith('data:')) {
+      throw new Error('O Meta exige uma URL pública da imagem. Adicione a variável IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN no seu arquivo .env para hospedar a imagem automaticamente.');
+    }
+
     if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_ACCOUNT_ID) {
       throw new Error('Credenciais Instagram não configuradas.');
     }
@@ -2002,12 +2014,12 @@ export default async function handler(req: any, res: any) {
         res.status(200).json(content);
       } else if (url.pathname === '/api/publish') {
         const { content, imageBase64, platforms } = body;
-        const imageUrl = await uploadToVercelBlob(imageBase64);
+        const imageUrl = await uploadImageToCloud(imageBase64);
         const results = await agent.postToSocialMedia(content, imageUrl, imageBase64, platforms);
         res.status(200).json({ results });
       } else if (url.pathname === '/api/publish-carousel') {
         const { images, caption, platforms } = body;
-        const imageUrls = await Promise.all(images.map((img: any) => uploadToVercelBlob(img)));
+        const imageUrls = await Promise.all(images.map((img: any) => uploadImageToCloud(img)));
         const results = [];
         if (platforms.includes('instagram')) {
           try {
@@ -2039,30 +2051,49 @@ export default async function handler(req: any, res: any) {
   }
 }
 
-async function uploadToVercelBlob(base64Data: string): Promise<string> {
-  if (!process.env.BLOB_UPLOAD_TOKEN) {
-    logger.warn('BLOB_UPLOAD_TOKEN não configurado. Retornando data URI.');
-    return base64Data;
-  }
-
+async function uploadImageToCloud(base64Data: string): Promise<string> {
   const image = parseImagePayload(base64Data);
-  const filename = `erizon-post-${Date.now()}.${image.extension}`;
-  const buffer = Buffer.from(image.base64, 'base64');
 
-  const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
-    method: 'PUT',
-    headers: {
-      'Authorization': `Bearer ${process.env.BLOB_UPLOAD_TOKEN}`,
-      'Content-Type': image.mimeType,
-    },
-    body: buffer,
-  });
+  // 1. ImgBB (Simples e gratuito, ideal para Instagram)
+  if (process.env.IMGBB_API_KEY) {
+    const formData = new URLSearchParams();
+    formData.append('key', process.env.IMGBB_API_KEY);
+    formData.append('image', image.base64);
 
-  if (!response.ok) {
-    const errorText = await response.text();
-    throw new Error(`Falha no upload para o Vercel Blob: ${errorText}`);
+    const response = await fetch('https://api.imgbb.com/1/upload', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await response.json() as any;
+    if (data.success) return data.data.url;
+    throw new Error(`Falha no ImgBB: ${JSON.stringify(data)}`);
   }
 
-  const data = await response.json();
-  return data.url;
+  // 2. Vercel Blob
+  if (process.env.BLOB_UPLOAD_TOKEN) {
+    const filename = `erizon-post-${Date.now()}.${image.extension}`;
+    const buffer = Buffer.from(image.base64, 'base64');
+
+    const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${process.env.BLOB_UPLOAD_TOKEN}`,
+        'Content-Type': image.mimeType,
+        'x-api-version': '7' // Vercel exige isso na API REST direta
+      },
+      body: buffer,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Falha no upload para o Vercel Blob: ${errorText}`);
+    }
+
+    const data = await response.json() as any;
+    return data.url;
+  }
+
+  // 3. Fallback local (Funciona para o LinkedIn, mas o Instagram recusa Base64)
+  logger.warn('Nenhum serviço de hospedagem de imagem configurado no .env (IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN). Retornando Base64 direto.');
+  return base64Data;
 }
