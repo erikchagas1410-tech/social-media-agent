@@ -107,6 +107,23 @@ interface CarouselContent {
   caption: string;
 }
 
+interface PostMemoryEntry {
+  platform: PostType | 'strategy';
+  eyebrow: string;
+  h1: string;
+  caption: string;
+  angle?: string;
+  createdAt?: string;
+}
+
+interface StrategyPlan {
+  positioning: string[];
+  instagram: string[];
+  linkedin: string[];
+  growthLoops: string[];
+  weeklyCadence: string[];
+}
+
 interface ImagePayload {
   base64: string;
   mimeType: string;
@@ -137,7 +154,26 @@ class SocialMediaAgent {
     logger.info('ERIZON Social Media Agent inicializado');
   }
 
-  async generatePost(postType: PostType = 'instagram-feed'): Promise<PostContent> {
+  private buildRecentPostsBlock(recentPosts: PostMemoryEntry[] = []): string {
+    if (!recentPosts.length) return 'SEM HISTORICO RECENTE.';
+
+    return recentPosts
+      .slice(-12)
+      .map((post, idx) => {
+        const parts = [
+          `#${idx + 1}`,
+          `plataforma=${post.platform}`,
+          `eyebrow=${post.eyebrow || '-'}`,
+          `h1=${post.h1 || '-'}`,
+          `angulo=${post.angle || '-'}`,
+          `caption=${(post.caption || '').slice(0, 180)}`
+        ];
+        return parts.join(' | ');
+      })
+      .join('\n');
+  }
+
+  async generatePost(postType: PostType = 'instagram-feed', recentPosts: PostMemoryEntry[] = []): Promise<PostContent> {
     try {
       if (!process.env.GROQ_API_KEY) {
         return {
@@ -163,6 +199,9 @@ ${ERIZON_BRAND_CONTEXT}
 
 TIPO DE POST: ${platformHints[postType]}
 
+HISTORICO RECENTE DE POSTS DA ERIZON:
+${this.buildRecentPostsBlock(recentPosts)}
+
 REGRAS ABSOLUTAS DE COPYWRITING VIRAL:
 1. H1 deve PARAR O SCROLL: máximo 5 palavras, cria curiosidade OU choca OU faz o leitor concordar instantaneamente
 2. Cada post foca em UM único pilar editorial — nunca misture temas
@@ -170,6 +209,9 @@ REGRAS ABSOLUTAS DE COPYWRITING VIRAL:
 4. Nunca use linguagem corporativa genérica. Fale como expert que domina tráfego pago
 5. Use dados e números específicos quando relevante (aumentam autoridade e credibilidade)
 6. H1: MÁXIMO 5 PALAVRAS com <br> na metade e <span class='grad'>palavra-impacto</span> na palavra mais forte
+7. Nunca repita ângulo, promessa, dor principal ou CTA dominante do histórico recente
+8. Instagram deve maximizar salvamento, compartilhamento e resposta no direct
+9. LinkedIn deve maximizar autoridade, clareza estratégica e percepção premium da ERIZON
 
 RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
 {
@@ -182,7 +224,7 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
       const response = await groq.chat.completions.create({
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: `Gere um conteúdo VIRAL e INÉDITO para a ERIZON. Escolha um pilar editorial inesperado e use uma fórmula de hook surpreendente. Tipo: ${postType}` }
+          { role: 'user', content: `Gere um conteúdo VIRAL e INÉDITO para a ERIZON. Escolha um pilar editorial inesperado, com potencial real de engajamento e aquisição. Não repita o histórico recente. Tipo: ${postType}` }
         ],
         model: 'llama-3.3-70b-versatile',
         temperature: 0.92,
@@ -202,7 +244,7 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
     }
   }
 
-  async generateCarousel(): Promise<CarouselContent> {
+  async generateCarousel(recentPosts: PostMemoryEntry[] = []): Promise<CarouselContent> {
     try {
       if (!process.env.GROQ_API_KEY) {
         return {
@@ -217,6 +259,9 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
 
 ${ERIZON_BRAND_CONTEXT}
 
+HISTÓRICO RECENTE DE POSTS DA ERIZON:
+${this.buildRecentPostsBlock(recentPosts)}
+
 ESTRUTURA DO CARROSSEL (5 slides obrigatórios):
 - Slide 1 (CAPA/HOOK): Hook DEVASTADOR que force a pessoa a deslizar. Padrão de choque ou curiosidade irresistível. É o mais importante.
 - Slide 2 (PROBLEMA): Aprofunda a dor — gestores perdendo dinheiro sem perceber
@@ -229,6 +274,8 @@ REGRAS POR SLIDE:
 - h1: MÁXIMO 5 PALAVRAS com <br> na metade e <span class='grad'> na palavra de impacto
 - sub: até 12 palavras com <strong> no trecho mais forte
 - A narrativa deve fluir — quem desliza deve sentir progressão e curiosidade crescente
+- Nunca repita hook, dor principal, promessa ou CTA dominante do histórico recente
+- A solução precisa aumentar o desejo de conhecer a plataforma ERIZON
 
 CAPTION: conta a história toda, inclui todos os insights dos slides, termina com CTA forte e hashtags.
 
@@ -247,7 +294,7 @@ RETORNE JSON VÁLIDO:
       const response = await groq.chat.completions.create({
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Crie um carrossel VIRAL e inédito para a ERIZON. Escolha um ângulo que ninguém viu. Narrativa progressiva que vicia quem desliza.' }
+          { role: 'user', content: 'Crie um carrossel VIRAL e inédito para a ERIZON. Escolha um ângulo que ninguém viu. Narrativa progressiva que vicia quem desliza e aumenta a percepção de valor da plataforma.' }
         ],
         model: 'llama-3.3-70b-versatile',
         temperature: 0.9,
@@ -267,6 +314,107 @@ RETORNE JSON VÁLIDO:
           { eyebrow: '// Próximo Passo', h1: 'Comece<br><span class="grad">agora.</span>', sub: 'Teste a Erizon e veja suas campanhas <strong>em outro nível.</strong>' }
         ],
         caption: '🎯 Você sabe quando uma campanha começa a saturar?\n\nA maioria dos gestores descobre DEPOIS — quando o ROAS já caiu e o budget já foi embora.\n\nO Risk Radar da Erizon detecta fadiga de criativo e saturação de público ANTES de custarem dinheiro.\n\nDeslize para entender como. 👉\n\n#GestordeTrafego #MetaAds #Erizon #RiskRadar #TrafegoPago #Performance'
+      };
+    }
+  }
+
+  async generateStrategy(): Promise<StrategyPlan> {
+    try {
+      if (!process.env.GROQ_API_KEY) {
+        return {
+          positioning: [
+            'Posicione a ERIZON como sistema de inteligência operacional, não como dashboard.',
+            'Mostre antecipação de risco, automação e ganho de margem como diferencial central.',
+            'Comunique a plataforma como copiloto premium para agências e gestores de tráfego.'
+          ],
+          instagram: [
+            'Alternar posts de choque, prova, bastidor e tutorial curto.',
+            'Transformar cada feed em stories derivados com enquete, caixa de pergunta e CTA.',
+            'Usar carrosséis com promessa clara de ganho ou prevenção de perda.',
+            'Fechar a semana com CTA de salvar, compartilhar ou responder no direct.'
+          ],
+          linkedin: [
+            'Publicar opinião forte sobre performance, diagnóstico e operação de agências.',
+            'Transformar aprendizados do produto em frameworks e pontos de vista.',
+            'Usar narrativas de eficiência operacional e decisão com dados.',
+            'Fechar posts com tese prática e próximo passo claro.'
+          ],
+          growthLoops: [
+            'Recortar cada post forte em story, comentário, carrossel e vídeo curto.',
+            'Usar perguntas da audiência como backlog editorial.',
+            'Criar séries reconhecíveis para estimular retorno ao perfil.'
+          ],
+          weeklyCadence: [
+            '3 posts de Instagram feed por semana, 5 a 7 stories e 2 posts no LinkedIn.',
+            '1 carrossel estratégico por semana para gerar salvamentos.',
+            'Revisar comentários, compartilhamentos e salvamentos antes de definir a próxima pauta.'
+          ]
+        };
+      }
+
+      const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+      const response = await groq.chat.completions.create({
+        messages: [
+          {
+            role: 'system',
+            content: `Você é o estrategista de crescimento da ERIZON.
+
+${ERIZON_BRAND_CONTEXT}
+
+Monte um plano prático para acelerar reconhecimento, seguidores e aquisição no Instagram e no LinkedIn.
+O foco é gerar autoridade rápida, clareza de posicionamento e conteúdo que converta curiosidade em interesse comercial.
+
+Retorne JSON válido neste formato:
+{
+  "positioning": ["string", "string", "string"],
+  "instagram": ["string", "string", "string", "string"],
+  "linkedin": ["string", "string", "string", "string"],
+  "growthLoops": ["string", "string", "string"],
+  "weeklyCadence": ["string", "string", "string"]
+}`
+          },
+          {
+            role: 'user',
+            content: 'Crie uma estratégia exclusiva da ERIZON para crescer rápido com conteúdo premium, futurista e orientado à aquisição.'
+          }
+        ],
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0.7,
+        response_format: { type: 'json_object' }
+      });
+
+      const jsonContent = response.choices[0]?.message?.content || '{}';
+      return JSON.parse(jsonContent);
+    } catch (error) {
+      logger.error('Erro ao gerar estratégia:', error);
+      return {
+        positioning: [
+          'Fale de previsão, margem e decisão automatizada em vez de vaidade e dashboards.',
+          'Ancore a ERIZON como copiloto premium para agências e gestores de tráfego.',
+          'Mostre futuros problemas evitados, não só resultados passados.'
+        ],
+        instagram: [
+          'Priorize hooks de risco, erro caro, oportunidade perdida e antes/depois.',
+          'Use carrosséis e capas com promessa forte e visual futurista variado.',
+          'Transforme cada feed em stories derivados com enquete, caixa de pergunta e CTA.',
+          'Reforce comentários e DMs como canal de qualificação.'
+        ],
+        linkedin: [
+          'Publique diagnósticos de mercado, frameworks e opiniões fortes sobre operação de performance.',
+          'Abra posts com fricção intelectual e feche com tese prática.',
+          'Use prova, dados e narrativas de eficiência operacional.',
+          'Conecte cada post ao valor de negócio da ERIZON.'
+        ],
+        growthLoops: [
+          'Recicle posts que performaram em novos formatos sem repetir o mesmo hook.',
+          'Use perguntas, comentários e objeções como backlog editorial.',
+          'Crie séries reconhecíveis para gerar retorno recorrente ao perfil.'
+        ],
+        weeklyCadence: [
+          'Segunda: hook de dor. Quarta: carrossel. Sexta: prova ou CTA comercial.',
+          'Mantenha stories ativos nos dias de post e nos dias seguintes para capturar resposta.',
+          'Revise posts salvos, compartilhados e comentados para decidir a próxima pauta.'
+        ]
       };
     }
   }
@@ -554,6 +702,10 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       <div class="mono" style="font-size:10px;letter-spacing:.25em;color:#BC13FE;text-transform:uppercase;margin-bottom:10px;">Estúdio de Conteúdo · 2025</div>
       <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:2.2rem;color:#fff;letter-spacing:3px;">ERI<span style="color:#BC13FE;">ZON</span></h1>
       <p style="color:rgba(255,255,255,.3);font-size:12px;margin-top:6px;letter-spacing:.05em;">Inteligência que antecipa. Performance que escala.</p>
+      <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+        <a href="/" class="btn-nav" style="text-decoration:none;">Estúdio</a>
+        <a href="/strategy" class="btn-nav" style="text-decoration:none;">Estratégia</a>
+      </div>
     </div>
 
     <div class="panel">
@@ -667,6 +819,39 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       gradClass: 'grad',
       bgVariant: 'orbital'
     };
+    const HISTORY_KEY = 'erizon-post-history-v1';
+
+    function getPostHistory() {
+      try {
+        const raw = localStorage.getItem(HISTORY_KEY);
+        const parsed = raw ? JSON.parse(raw) : [];
+        return Array.isArray(parsed) ? parsed : [];
+      } catch (e) {
+        console.warn('History read error:', e);
+        return [];
+      }
+    }
+
+    function savePostHistory(items) {
+      try {
+        localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(-24)));
+      } catch (e) {
+        console.warn('History write error:', e);
+      }
+    }
+
+    function rememberPost(entry) {
+      const history = getPostHistory();
+      history.push({
+        platform: entry.platform || currentPostType,
+        eyebrow: entry.eyebrow || '',
+        h1: entry.h1 || '',
+        caption: entry.caption || '',
+        angle: entry.angle || stripHtml(entry.h1 || '').slice(0, 80),
+        createdAt: new Date().toISOString()
+      });
+      savePostHistory(history);
+    }
 
     // Carrega o logo, remove fundo branco via canvas e armazena como dataURL
     const logoReadyPromise = (async function loadLogo() {
@@ -696,7 +881,14 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
     async function waitForRenderAssets() {
       try {
-        if (document.fonts && document.fonts.ready) await document.fonts.ready;
+        if (document.fonts && document.fonts.ready) {
+          await Promise.all([
+            document.fonts.load('800 72px "Syne"'),
+            document.fonts.load('600 22px "Plus Jakarta Sans"'),
+            document.fonts.load('500 13px "JetBrains Mono"'),
+            document.fonts.ready
+          ]);
+        }
       } catch (e) {
         console.warn('Font readiness error:', e);
       }
@@ -797,12 +989,30 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const orbCenter = document.querySelector('.orb-center');
       const orbGlow = document.querySelector('.orb-glow');
       const rings = document.querySelectorAll('.ring');
+      const cont = document.getElementById('content-container');
+      const av = document.getElementById('card-accent-v');
+      const ah = document.getElementById('card-accent-h');
+      const dl = document.getElementById('card-div-line');
 
       lightT.style.display = 'block';
       lightB.style.display = 'block';
       orbCenter.style.display = 'block';
       orbGlow.style.display = 'block';
-      rings.forEach(r => r.style.display = 'block');
+      lightT.style.filter = 'blur(50px)';
+      lightB.style.filter = 'blur(50px)';
+      rings.forEach((r, idx) => {
+        r.style.display = 'block';
+        r.style.borderColor = idx === 0 ? 'rgba(188,19,254,.3)' : idx === 1 ? 'rgba(188,19,254,.15)' : 'rgba(188,19,254,.07)';
+      });
+      cont.className = 'cc';
+      cont.style.left = '0';
+      cont.style.right = '0';
+      cont.style.width = '100%';
+      cont.style.alignItems = 'center';
+      cont.style.textAlign = 'center';
+      av.style.display = 'none';
+      ah.style.display = 'none';
+      dl.style.margin = '28px auto';
 
       const p = state.palette;
       const rx = (Math.floor(Math.random()*80)+10) + '% ';
@@ -821,7 +1031,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       } else if (state.bgVariant === 'split') {
         lightT.style.background = 'radial-gradient(circle at 12% 50%,' + p.t + '.32) 0%,transparent 44%)';
         lightB.style.background = 'radial-gradient(circle at 88% 50%,' + p.b + '.22) 0%,transparent 42%)';
-        orbCenter.style.background = 'radial-gradient(circle at 50% 50%, rgba(255,255,255,.03) 0%, transparent 55%)';
+        orbCenter.style.background = 'radial-gradient(circle at 50% 50%,' + p.o + '.07) 0%, transparent 55%)';
         orbGlow.style.display = 'none';
       } else if (state.bgVariant === 'corner-burst') {
         lightT.style.background = 'radial-gradient(circle at 0% 0%,' + p.t + '.34) 0%,transparent 42%)';
@@ -831,8 +1041,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       } else if (state.bgVariant === 'tunnel') {
         lightT.style.background = 'radial-gradient(circle at 50% 50%,' + p.t + '.18) 0%,transparent 58%)';
         lightB.style.background = 'radial-gradient(circle at 50% 50%,' + p.b + '.12) 0%,transparent 70%)';
-        orbCenter.style.background = 'radial-gradient(circle at 50% 50%, rgba(255,255,255,.02) 0%, transparent 52%)';
-        rings.forEach((r, idx) => r.style.borderColor = idx === 0 ? 'rgba(255,255,255,.18)' : idx === 1 ? 'rgba(188,19,254,.14)' : 'rgba(0,242,255,.08)');
+        orbCenter.style.background = 'radial-gradient(circle at 50% 50%,' + p.o + '.08) 0%, transparent 52%)';
+        rings.forEach((r, idx) => r.style.borderColor = idx === 0 ? 'rgba(0,242,255,.18)' : idx === 1 ? 'rgba(188,19,254,.14)' : 'rgba(255,0,229,.08)');
       } else if (state.bgVariant === 'bands') {
         lightT.style.background = 'linear-gradient(180deg,' + p.t + '.26) 0%,transparent 38%)';
         lightB.style.background = 'linear-gradient(0deg,' + p.b + '.20) 0%,transparent 34%)';
@@ -851,16 +1061,28 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         rings.forEach((r, idx) => r.style.borderColor = idx === 0 ? 'rgba(0,242,255,.22)' : idx === 1 ? 'rgba(188,19,254,.12)' : 'rgba(255,0,229,.08)');
       }
 
-      const cont = document.getElementById('content-container');
-      const av = document.getElementById('card-accent-v');
-      const ah = document.getElementById('card-accent-h');
-      const dl = document.getElementById('card-div-line');
-      av.style.display = 'none';
-      ah.style.display = 'none';
-      dl.style.margin = '28px auto';
-      if (state.layout === 'center') { cont.className = 'cc'; }
-      else if (state.layout === 'left-v') { cont.className = 'lc'; av.style.display = 'block'; dl.style.margin = '28px 0'; }
-      else { cont.className = 'lc'; ah.style.display = 'block'; dl.style.margin = '28px 0'; }
+      if (state.layout === 'center') {
+        cont.className = 'cc';
+      } else {
+        cont.className = 'lc';
+        cont.style.width = '760px';
+        dl.style.margin = '28px 0';
+
+        if (state.layout === 'left-v' || state.layout === 'left-h') {
+          cont.style.left = '80px';
+          cont.style.right = 'auto';
+          cont.style.alignItems = 'flex-start';
+          cont.style.textAlign = 'left';
+        } else {
+          cont.style.left = 'auto';
+          cont.style.right = '80px';
+          cont.style.alignItems = 'flex-end';
+          cont.style.textAlign = 'right';
+        }
+
+        if (state.layout.endsWith('-v')) av.style.display = 'block';
+        if (state.layout.endsWith('-h')) ah.style.display = 'block';
+      }
 
       let txt = (h1Text || '').replace(/class=["']grad\\d*["']/g, 'class="' + state.gradClass + '"');
       if (!txt.includes('class=')) txt = txt.replace(/<span/g, '<span class="' + state.gradClass + '"');
@@ -872,9 +1094,11 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         { t:'rgba(188,19,254,', b:'rgba(255,0,229,', o:'rgba(188,19,254,' },
         { t:'rgba(0,242,255,',  b:'rgba(188,19,254,', o:'rgba(0,242,255,' },
         { t:'rgba(255,0,100,',  b:'rgba(255,68,136,', o:'rgba(255,0,100,' },
-        { t:'rgba(255,255,255,', b:'rgba(0,242,255,', o:'rgba(188,19,254,' }
+        { t:'rgba(54,209,220,', b:'rgba(91,134,229,', o:'rgba(0,242,255,' },
+        { t:'rgba(132,94,247,', b:'rgba(255,0,229,', o:'rgba(132,94,247,' },
+        { t:'rgba(0,255,163,',  b:'rgba(0,242,255,', o:'rgba(0,255,163,' }
       ];
-      const layouts = ['center', 'left-v', 'left-h'];
+      const layouts = ['center', 'left-v', 'left-h', 'right-v', 'right-h'];
       const grads = ['grad','grad2','grad3'];
       const variants = ['orbital', 'diagonal', 'split', 'halo', 'corner-burst', 'tunnel', 'bands', 'crosslight'];
       currentVisualState = {
@@ -916,8 +1140,15 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
       try {
         const isCarousel = currentPostType === 'instagram-carousel';
-        const url = isCarousel ? '/api/generate-carousel' : '/api/generate?type=' + currentPostType;
-        const res  = await fetch(url);
+        const url = isCarousel ? '/api/generate-carousel' : '/api/generate';
+        const res  = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            type: currentPostType,
+            recentPosts: getPostHistory()
+          })
+        });
         const data = await res.json();
 
         if (isCarousel) {
@@ -926,6 +1157,13 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           carouselNav.classList.remove('hidden');
           slideBadge.classList.remove('hidden');
           showSlide(0);
+          rememberPost({
+            platform: currentPostType,
+            eyebrow: carouselSlides[0]?.eyebrow || '',
+            h1: carouselSlides[0]?.h1 || '',
+            caption: data.caption || '',
+            angle: stripHtml(carouselSlides[0]?.h1 || '')
+          });
         } else {
           carouselSlides = [];
           carouselNav.classList.add('hidden');
@@ -937,6 +1175,13 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           document.getElementById('card-eyebrow').innerHTML = data.eyebrow || '';
           document.getElementById('card-sub').innerHTML     = data.sub     || '';
           randomizeVisuals(data.h1 || '');
+          rememberPost({
+            platform: currentPostType,
+            eyebrow: data.eyebrow || '',
+            h1: data.h1 || '',
+            caption: data.caption || '',
+            angle: stripHtml(data.h1 || '')
+          });
         }
 
         previewSection.classList.remove('hidden');
@@ -1139,7 +1384,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const ctx = canvas.getContext('2d');
 
       const contentContainer = document.getElementById('content-container');
-      const isCenterLayout = contentContainer.className === 'cc';
+      const layout = (currentVisualState && currentVisualState.layout) || 'center';
+      const isCenterLayout = layout === 'center';
+      const isRightLayout = layout === 'right-v' || layout === 'right-h';
       const showAccentV = document.getElementById('card-accent-v').style.display !== 'none';
       const showAccentH = document.getElementById('card-accent-h').style.display !== 'none';
       const showBadge = !slideBadge.classList.contains('hidden');
@@ -1312,10 +1559,12 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
       const centerX = W / 2;
       const leftX = 80;
-      ctx.textAlign = isCenterLayout ? 'center' : 'left';
+      const rightX = W - 80;
+      ctx.textAlign = isCenterLayout ? 'center' : isRightLayout ? 'right' : 'left';
       ctx.font = '500 13px "JetBrains Mono", monospace';
       ctx.fillStyle = '#00F2FF';
       if (isCenterLayout) ctx.fillText(eyebrow, centerX, 355);
+      else if (isRightLayout) ctx.fillText(eyebrow, rightX, 355);
       else ctx.fillText(eyebrow, leftX, 355);
 
       ctx.shadowColor = 'rgba(188,19,254,.18)';
@@ -1324,6 +1573,16 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       let h1Y = 500;
       h1Lines.forEach(line => {
         if (isCenterLayout) fillCenteredText(ctx, line, centerX, h1Y);
+        else if (isRightLayout) {
+          let totalWidth = 0;
+          line.forEach(seg => { totalWidth += ctx.measureText(seg.text).width; });
+          let x = rightX - totalWidth;
+          line.forEach(seg => {
+            ctx.fillStyle = seg.className === 'grad2' ? '#00F2FF' : seg.className === 'grad3' ? '#FF4488' : seg.className === 'grad' ? '#BC13FE' : '#FFFFFF';
+            ctx.fillText(seg.text, x, h1Y);
+            x += ctx.measureText(seg.text).width;
+          });
+        }
         else {
           let x = leftX;
           line.forEach(seg => {
@@ -1338,7 +1597,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
       const lineY = h1Y - 20;
       const divWidth = 60;
-      const divX = isCenterLayout ? (W - divWidth) / 2 : leftX;
+      const divX = isCenterLayout ? (W - divWidth) / 2 : isRightLayout ? rightX - divWidth : leftX;
       const divGrad = ctx.createLinearGradient(divX, 0, divX + divWidth, 0);
       divGrad.addColorStop(0, 'rgba(188,19,254,0)');
       divGrad.addColorStop(0.5, '#BC13FE');
@@ -1352,6 +1611,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       let subY = lineY + 54;
       subLines.forEach(line => {
         if (isCenterLayout) ctx.fillText(line, centerX, subY);
+        else if (isRightLayout) ctx.fillText(line, rightX, subY);
         else ctx.fillText(line, leftX, subY);
         subY += 34;
       });
@@ -1369,7 +1629,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         ctx.drawImage(logoImg, (W - logoW) / 2, H - 40 - logoH, logoW, logoH);
       }
 
-      return canvas.toDataURL('image/png');
+      return canvas.toDataURL('image/jpeg', 0.92);
     }
 
     async function renderInstagramFeedCanvas() {
@@ -1422,7 +1682,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       ctx.beginPath(); ctx.moveTo(72, cardY - 22); ctx.lineTo(W - 72, cardY - 22); ctx.stroke();
       ctx.beginPath(); ctx.moveTo(72, cardY + cardSize + 22); ctx.lineTo(W - 72, cardY + cardSize + 22); ctx.stroke();
 
-      return canvas.toDataURL('image/png');
+      return canvas.toDataURL('image/jpeg', 0.92);
     }
 
     async function renderStory() {
@@ -1602,6 +1862,86 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 </body>
 </html>`;
 
+const STRATEGY_TEMPLATE = `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERIZON · Estratégia de Crescimento</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    body { background:#080010; min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif; color:#fff; }
+    .panel { background:rgba(255,255,255,.03); border:0.5px solid rgba(188,19,254,.2); border-radius:18px; padding:24px; }
+    .mono { font-family:'JetBrains Mono',monospace; }
+    .btn-nav { background:rgba(188,19,254,.12); border:0.5px solid rgba(188,19,254,.3); color:#BC13FE; padding:8px 16px; border-radius:8px; text-decoration:none; font-family:'JetBrains Mono',monospace; font-size:12px; }
+    .section-title { font-family:'Syne',sans-serif; font-size:1.15rem; margin-bottom:12px; }
+    .item { border-left:2px solid rgba(0,242,255,.35); padding-left:14px; color:rgba(255,255,255,.82); line-height:1.7; }
+    .pill { display:inline-flex; align-items:center; border:1px solid rgba(0,242,255,.18); color:#00F2FF; border-radius:999px; padding:6px 10px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; }
+  </style>
+</head>
+<body class="p-4 md:p-8">
+  <div class="max-w-5xl mx-auto">
+    <div class="text-center mb-8">
+      <div class="mono" style="font-size:10px;letter-spacing:.25em;color:#BC13FE;text-transform:uppercase;margin-bottom:10px;">Plano de Crescimento · ERIZON</div>
+      <h1 style="font-family:'Syne',sans-serif;font-weight:800;font-size:2.4rem;color:#fff;letter-spacing:2px;">Estratégia de <span style="color:#BC13FE;">Engajamento</span></h1>
+      <p style="color:rgba(255,255,255,.45);max-width:780px;margin:12px auto 0;">Direcionamento prático para acelerar autoridade, seguidores e desejo pela plataforma no Instagram e no LinkedIn.</p>
+      <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
+        <a href="/" class="btn-nav">Estúdio</a>
+        <a href="/strategy" class="btn-nav">Estratégia</a>
+      </div>
+    </div>
+
+    <div class="panel mb-6">
+      <div class="flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <div class="pill">Exclusive ERIZON</div>
+          <p style="margin-top:10px;color:rgba(255,255,255,.68);">A lógica aqui é simples: parecer premium, ensinar sem soar básico e transformar curiosidade em intenção comercial.</p>
+        </div>
+        <button id="refresh-strategy" class="btn-nav" type="button">Atualizar Estratégia</button>
+      </div>
+    </div>
+
+    <div id="strategy-grid" class="grid md:grid-cols-2 gap-5"></div>
+  </div>
+
+  <script>
+    const grid = document.getElementById('strategy-grid');
+    const button = document.getElementById('refresh-strategy');
+
+    function renderSection(title, items) {
+      return '<div class="panel"><div class="section-title">' + title + '</div><div style="display:grid;gap:12px;">' +
+        (items || []).map(item => '<div class="item">' + item + '</div>').join('') +
+        '</div></div>';
+    }
+
+    async function loadStrategy() {
+      button.disabled = true;
+      grid.innerHTML = '<div class="panel">Gerando estratégia...</div>';
+      try {
+        const res = await fetch('/api/strategy');
+        const data = await res.json();
+        grid.innerHTML = [
+          renderSection('Posicionamento', data.positioning),
+          renderSection('Instagram', data.instagram),
+          renderSection('LinkedIn', data.linkedin),
+          renderSection('Loops de Crescimento', data.growthLoops),
+          renderSection('Cadência Semanal', data.weeklyCadence)
+        ].join('');
+      } catch (e) {
+        grid.innerHTML = '<div class="panel">Falha ao carregar estratégia: ' + e.message + '</div>';
+      } finally {
+        button.disabled = false;
+      }
+    }
+
+    button.addEventListener('click', loadStrategy);
+    loadStrategy();
+  </script>
+</body>
+</html>`;
+
 // ============================================================
 // IMGBB UPLOAD HELPER
 // ============================================================
@@ -1650,17 +1990,28 @@ export default async function handler(req: any, res: any) {
       return res.status(200).setHeader('Content-Type', 'text/html').send(HTML_TEMPLATE);
     }
 
+    if (url === '/strategy' && method === 'GET') {
+      return res.status(200).setHeader('Content-Type', 'text/html').send(STRATEGY_TEMPLATE);
+    }
+
     // Generate single post
-    if (url === '/api/generate' && method === 'GET') {
-      const type = (query.get('type') || 'instagram-feed') as PostType;
+    if (url === '/api/generate' && (method === 'GET' || method === 'POST')) {
+      const type = ((method === 'POST' ? req.body?.type : query.get('type')) || 'instagram-feed') as PostType;
+      const recentPosts = Array.isArray(req.body?.recentPosts) ? req.body.recentPosts : [];
       const agent = new SocialMediaAgent();
-      return res.status(200).json(await agent.generatePost(type));
+      return res.status(200).json(await agent.generatePost(type, recentPosts));
     }
 
     // Generate carousel
-    if (url === '/api/generate-carousel' && method === 'GET') {
+    if (url === '/api/generate-carousel' && (method === 'GET' || method === 'POST')) {
+      const recentPosts = Array.isArray(req.body?.recentPosts) ? req.body.recentPosts : [];
       const agent = new SocialMediaAgent();
-      return res.status(200).json(await agent.generateCarousel());
+      return res.status(200).json(await agent.generateCarousel(recentPosts));
+    }
+
+    if (url === '/api/strategy' && method === 'GET') {
+      const agent = new SocialMediaAgent();
+      return res.status(200).json(await agent.generateStrategy());
     }
 
     // Publish single post
