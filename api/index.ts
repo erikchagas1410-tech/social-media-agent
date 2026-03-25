@@ -817,7 +817,11 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       palette: { t:'rgba(188,19,254,', b:'rgba(255,0,229,', o:'rgba(188,19,254,' },
       layout: 'center',
       gradClass: 'grad',
-      bgVariant: 'orbital'
+      bgVariant: 'orbital',
+      showGrid: true,
+      showCorners: true,
+      showOrbs: true,
+      showRings: true
     };
     const HISTORY_KEY = 'erizon-post-history-v1';
 
@@ -989,6 +993,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const orbCenter = document.querySelector('.orb-center');
       const orbGlow = document.querySelector('.orb-glow');
       const rings = document.querySelectorAll('.ring');
+      const grid = document.querySelector('.grid-bg');
+      const corners = document.querySelectorAll('.corner');
       const cont = document.getElementById('content-container');
       const av = document.getElementById('card-accent-v');
       const ah = document.getElementById('card-accent-h');
@@ -996,12 +1002,14 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
       lightT.style.display = 'block';
       lightB.style.display = 'block';
-      orbCenter.style.display = 'block';
-      orbGlow.style.display = 'block';
+      orbCenter.style.display = state.showOrbs === false ? 'none' : 'block';
+      orbGlow.style.display = state.showOrbs === false ? 'none' : 'block';
       lightT.style.filter = 'blur(50px)';
       lightB.style.filter = 'blur(50px)';
+      grid.style.display = state.showGrid === false ? 'none' : 'block';
+      corners.forEach(c => c.style.display = state.showCorners === false ? 'none' : 'block');
       rings.forEach((r, idx) => {
-        r.style.display = 'block';
+        r.style.display = state.showRings === false ? 'none' : 'block';
         r.style.borderColor = idx === 0 ? 'rgba(188,19,254,.3)' : idx === 1 ? 'rgba(188,19,254,.15)' : 'rgba(188,19,254,.07)';
       });
       cont.className = 'cc';
@@ -1054,11 +1062,49 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         lightB.style.background = 'linear-gradient(225deg,' + p.b + '.18) 0%,transparent 48%)';
         orbCenter.style.background = 'radial-gradient(circle at 50% 50%,' + p.o + '.10) 0%, transparent 44%)';
         rings.forEach((r, idx) => r.style.borderColor = idx === 0 ? 'rgba(255,0,229,.14)' : idx === 1 ? 'rgba(0,242,255,.1)' : 'rgba(188,19,254,.06)');
+      } else if (state.bgVariant === 'data-stream') {
+        lightT.style.background = 'linear-gradient(90deg,' + p.t + '.20) 0%,transparent 28%,transparent 72%,' + p.b + '.16) 100%)';
+        lightB.style.background = 'linear-gradient(180deg,transparent 0%,' + p.o + '.10) 48%,transparent 100%)';
+        orbCenter.style.background = 'linear-gradient(135deg,transparent 0%,' + p.o + '.08) 50%,transparent 100%)';
+        orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+      } else if (state.bgVariant === 'signal-columns') {
+        lightT.style.background = 'linear-gradient(90deg,' + p.t + '.18) 0%,transparent 16%,' + p.o + '.08) 50%,transparent 84%,' + p.b + '.16) 100%)';
+        lightB.style.background = 'radial-gradient(circle at 50% 0%,' + p.o + '.12) 0%,transparent 48%)';
+        orbCenter.style.background = 'linear-gradient(90deg,transparent 0%,' + p.o + '.08) 48%,transparent 52%,' + p.o + '.08) 56%,transparent 100%)';
+        orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+      } else if (state.bgVariant === 'neon-wedge') {
+        lightT.style.background = 'linear-gradient(120deg,' + p.t + '.28) 0%,transparent 44%)';
+        lightB.style.background = 'linear-gradient(300deg,' + p.b + '.20) 0%,transparent 52%)';
+        orbCenter.style.background = 'linear-gradient(135deg,transparent 0%,transparent 38%,' + p.o + '.10) 39%,' + p.o + '.04) 56%,transparent 57%)';
+        orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+      } else if (state.bgVariant === 'horizon') {
+        lightT.style.background = 'linear-gradient(180deg,' + p.t + '.20) 0%,transparent 38%)';
+        lightB.style.background = 'linear-gradient(0deg,' + p.b + '.22) 0%,transparent 42%)';
+        orbCenter.style.background = 'linear-gradient(180deg,transparent 0%,' + p.o + '.10) 49%,transparent 51%,' + p.o + '.06) 76%,transparent 100%)';
+        orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+      } else if (state.bgVariant === 'frame-shift') {
+        lightT.style.background = 'linear-gradient(135deg,' + p.t + '.18) 0%,transparent 34%)';
+        lightB.style.background = 'linear-gradient(315deg,' + p.b + '.18) 0%,transparent 34%)';
+        orbCenter.style.background = 'linear-gradient(90deg,transparent 0%,' + p.o + '.06) 18%,transparent 19%,transparent 81%,' + p.o + '.06) 82%,transparent 100%)';
+        orbGlow.style.display = 'none';
+        rings.forEach((r, idx) => {
+          r.style.display = 'block';
+          r.style.borderRadius = '24px';
+          r.style.borderColor = idx === 0 ? 'rgba(0,242,255,.18)' : idx === 1 ? 'rgba(188,19,254,.10)' : 'rgba(255,0,229,.08)';
+        });
       } else {
         lightT.style.background = 'radial-gradient(ellipse at top,' + p.t + '.26) 0%,transparent 66%)';
         lightB.style.background = 'radial-gradient(ellipse at bottom,' + p.b + '.18) 0%,transparent 68%)';
         orbCenter.style.background = 'radial-gradient(circle at 50% 50%,' + p.o + '.14) 0%, transparent 52%)';
         rings.forEach((r, idx) => r.style.borderColor = idx === 0 ? 'rgba(0,242,255,.22)' : idx === 1 ? 'rgba(188,19,254,.12)' : 'rgba(255,0,229,.08)');
+      }
+
+      if (state.bgVariant !== 'frame-shift') {
+        rings.forEach(r => r.style.borderRadius = '50%');
       }
 
       if (state.layout === 'center') {
@@ -1100,12 +1146,33 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       ];
       const layouts = ['center', 'left-v', 'left-h', 'right-v', 'right-h'];
       const grads = ['grad','grad2','grad3'];
-      const variants = ['orbital', 'diagonal', 'split', 'halo', 'corner-burst', 'tunnel', 'bands', 'crosslight'];
+      const scenes = [
+        { bgVariant: 'data-stream', layout: 'left-v', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'signal-columns', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+        { bgVariant: 'neon-wedge', layout: 'left-h', showGrid: false, showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'horizon', layout: 'center', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'frame-shift', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: true },
+        { bgVariant: 'bands', layout: 'left-v', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'crosslight', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+        { bgVariant: 'diagonal', layout: 'left-h', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'split', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+        { bgVariant: 'corner-burst', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+        { bgVariant: 'orbital', layout: 'center', showGrid: true, showCorners: true, showOrbs: true, showRings: true },
+        { bgVariant: 'tunnel', layout: 'center', showGrid: false, showCorners: true, showOrbs: true, showRings: true },
+        { bgVariant: 'halo', layout: 'center', showGrid: false, showCorners: true, showOrbs: true, showRings: true }
+      ];
+      const scene = scenes[Math.floor(Math.random() * scenes.length)];
+      const palette = schemes[Math.floor(Math.random() * schemes.length)];
+      const layout = scene.layout || layouts[Math.floor(Math.random() * layouts.length)];
       currentVisualState = {
-        palette: schemes[Math.floor(Math.random() * schemes.length)],
-        layout: layouts[Math.floor(Math.random() * layouts.length)],
+        palette,
+        layout,
         gradClass: grads[Math.floor(Math.random() * grads.length)],
-        bgVariant: variants[Math.floor(Math.random() * variants.length)]
+        bgVariant: scene.bgVariant,
+        showGrid: scene.showGrid,
+        showCorners: scene.showCorners,
+        showOrbs: scene.showOrbs,
+        showRings: scene.showRings
       };
       applyDomVisualState(currentVisualState, h1Text);
     }
@@ -1392,6 +1459,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const showBadge = !slideBadge.classList.contains('hidden');
       const visual = currentVisualState || {};
       const palette = visual.palette || { t:'rgba(188,19,254,', b:'rgba(255,0,229,', o:'rgba(188,19,254,' };
+      const showGrid = visual.showGrid !== false;
+      const showCorners = visual.showCorners !== false;
+      const showRings = visual.showRings !== false;
       const eyebrow = stripHtml(document.getElementById('card-eyebrow').innerHTML);
       const h1Lines = parseRichLines(document.getElementById('card-h1').innerHTML);
       const subText = stripHtml(document.getElementById('card-sub').innerHTML);
@@ -1399,10 +1469,12 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       ctx.fillStyle = '#0B0112';
       ctx.fillRect(0, 0, W, H);
 
-      ctx.strokeStyle = 'rgba(188,19,254,0.05)';
-      ctx.lineWidth = 1;
-      for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
-      for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+      if (showGrid) {
+        ctx.strokeStyle = 'rgba(188,19,254,0.05)';
+        ctx.lineWidth = 1;
+        for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+        for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+      }
 
       if (visual.bgVariant === 'diagonal') {
         let glow = ctx.createLinearGradient(0, 0, W, H);
@@ -1438,13 +1510,15 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         ctx.fillStyle = glow;
         ctx.fillRect(0, 0, W, H);
 
-        [250, 360, 470].forEach((r, idx) => {
-          ctx.lineWidth = 1;
-          ctx.strokeStyle = idx === 0 ? 'rgba(0,242,255,0.18)' : idx === 1 ? 'rgba(188,19,254,0.12)' : 'rgba(255,0,229,0.07)';
-          ctx.beginPath();
-          ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
-          ctx.stroke();
-        });
+        if (showRings) {
+          [250, 360, 470].forEach((r, idx) => {
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = idx === 0 ? 'rgba(0,242,255,0.18)' : idx === 1 ? 'rgba(188,19,254,0.12)' : 'rgba(255,0,229,0.07)';
+            ctx.beginPath();
+            ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
+            ctx.stroke();
+          });
+        }
       } else if (visual.bgVariant === 'corner-burst') {
         let glow = ctx.createRadialGradient(0, 0, 20, 0, 0, 360);
         glow.addColorStop(0, palette.t + '.30)');
@@ -1458,13 +1532,15 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         ctx.fillStyle = glow;
         ctx.fillRect(0, 0, W, H);
       } else if (visual.bgVariant === 'tunnel') {
-        [220, 300, 390, 500].forEach((r, idx) => {
-          ctx.lineWidth = idx === 0 ? 1.4 : 1;
-          ctx.strokeStyle = idx === 0 ? 'rgba(255,255,255,0.16)' : idx === 1 ? 'rgba(188,19,254,0.16)' : idx === 2 ? 'rgba(0,242,255,0.08)' : 'rgba(255,0,229,0.06)';
-          ctx.beginPath();
-          ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
-          ctx.stroke();
-        });
+        if (showRings) {
+          [220, 300, 390, 500].forEach((r, idx) => {
+            ctx.lineWidth = idx === 0 ? 1.4 : 1;
+            ctx.strokeStyle = idx === 0 ? 'rgba(255,255,255,0.16)' : idx === 1 ? 'rgba(188,19,254,0.16)' : idx === 2 ? 'rgba(0,242,255,0.08)' : 'rgba(255,0,229,0.06)';
+            ctx.beginPath();
+            ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
+            ctx.stroke();
+          });
+        }
         let glow = ctx.createRadialGradient(W / 2, H / 2, 120, W / 2, H / 2, 420);
         glow.addColorStop(0, palette.o + '.16)');
         glow.addColorStop(1, 'rgba(11,1,18,0)');
@@ -1496,6 +1572,69 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         glow.addColorStop(1, 'rgba(11,1,18,0)');
         ctx.fillStyle = glow;
         ctx.fillRect(0, 0, W, H);
+      } else if (visual.bgVariant === 'data-stream') {
+        let glow = ctx.createLinearGradient(0, 0, W, 0);
+        glow.addColorStop(0, palette.t + '.18)');
+        glow.addColorStop(0.18, 'rgba(11,1,18,0)');
+        glow.addColorStop(0.5, palette.o + '.08)');
+        glow.addColorStop(0.82, 'rgba(11,1,18,0)');
+        glow.addColorStop(1, palette.b + '.16)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = 'rgba(255,255,255,0.03)';
+        [180, 240, 820, 880].forEach(x => ctx.fillRect(x, 120, 2, H - 240));
+      } else if (visual.bgVariant === 'signal-columns') {
+        let glow = ctx.createLinearGradient(0, 0, W, 0);
+        glow.addColorStop(0, palette.t + '.16)');
+        glow.addColorStop(0.5, 'rgba(11,1,18,0)');
+        glow.addColorStop(1, palette.b + '.14)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = palette.o + '.10)';
+        ctx.fillRect(230, 120, 24, H - 240);
+        ctx.fillRect(540, 200, 12, H - 400);
+        ctx.fillRect(804, 160, 20, H - 320);
+      } else if (visual.bgVariant === 'neon-wedge') {
+        let glow = ctx.createLinearGradient(0, 0, W, H);
+        glow.addColorStop(0, palette.t + '.24)');
+        glow.addColorStop(0.45, 'rgba(11,1,18,0)');
+        glow.addColorStop(1, 'rgba(11,1,18,0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = palette.o + '.10)';
+        ctx.beginPath();
+        ctx.moveTo(W * 0.22, 0);
+        ctx.lineTo(W * 0.64, 0);
+        ctx.lineTo(W * 0.38, H);
+        ctx.lineTo(0, H);
+        ctx.closePath();
+        ctx.fill();
+      } else if (visual.bgVariant === 'horizon') {
+        let glow = ctx.createLinearGradient(0, 0, 0, H);
+        glow.addColorStop(0, palette.t + '.18)');
+        glow.addColorStop(0.5, 'rgba(11,1,18,0)');
+        glow.addColorStop(1, palette.b + '.18)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        ctx.fillStyle = palette.o + '.12)';
+        ctx.fillRect(90, H * 0.52, W - 180, 2);
+        ctx.fillRect(170, H * 0.68, W - 340, 1.5);
+      } else if (visual.bgVariant === 'frame-shift') {
+        let glow = ctx.createLinearGradient(0, 0, W, H);
+        glow.addColorStop(0, palette.t + '.14)');
+        glow.addColorStop(1, palette.b + '.14)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, W, H);
+
+        [96, 146, 196].forEach((offset, idx) => {
+          ctx.lineWidth = idx === 0 ? 2 : 1;
+          ctx.strokeStyle = idx === 0 ? 'rgba(0,242,255,0.18)' : idx === 1 ? 'rgba(188,19,254,0.12)' : 'rgba(255,0,229,0.08)';
+          ctx.strokeRect(offset, offset, W - offset * 2, H - offset * 2);
+        });
       } else {
         let glow = ctx.createRadialGradient(W / 2, -40, 20, W / 2, -40, 420);
         glow.addColorStop(0, palette.t + '.24)');
@@ -1509,13 +1648,15 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         ctx.fillStyle = glow;
         ctx.fillRect(0, H - 420, W, 420);
 
-        [230, 320, 410].forEach((r, idx) => {
-          ctx.lineWidth = 1;
-          ctx.strokeStyle = idx === 0 ? 'rgba(188,19,254,0.28)' : idx === 1 ? 'rgba(188,19,254,0.14)' : 'rgba(188,19,254,0.07)';
-          ctx.beginPath();
-          ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
-          ctx.stroke();
-        });
+        if (showRings) {
+          [230, 320, 410].forEach((r, idx) => {
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = idx === 0 ? 'rgba(188,19,254,0.28)' : idx === 1 ? 'rgba(188,19,254,0.14)' : 'rgba(188,19,254,0.07)';
+            ctx.beginPath();
+            ctx.arc(W / 2, H / 2, r, 0, Math.PI * 2);
+            ctx.stroke();
+          });
+        }
       }
 
       function drawCorner(x, y, sx, sy) {
@@ -1527,10 +1668,12 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         ctx.lineTo(x + 40 * sx, y);
         ctx.stroke();
       }
-      drawCorner(32, 32, 1, 1);
-      drawCorner(W - 32, 32, -1, 1);
-      drawCorner(32, H - 32, 1, -1);
-      drawCorner(W - 32, H - 32, -1, -1);
+      if (showCorners) {
+        drawCorner(32, 32, 1, 1);
+        drawCorner(W - 32, 32, -1, 1);
+        drawCorner(32, H - 32, 1, -1);
+        drawCorner(W - 32, H - 32, -1, -1);
+      }
 
       if (showAccentV) {
         const vg = ctx.createLinearGradient(0, 0, 0, H);
@@ -1641,7 +1784,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         img.src = cardB64;
       });
 
-      const W = 1080, H = 1350;
+      const W = 1080, H = 1080;
       const canvas = document.createElement('canvas');
       canvas.width = W;
       canvas.height = H;
@@ -1655,19 +1798,19 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
       for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
 
-      const topGlow = ctx.createRadialGradient(W / 2, 40, 20, W / 2, 40, 460);
+      const topGlow = ctx.createRadialGradient(W / 2, 32, 20, W / 2, 32, 420);
       topGlow.addColorStop(0, 'rgba(188,19,254,0.22)');
       topGlow.addColorStop(1, 'rgba(11,1,18,0)');
       ctx.fillStyle = topGlow;
-      ctx.fillRect(0, 0, W, 480);
+      ctx.fillRect(0, 0, W, 420);
 
-      const bottomGlow = ctx.createRadialGradient(W / 2, H - 40, 20, W / 2, H - 40, 460);
+      const bottomGlow = ctx.createRadialGradient(W / 2, H - 32, 20, W / 2, H - 32, 420);
       bottomGlow.addColorStop(0, 'rgba(255,0,229,0.14)');
       bottomGlow.addColorStop(1, 'rgba(11,1,18,0)');
       ctx.fillStyle = bottomGlow;
-      ctx.fillRect(0, H - 480, W, 480);
+      ctx.fillRect(0, H - 420, W, 420);
 
-      const cardSize = 960;
+      const cardSize = 900;
       const cardX = (W - cardSize) / 2;
       const cardY = (H - cardSize) / 2;
 
@@ -1679,8 +1822,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       lineGrad.addColorStop(1, 'transparent');
       ctx.strokeStyle = lineGrad;
       ctx.lineWidth = 1.5;
-      ctx.beginPath(); ctx.moveTo(72, cardY - 22); ctx.lineTo(W - 72, cardY - 22); ctx.stroke();
-      ctx.beginPath(); ctx.moveTo(72, cardY + cardSize + 22); ctx.lineTo(W - 72, cardY + cardSize + 22); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(88, cardY - 26); ctx.lineTo(W - 88, cardY - 26); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(88, cardY + cardSize + 26); ctx.lineTo(W - 88, cardY + cardSize + 26); ctx.stroke();
 
       return canvas.toDataURL('image/jpeg', 0.92);
     }
@@ -1806,7 +1949,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           const allResults = [];
 
           if (hasInstagramFeed) {
-            btnPublish.innerText = 'Renderizando Instagram (4:5)...';
+            btnPublish.innerText = 'Renderizando Instagram (1:1 safe)...';
             const b64Instagram = await renderInstagramFeedCanvas();
             const res  = await fetch('/api/publish', {
               method:'POST', headers:{'Content-Type':'application/json'},
