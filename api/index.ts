@@ -111,6 +111,63 @@ CADÊNCIA SEMANAL (4x por semana):
 HASHTAGS: #GestordeTrafego #MetaAds #Erizon #InteligenciaOperacional #MarketingDigital #TrafegoPago #Performance #AgenciaDigital #ROAS #FacebookAds
 `;
 
+const ERIZON_PLATFORM_CONTEXT = `
+=== ERIZON: PLATAFORMA DE GESTÃO E RELATÓRIOS PARA AGÊNCIAS DIGITAIS ===
+
+O QUE É:
+- SaaS para agências de marketing digital e gestores de tráfego centralizarem clientes, relatórios e operação
+- substitui planilhas, capturas de tela e apresentações manuais por painéis e relatórios profissionais
+- conecta dados do Meta (Instagram e Facebook), organiza o portfólio e transforma números brutos em relatórios visuais
+
+O QUE OFERECE:
+- Gestão centralizada de clientes com cadastro, segmento, status, histórico e visão geral do portfólio
+- Relatórios de performance do Instagram com Meta Graph API, alcance, impressões, engajamento, seguidores, crescimento e comparativos
+- Billing com Stripe, planos Core/Pro/Command, upgrade e downgrade no painel
+- Dashboard administrativo da agência com alertas, visão geral e acesso rápido
+- Infraestrutura moderna com Next.js 16, Turbopack, Supabase e autenticação segura
+
+PRINCIPAIS MOTIVOS PARA USAR:
+- Economia de tempo operacional
+- Profissionalismo nas entregas ao cliente
+- Escala sem caos
+- Dados em tempo real
+- Tudo em um lugar
+- Custo-benefício para agências em crescimento
+
+DIFERENCIAIS:
+- Feita para a realidade das agências brasileiras
+- Relatórios que impressionam em reuniões
+- Integração real com a Meta Graph API
+- Plataforma em evolução contínua
+- Design pensado para uso diário
+- Controle total da operação
+
+PLANOS:
+- Core: até 5 clientes
+- Pro: até 20 clientes
+- Command: clientes ilimitados, gestão de equipe e funcionalidades avançadas
+
+PALETA OFICIAL:
+- Azul Erizon #0F4C8A
+- Azul Índigo #1A2D6B
+- Ciano Elétrico #00B4D8
+- Violeta #7C3AED
+- Fundo claro #F0F4FF
+- Branco #FFFFFF
+- Texto escuro #111827
+
+TEMAS DE POSTS SUGERIDOS:
+- Funcionalidades da plataforma: relatórios, dashboard, billing
+- Benefícios concretos: tempo economizado, profissionalismo nas entregas
+- Depoimentos e cases de uso
+- Curiosidades e dicas para gestores de tráfego
+- Lançamento de novas funcionalidades
+- Comparativos: com Erizon vs sem Erizon
+- Métricas de impacto: ex "Relatório pronto em menos de 2 minutos"
+
+TRATE ESTE BLOCO COMO DOCUMENTO INTERNO DE MARCA DA ERIZON, versão 1.0, para uso exclusivo em geração de conteúdo visual e alimentação de agentes de IA.
+`;
+
 // ============================================================
 // INSTAGRAM 2026 ALGORITHM INTELLIGENCE
 // ============================================================
@@ -191,6 +248,33 @@ REGRAS DE DIREÇÃO:
 `;
 
 type PostType = 'instagram-feed' | 'instagram-story' | 'instagram-carousel' | 'linkedin';
+
+type EditorialTab = 'erizon' | 'specialists' | 'market' | 'diagnostics' | 'stories' | 'social-proof' | 'anti-myth' | 'series' | 'uploads' | 'seo-search' | 'retention' | 'authority' | 'episodic' | 'deep-dive' | 'toolbox' | 'tweet-style';
+
+interface BrandAngle {
+  slug: string;
+  title: string;
+  description: string;
+  keywords: string[];
+  tabs?: EditorialTab[];
+}
+
+const ERIZON_BRAND_ANGLES: BrandAngle[] = [
+  { slug: 'centralized-client-management', title: 'Gestão centralizada de clientes', description: 'cadastro completo, portfólio em um painel, histórico de relatórios por cliente e operação organizada sem caos', keywords: ['clientes', 'portfólio', 'histórico', 'painel', 'gestão'], tabs: ['erizon', 'social-proof', 'authority'] },
+  { slug: 'instagram-performance-reports', title: 'Relatórios de performance do Instagram', description: 'alcance, impressões, engajamento, seguidores, crescimento, comparação de períodos e posts com melhor desempenho', keywords: ['relatório', 'instagram', 'engajamento', 'seguidores', 'impressões'], tabs: ['erizon', 'toolbox', 'deep-dive'] },
+  { slug: 'meta-graph-api-real-data', title: 'Integração real com a Meta Graph API', description: 'dados reais, atualizados e confiáveis, sem exportação manual, sem copiar dashboard e sem atrasos', keywords: ['meta graph api', 'dados reais', 'api', 'tempo real', 'conexão direta'], tabs: ['erizon', 'authority', 'market'] },
+  { slug: 'meeting-ready-reports', title: 'Relatórios que impressionam em reuniões', description: 'visual limpo, métricas destacadas e entendimento imediato para o cliente perceber valor na hora', keywords: ['reunião', 'cliente', 'apresentar', 'visual', 'impressionam'], tabs: ['erizon', 'social-proof', 'stories'] },
+  { slug: 'billing-and-plans', title: 'Billing e planos integrados', description: 'Stripe, cobrança recorrente, Core/Pro/Command, upgrade e downgrade direto pelo painel', keywords: ['stripe', 'billing', 'planos', 'core', 'pro', 'command', 'assinatura'], tabs: ['erizon', 'authority', 'deep-dive'] },
+  { slug: 'dashboard-admin', title: 'Painel administrativo da agência', description: 'dashboard geral, alertas, acessos rápidos e operação responsiva em desktop e mobile', keywords: ['dashboard', 'alertas', 'admin', 'mobile', 'desktop'], tabs: ['erizon', 'toolbox', 'stories'] },
+  { slug: 'time-savings', title: 'Economia de tempo operacional', description: 'relatórios que antes levavam horas passam a ficar prontos automaticamente para o time focar em estratégia', keywords: ['tempo', 'horas', 'operação', 'automático', 'estratégia'], tabs: ['erizon', 'social-proof', 'stories'] },
+  { slug: 'professional-deliveries', title: 'Profissionalismo nas entregas', description: 'relatórios visuais e organizados que aumentam credibilidade, retenção e percepção de valor da agência', keywords: ['credibilidade', 'retenção', 'profissionalismo', 'entregas', 'valor'], tabs: ['erizon', 'social-proof', 'authority'] },
+  { slug: 'scale-without-chaos', title: 'Escala sem caos', description: 'a plataforma acompanha o crescimento da agência de 5 para 50 clientes sem virar caos de arquivos e pastas', keywords: ['escala', 'caos', 'crescimento', '50 clientes', 'organização'], tabs: ['erizon', 'authority', 'diagnostics'] },
+  { slug: 'all-in-one-platform', title: 'Tudo em um lugar', description: 'clientes, relatórios, métricas, faturamento e histórico centralizados em uma única plataforma', keywords: ['tudo em um lugar', 'centralizado', 'faturamento', 'histórico', 'plataforma'], tabs: ['erizon', 'toolbox', 'authority'] },
+  { slug: 'cost-benefit', title: 'Custo-benefício para agências em crescimento', description: 'substitui CRM, relatórios, analytics e billing isolados com um único plano mensal mais acessível', keywords: ['custo-benefício', 'crm', 'analytics', 'billing', 'plano mensal'], tabs: ['erizon', 'authority', 'anti-myth'] },
+  { slug: 'brazilian-agencies-reality', title: 'Feita para a realidade das agências brasileiras', description: 'pensada para o fluxo real de reuniões, cobrança por resultado e pressão operacional do mercado brasileiro', keywords: ['brasileiras', 'realidade', 'mercado brasileiro', 'agência', 'reuniões'], tabs: ['erizon', 'authority', 'stories'] },
+  { slug: 'daily-ux', title: 'Design pensado para uso diário', description: 'interface limpa, intuitiva e rápida, sem curva longa de aprendizado e sem depender de treinamento pesado', keywords: ['interface', 'uso diário', 'intuitiva', 'rápida', 'aprendizado'], tabs: ['erizon', 'stories', 'social-proof'] },
+  { slug: 'modern-infrastructure', title: 'Infraestrutura moderna e confiável', description: 'Next.js 16, Turbopack, Supabase, autenticação segura e arquitetura pronta para crescer com a agência', keywords: ['next.js', 'turbopack', 'supabase', 'infraestrutura', 'autenticação'], tabs: ['erizon', 'deep-dive', 'authority'] }
+];
 
 interface PostContent {
   eyebrow: string;
@@ -300,8 +384,6 @@ function parseImagePayload(imageInput: string): ImagePayload {
   return { base64: imageInput, mimeType: 'image/jpeg', extension: 'jpg' };
 }
 
-type EditorialTab = 'erizon' | 'specialists' | 'market' | 'diagnostics' | 'stories' | 'social-proof' | 'anti-myth' | 'series' | 'uploads' | 'seo-search' | 'retention' | 'authority' | 'episodic' | 'deep-dive' | 'toolbox' | 'tweet-style';
-
 const TAB_CONTEXTS: Record<string, string> = {
   'erizon': 'Foque 100% na ERIZON: o que a plataforma calcula, como funciona o copiloto, pulse, decision feed, risk radar. Provas de valor, economia de tempo, bastidores, objeções comuns.',
   'specialists': 'Foque em dicas de especialistas: interpretação de ROAS, CPA, frequência, CTR. Erros de escala, sinais de fadiga de criativo, checklists e frameworks de otimização no Meta/Google Ads.',
@@ -367,6 +449,36 @@ Use este histórico para CONTINUAR o raciocínio, aprofundar a narrativa ou avan
 ${lines}`;
   }
 
+  private buildFreshErizonAnglesBlock(recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon'): string {
+    const recentCorpus = recentPosts
+      .slice(-16)
+      .map(post => `${post.h1 || ''} ${post.caption || ''} ${post.angle || ''}`.toLowerCase())
+      .join(' ');
+
+    const eligibleAngles = ERIZON_BRAND_ANGLES.filter(angle => !angle.tabs || angle.tabs.includes(editorialTab) || editorialTab === 'erizon');
+    const freshAngles = eligibleAngles.filter(angle => !angle.keywords.some(keyword => recentCorpus.includes(keyword.toLowerCase())));
+    const selected = (freshAngles.length ? freshAngles : eligibleAngles).slice(0, 4);
+    const blocked = eligibleAngles.filter(angle => angle.keywords.some(keyword => recentCorpus.includes(keyword.toLowerCase()))).slice(0, 6);
+
+    const selectedLines = selected
+      .map((angle, idx) => `${idx + 1}. ${angle.title} — ${angle.description}`)
+      .join('\n');
+
+    const blockedLines = blocked.length
+      ? blocked.map(angle => `- ${angle.title}`).join('\n')
+      : '- Nenhum bloqueio explícito encontrado.';
+
+    return `=== ÂNGULOS FRESCOS DA ERIZON PARA ESTA GERAÇÃO ===
+Escolha OBRIGATORIAMENTE 1 ângulo principal abaixo como base do post. Use fatos concretos desse bloco no H1, sub, supporting e caption.
+
+${selectedLines}
+
+=== ÂNGULOS A EVITAR AGORA ===
+${blockedLines}
+
+PROIBIDO cair em frase vaga tipo "a plataforma que sua agência precisava" sem ancorar em um fato concreto, funcionalidade, diferencial ou benefício específico da lista fresca acima.`;
+  }
+
   async generatePost(postType: PostType = 'instagram-feed', recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon', uploadContext: string = ''): Promise<PostContent> {
     try {
       if (!process.env.GROQ_API_KEY) {
@@ -403,6 +515,7 @@ H1 e sub no CARD devem refletir o posicionamento de autoridade — H1 como manch
       };
 
       const tabPrompt = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
+      const freshErizonAnglesBlock = this.buildFreshErizonAnglesBlock(recentPosts, editorialTab);
 
       const CONTINUITY_TABS = new Set(['series', 'specialists', 'anti-myth', 'diagnostics', 'deep-dive', 'toolbox', 'tweet-style']);
       const tabContextBlock = CONTINUITY_TABS.has(editorialTab)
@@ -421,12 +534,15 @@ H1 e sub no CARD devem refletir o posicionamento de autoridade — H1 como manch
 
 ${ERIZON_BRAND_CONTEXT}
 
+${ERIZON_PLATFORM_CONTEXT}
+
 ${INSTAGRAM_2026_INTELLIGENCE}
 
 ${ERIZON_DESIGN_CHIEF_CONTEXT}
 
 TIPO DE POST: ${platformHints[postType]}
 FOCO EDITORIAL: ${tabPrompt}
+${freshErizonAnglesBlock}
 ${tabContextBlock ? `\n${tabContextBlock}\n` : ''}
 HISTORICO GERAL RECENTE (todos os pilares — evite repetição de ângulos):
 ${this.buildRecentPostsBlock(recentPosts)}
@@ -450,6 +566,7 @@ REGRAS ESPECÍFICAS LINKEDIN — FORMATO EDITORIAL PREMIUM:
 5. Use dados específicos e reais: "frequência 4.2", "ROAS 2.1 com CPL R$47" (autoridade e credibilidade)
 6. H1: MÁXIMO 6 PALAVRAS com <br> na metade e <span class='grad'>palavra-impacto</span> na palavra mais forte
 7. Nunca repita ângulo, promessa, dor principal ou CTA dominante do histórico recente
+7.1. Quando falar da ERIZON, escolha um fato concreto novo: gestão centralizada, relatórios Instagram, Meta Graph API, billing, dashboard da agência, economia de tempo, profissionalismo nas entregas, escala sem caos, tudo em um lugar, custo-benefício, realidade brasileira, UX ou infraestrutura moderna
 8. Escolha sempre um dos 4 ganchos virais: MEDO (erro/perda) | CURIOSIDADE (segredo/oculto) | AUTORIDADE (top agências) | IDENTIFICAÇÃO (o que o gestor sente mas não expressa)
 9. SAVEABLE: conteúdo utilitário termina SEMPRE com "Salve esse post — você vai precisar amanhã"
 10. SHAREABLE: conteúdo de opinião/tweet termina com "Concorda? Marca alguém que precisa ver isso" para gerar compartilhamento nos Stories
@@ -520,16 +637,21 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
       const tabPromptCarousel = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
+      const freshErizonAnglesBlock = this.buildFreshErizonAnglesBlock(recentPosts, editorialTab);
 
       const systemPrompt = `Você é o estrategista-chefe de social media da ERIZON — expert em criar carrosseis virais que explodem no Instagram e geram centenas de salvamentos.
 
 ${ERIZON_BRAND_CONTEXT}
+
+${ERIZON_PLATFORM_CONTEXT}
 
 ${INSTAGRAM_2026_INTELLIGENCE}
 
 ${ERIZON_DESIGN_CHIEF_CONTEXT}
 
 FOCO EDITORIAL: ${tabPromptCarousel}
+
+${freshErizonAnglesBlock}
 
 HISTÓRICO RECENTE DE POSTS DA ERIZON:
 ${this.buildRecentPostsBlock(recentPosts)}
@@ -547,6 +669,7 @@ REGRAS POR SLIDE:
 - sub: até 14 palavras com <strong> no trecho mais forte — linguagem humana, não corporativa
 - Narrativa progressiva com curiosidade crescente — cada slide é gancho para o próximo
 - Nunca repita hook, dor principal, promessa ou CTA dominante do histórico recente
+- Quando falar da ERIZON, escolha um fato concreto novo: gestão centralizada, relatórios Instagram, Meta Graph API, billing, dashboard da agência, economia de tempo, profissionalismo, escala sem caos, tudo em um lugar, custo-benefício, realidade brasileira, UX ou infraestrutura
 - Use vocabulário que gestores pesquisam (SEO): CPL, ROAS, frequência, fadiga, budget, escala, margem
 
 RETORNE EXATAMENTE 7 SLIDES no JSON (pode ser mais, nunca menos de 7).
@@ -635,6 +758,8 @@ RETORNE JSON VÁLIDO com exatamente 7 slides:
             content: `Você é o estrategista de crescimento da ERIZON.
 
 ${ERIZON_BRAND_CONTEXT}
+
+${ERIZON_PLATFORM_CONTEXT}
 
 ${ERIZON_DESIGN_CHIEF_CONTEXT}
 
