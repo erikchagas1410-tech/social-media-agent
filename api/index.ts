@@ -168,6 +168,28 @@ CADÊNCIA VENCEDORA 2026:
 - DMs e grupos > likes. Conteúdo que gera compartilhamento privado tem distribuição multiplicada
 `;
 
+const ERIZON_DESIGN_CHIEF_CONTEXT = `
+=== DESIGN CHIEF ERIZON ===
+
+Assuma o papel de "design-chief" da ERIZON: cada peça precisa nascer com intenção visual clara, hierarquia forte e linguagem futurista proprietária.
+
+REGRAS DE DIREÇÃO:
+- Nunca produza peça "genérica de social media". Cada arte precisa parecer parte de um sistema visual premium de produto SaaS.
+- Toda composição deve ter 1 herói principal, 1 camada de contexto e 1 camada de prova/ação.
+- O visual deve vender inteligência operacional, monitoramento, decisão, velocidade e precisão. Não pareça motivacional, coach ou criativo de agência genérico.
+- O fundo circular/orb é só um recurso eventual. Não pode ser a identidade dominante do sistema.
+- Prefira geometrias de interface, grids, fluxos de dados, barras de sinal, wedges, molduras técnicas, painéis, cortes diagonais e composições assimétricas.
+- Cada pilar editorial pede uma família visual própria:
+  - ERIZON: product system, command center, interface premium
+  - Especialistas/Deep Dive/Toolbox: analytical board, charts, structures, cheat sheets
+  - Mercado: newsroom futurista, pulse, update signal, market intelligence
+  - Diagnósticos/Anti-Myth: contraste forte, leitura forense, urgência controlada
+  - Social Proof/Uploads: frame de evidência, prova, recibo, destaque de resultado
+  - Stories/Episódios/Séries: narrativa sequencial, progressão, continuidade visual
+- Tipografia deve liderar sem esmagar o conteúdo. O título chama atenção; o subtítulo entrega substância.
+- A peça precisa parecer cara, técnica e memorável mesmo sem animação.
+`;
+
 type PostType = 'instagram-feed' | 'instagram-story' | 'instagram-carousel' | 'linkedin';
 
 interface PostContent {
@@ -207,6 +229,28 @@ interface ImagePayload {
   base64: string;
   mimeType: string;
   extension: 'png' | 'jpg' | 'jpeg' | 'webp';
+}
+
+type ScheduledPostStatus = 'scheduled' | 'published' | 'failed';
+
+interface ScheduledPost {
+  id: string;
+  createdAt: string;
+  scheduledAt: string;
+  postType: PostType;
+  editorialTab: EditorialTab;
+  caption: string;
+  platforms: string[];
+  images: string[];
+  status: ScheduledPostStatus;
+  results?: string[];
+  publishedAt?: string;
+  lastError?: string;
+}
+
+interface AutomationSettings {
+  enabled: boolean;
+  updatedAt: string;
 }
 
 function parseImagePayload(imageInput: string): ImagePayload {
@@ -348,6 +392,8 @@ ${ERIZON_BRAND_CONTEXT}
 
 ${INSTAGRAM_2026_INTELLIGENCE}
 
+${ERIZON_DESIGN_CHIEF_CONTEXT}
+
 TIPO DE POST: ${platformHints[postType]}
 FOCO EDITORIAL: ${tabPrompt}
 ${tabContextBlock ? `\n${tabContextBlock}\n` : ''}
@@ -449,6 +495,8 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
 ${ERIZON_BRAND_CONTEXT}
 
 ${INSTAGRAM_2026_INTELLIGENCE}
+
+${ERIZON_DESIGN_CHIEF_CONTEXT}
 
 FOCO EDITORIAL: ${tabPromptCarousel}
 
@@ -556,6 +604,8 @@ RETORNE JSON VÁLIDO com exatamente 7 slides:
             content: `Você é o estrategista de crescimento da ERIZON.
 
 ${ERIZON_BRAND_CONTEXT}
+
+${ERIZON_DESIGN_CHIEF_CONTEXT}
 
 CONTEXTO ALGORITMO 2026: O Instagram distribui interpretação semântica, não só conteúdo. Métricas prioritárias: salvamentos > compartilhamentos por DM > tempo de permanência > comentários. Perfis com território temático claro ganham mais distribuição. SEO interno (palavras-chave em captions) é crítico. Conteúdo que gera decisão ou mudança de comportamento supera conteúdo apenas informativo. Narrativa episódica (séries de posts) cria audiência recorrente.
 
@@ -1077,7 +1127,10 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
         <!-- Card Preview -->
         <div class="mb-5">
-          <span class="field-label" style="margin-bottom:10px;display:block;">Preview da Imagem (1080×1080)</span>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px;flex-wrap:wrap;">
+            <span class="field-label" style="margin-bottom:0;display:block;">Preview da Imagem (1080×1080)</span>
+            <span id="design-chief-chip" class="mono" style="font-size:10px;letter-spacing:.18em;color:#00F2FF;text-transform:uppercase;padding:7px 10px;border:1px solid rgba(0,242,255,.25);border-radius:999px;background:rgba(0,242,255,.05);">Design Chief · ERIZON Core</span>
+          </div>
           <div id="card-wrapper" style="box-shadow:0 0 60px rgba(188,19,254,.12);">
             <div id="capture-area" class="card">
               <div class="grid-bg"></div>
@@ -1156,6 +1209,23 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         <button id="btn-publish" class="btn-publish">✦ &nbsp;Aprovar e Publicar nas Redes</button>
       </div>
 
+      <div style="margin-top:14px;background:rgba(255,255,255,.03);border:0.5px solid rgba(0,242,255,.18);border-radius:12px;padding:14px;">
+        <span class="field-label" style="margin-bottom:10px;display:block;">AutomaÃ§Ã£o / Agendamento</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
+          <div class="mono" id="automation-state-label" style="font-size:11px;letter-spacing:.12em;color:#10b981;text-transform:uppercase;">AutomaÃ§Ã£o ativa</div>
+          <button id="btn-automation-toggle" class="btn-nav" style="min-width:148px;">Desativar automaÃ§Ã£o</button>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:end;">
+          <div>
+            <label class="mono" style="font-size:10px;letter-spacing:.14em;color:rgba(255,255,255,.45);text-transform:uppercase;display:block;margin-bottom:8px;">Publicar em</label>
+            <input id="schedule-datetime" type="datetime-local" class="field">
+          </div>
+          <button id="btn-schedule" class="btn-nav" style="height:48px;">Agendar Post</button>
+        </div>
+        <div id="schedule-feedback" class="mono hidden" style="margin-top:10px;font-size:11px;letter-spacing:.08em;color:#00F2FF;"></div>
+        <div id="schedule-list" style="margin-top:12px;display:flex;flex-direction:column;gap:8px;"></div>
+      </div>
+
       <!-- Status -->
       <div id="status-message" class="hidden mt-5" style="border-radius:10px;padding:16px;font-size:13px;line-height:1.9;"></div>
 
@@ -1172,13 +1242,14 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     let processedLogoUrl = null; // dataURL do logo sem fundo branco
     let currentVisualState = {
       palette: { t:'rgba(188,19,254,', b:'rgba(255,0,229,', o:'rgba(188,19,254,' },
-      layout: 'center',
+      layout: 'left-v',
       gradClass: 'grad',
-      bgVariant: 'orbital',
+      recipeLabel: 'ERIZON Core',
+      bgVariant: 'data-stream',
       showGrid: true,
-      showCorners: true,
-      showOrbs: true,
-      showRings: true
+      showCorners: false,
+      showOrbs: false,
+      showRings: false
     };
     const HISTORY_KEY = 'erizon-post-history-v1';
 
@@ -1336,6 +1407,13 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     const pubInstagram  = document.getElementById('pub-instagram');
     const pubStory      = document.getElementById('pub-story');
     const pubLinkedin   = document.getElementById('pub-linkedin');
+    const designChiefChip = document.getElementById('design-chief-chip');
+    const btnSchedule   = document.getElementById('btn-schedule');
+    const scheduleInput = document.getElementById('schedule-datetime');
+    const scheduleFeedback = document.getElementById('schedule-feedback');
+    const scheduleList = document.getElementById('schedule-list');
+    const btnAutomationToggle = document.getElementById('btn-automation-toggle');
+    const automationStateLabel = document.getElementById('automation-state-label');
 
     // ============================================================
     // EDITORIAL TABS & UPLOAD
@@ -1404,6 +1482,70 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       });
     });
 
+    function getSelectedPlatforms() {
+      const platforms = [];
+      if (pubInstagram.checked) platforms.push('instagram');
+      if (pubStory.checked) platforms.push('instagram-story');
+      if (pubLinkedin.checked) platforms.push('linkedin');
+      return platforms;
+    }
+
+    function setScheduleFeedback(message, tone) {
+      scheduleFeedback.classList.remove('hidden');
+      scheduleFeedback.style.color = tone === 'error' ? '#ef4444' : tone === 'success' ? '#10b981' : '#00F2FF';
+      scheduleFeedback.textContent = message;
+    }
+
+    function applyAutomationState(settings) {
+      const enabled = settings && settings.enabled !== false;
+      automationStateLabel.textContent = enabled ? 'AutomaÃ§Ã£o ativa' : 'AutomaÃ§Ã£o pausada';
+      automationStateLabel.style.color = enabled ? '#10b981' : '#f59e0b';
+      btnAutomationToggle.textContent = enabled ? 'Desativar automaÃ§Ã£o' : 'Ativar automaÃ§Ã£o';
+      btnAutomationToggle.style.color = enabled ? '#f59e0b' : '#10b981';
+      btnAutomationToggle.style.borderColor = enabled ? 'rgba(245,158,11,.35)' : 'rgba(16,185,129,.35)';
+      btnAutomationToggle.style.background = enabled ? 'rgba(245,158,11,.08)' : 'rgba(16,185,129,.08)';
+    }
+
+    function renderScheduleList(items) {
+      if (!scheduleList) return;
+      if (!items.length) {
+        scheduleList.innerHTML = '<div class="mono" style="font-size:11px;letter-spacing:.08em;color:rgba(255,255,255,.4);">Nenhum post agendado ainda.</div>';
+        return;
+      }
+
+      scheduleList.innerHTML = items.map(item => {
+        const when = new Date(item.scheduledAt).toLocaleString('pt-BR');
+        const statusColor = item.status === 'published' ? '#10b981' : item.status === 'failed' ? '#ef4444' : '#BC13FE';
+        const platforms = (item.platforms || []).join(' + ');
+        return '<div style="background:rgba(255,255,255,.025);border:0.5px solid rgba(188,19,254,.18);border-radius:10px;padding:10px 12px;">'
+          + '<div style="display:flex;justify-content:space-between;gap:10px;align-items:flex-start;">'
+          + '<div>'
+          + '<div class="mono" style="font-size:10px;letter-spacing:.14em;color:' + statusColor + ';text-transform:uppercase;">' + item.status + '</div>'
+          + '<div style="font-size:13px;color:#fff;margin-top:4px;">' + (item.caption || '').slice(0, 88) + '</div>'
+          + '<div style="font-size:11px;color:rgba(255,255,255,.45);margin-top:6px;">' + when + ' · ' + platforms + ' · ' + item.postType + '</div>'
+          + '</div>'
+          + (item.status === 'scheduled'
+            ? '<button data-schedule-cancel="' + item.id + '" class="btn-nav" style="padding:6px 10px;font-size:11px;">Cancelar</button>'
+            : '')
+          + '</div>'
+          + (item.results && item.results.length
+            ? '<div style="font-size:11px;color:rgba(255,255,255,.55);margin-top:8px;">' + item.results.join(' | ') + '</div>'
+            : '')
+          + '</div>';
+      }).join('');
+    }
+
+    async function loadScheduledPosts() {
+      try {
+        const data = await fetchJson('/api/schedule');
+        applyAutomationState(data.settings || { enabled: true });
+        renderScheduleList(data.items || []);
+      } catch (e) {
+        applyAutomationState({ enabled: true });
+        renderScheduleList([]);
+      }
+    }
+
     // ============================================================
     // CARD SCALING
     // ============================================================
@@ -1441,6 +1583,11 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       ].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
       const card = document.getElementById('capture-area');
       card.classList.remove('tweet-mode','toolbox-mode');
+    }
+
+    function updateDesignChiefChip(state) {
+      if (!designChiefChip) return;
+      designChiefChip.textContent = 'Design Chief · ' + ((state && state.recipeLabel) || 'ERIZON Core');
     }
 
     function applyDomVisualState(state, h1Text) {
@@ -1679,81 +1826,192 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       let txt = (h1Text || '').replace(/class=["']grad\\d*["']/g, 'class="' + state.gradClass + '"');
       if (!txt.includes('class=')) txt = txt.replace(/<span/g, '<span class="' + state.gradClass + '"');
       document.getElementById('card-h1').innerHTML = txt;
+      updateDesignChiefChip(state);
     }
 
     function randomizeVisuals(h1Text) {
-      const schemes = [
-        { t:'rgba(188,19,254,', b:'rgba(255,0,229,', o:'rgba(188,19,254,' },
-        { t:'rgba(0,242,255,',  b:'rgba(188,19,254,', o:'rgba(0,242,255,' },
-        { t:'rgba(255,0,100,',  b:'rgba(255,68,136,', o:'rgba(255,0,100,' },
-        { t:'rgba(54,209,220,', b:'rgba(91,134,229,', o:'rgba(0,242,255,' },
-        { t:'rgba(132,94,247,', b:'rgba(255,0,229,', o:'rgba(132,94,247,' },
-        { t:'rgba(0,255,163,',  b:'rgba(0,242,255,', o:'rgba(0,255,163,' },
-        { t:'rgba(255,180,0,',  b:'rgba(255,100,0,', o:'rgba(255,150,0,' },
-        { t:'rgba(0,200,255,',  b:'rgba(0,120,255,', o:'rgba(0,160,255,' }
-      ];
+      const paletteFamilies = {
+        core: [
+          { t:'rgba(188,19,254,', b:'rgba(255,0,229,', o:'rgba(188,19,254,' },
+          { t:'rgba(0,242,255,',  b:'rgba(188,19,254,', o:'rgba(0,242,255,' },
+          { t:'rgba(132,94,247,', b:'rgba(255,0,229,', o:'rgba(132,94,247,' }
+        ],
+        authority: [
+          { t:'rgba(0,242,255,',  b:'rgba(0,140,255,', o:'rgba(0,242,255,' },
+          { t:'rgba(54,209,220,', b:'rgba(91,134,229,', o:'rgba(0,242,255,' },
+          { t:'rgba(0,255,163,',  b:'rgba(0,242,255,', o:'rgba(0,255,163,' }
+        ],
+        proof: [
+          { t:'rgba(255,180,0,',  b:'rgba(255,100,0,', o:'rgba(255,150,0,' },
+          { t:'rgba(255,0,100,',  b:'rgba(255,68,136,', o:'rgba(255,0,100,' },
+          { t:'rgba(188,19,254,', b:'rgba(255,112,67,', o:'rgba(255,112,67,' }
+        ],
+        signal: [
+          { t:'rgba(0,242,255,',  b:'rgba(188,19,254,', o:'rgba(255,255,255,' },
+          { t:'rgba(255,0,229,',  b:'rgba(188,19,254,', o:'rgba(0,242,255,' },
+          { t:'rgba(0,200,255,',  b:'rgba(0,120,255,', o:'rgba(0,160,255,' }
+        ]
+      };
       const grads = ['grad','grad2','grad3'];
 
-      // Tab-specific scene pools
-      const tweetScenes = [
-        { bgVariant: 'tweet', tweetMode: true, layout: 'center', showGrid: false, showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'tweet', tweetMode: true, layout: 'center', showGrid: false, showCorners: true,  showOrbs: false, showRings: false }
-      ];
-      const toolboxScenes = [
-        { bgVariant: 'dot-matrix', layout: 'left-v',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'chart-base', layout: 'center',  showGrid: true,  showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'signal-columns', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
-        { bgVariant: 'slash-field', layout: 'left-h', showGrid: true,  showCorners: false, showOrbs: false, showRings: false }
-      ];
-      const deepDiveScenes = [
-        { bgVariant: 'chart-base',    layout: 'left-v',  showGrid: true,  showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'geo-triangle',  layout: 'left-v',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'ghost-type',    layout: 'center',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'neon-wedge',    layout: 'left-h',  showGrid: false, showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'frame-shift',   layout: 'right-v', showGrid: false, showCorners: true,  showOrbs: false, showRings: true  }
-      ];
-      const proofScenes = [
-        { bgVariant: 'split-block',     layout: 'left-h',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'geo-full-corner', layout: 'center',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'corner-burst',    layout: 'right-v', showGrid: false, showCorners: true,  showOrbs: false, showRings: false }
-      ];
-      const allScenes = [
-        { bgVariant: 'data-stream',     layout: 'left-v',  showGrid: true,  showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'signal-columns',  layout: 'right-h', showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'neon-wedge',      layout: 'left-h',  showGrid: false, showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'horizon',         layout: 'center',  showGrid: true,  showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'frame-shift',     layout: 'right-v', showGrid: false, showCorners: true,  showOrbs: false, showRings: true  },
-        { bgVariant: 'bands',           layout: 'left-v',  showGrid: true,  showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'crosslight',      layout: 'right-h', showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'diagonal',        layout: 'left-h',  showGrid: true,  showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'split',           layout: 'center',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'corner-burst',    layout: 'right-v', showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'geo-triangle',    layout: 'left-v',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'geo-full-corner', layout: 'center',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'chart-base',      layout: 'center',  showGrid: true,  showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'slash-field',     layout: 'left-h',  showGrid: true,  showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'dot-matrix',      layout: 'right-v', showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'split-block',     layout: 'left-h',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'ghost-type',      layout: 'center',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
-        { bgVariant: 'orbital',         layout: 'center',  showGrid: true,  showCorners: true,  showOrbs: true,  showRings: true  },
-        { bgVariant: 'tunnel',          layout: 'center',  showGrid: false, showCorners: true,  showOrbs: true,  showRings: true  },
-        { bgVariant: 'halo',            layout: 'center',  showGrid: false, showCorners: true,  showOrbs: true,  showRings: true  }
-      ];
+      const designChiefProfiles = {
+        'tweet-style': {
+          recipeLabel: 'Signal Manifesto',
+          palettes: paletteFamilies.signal,
+          scenes: [
+            { bgVariant: 'tweet', layout: 'center', tweetMode: true, showGrid: false, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'tweet', layout: 'center', tweetMode: true, showGrid: false, showCorners: true, showOrbs: false, showRings: false }
+          ]
+        },
+        'toolbox': {
+          recipeLabel: 'Ops Cheat Sheet',
+          palettes: paletteFamilies.authority,
+          scenes: [
+            { bgVariant: 'dot-matrix', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'chart-base', layout: 'center', showGrid: true, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'signal-columns', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'frame-shift', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: true }
+          ]
+        },
+        'deep-dive': {
+          recipeLabel: 'Analyst Board',
+          palettes: paletteFamilies.authority,
+          scenes: [
+            { bgVariant: 'chart-base', layout: 'left-v', showGrid: true, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'geo-triangle', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'ghost-type', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'neon-wedge', layout: 'left-h', showGrid: false, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'signal-columns', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false }
+          ]
+        },
+        'social-proof': {
+          recipeLabel: 'Proof Frame',
+          palettes: paletteFamilies.proof,
+          scenes: [
+            { bgVariant: 'split-block', layout: 'left-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'geo-full-corner', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'corner-burst', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'frame-shift', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: true }
+          ]
+        },
+        'uploads': {
+          recipeLabel: 'Feedback Evidence',
+          palettes: paletteFamilies.proof,
+          scenes: [
+            { bgVariant: 'frame-shift', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: true },
+            { bgVariant: 'geo-full-corner', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'split-block', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false }
+          ]
+        },
+        'market': {
+          recipeLabel: 'Market Pulse',
+          palettes: paletteFamilies.signal,
+          scenes: [
+            { bgVariant: 'data-stream', layout: 'left-v', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'signal-columns', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'horizon', layout: 'center', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'bands', layout: 'left-v', showGrid: true, showCorners: false, showOrbs: false, showRings: false }
+          ]
+        },
+        'diagnostics': {
+          recipeLabel: 'Forensic Signal',
+          palettes: paletteFamilies.signal,
+          scenes: [
+            { bgVariant: 'crosslight', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'slash-field', layout: 'left-h', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'ghost-type', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'chart-base', layout: 'center', showGrid: true, showCorners: true, showOrbs: false, showRings: false }
+          ]
+        },
+        'anti-myth': {
+          recipeLabel: 'Contrarian Strike',
+          palettes: paletteFamilies.proof,
+          scenes: [
+            { bgVariant: 'neon-wedge', layout: 'left-h', showGrid: false, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'split', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'diagonal', layout: 'left-h', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'corner-burst', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false }
+          ]
+        },
+        'stories': {
+          recipeLabel: 'Interactive Pulse',
+          palettes: paletteFamilies.core,
+          scenes: [
+            { bgVariant: 'horizon', layout: 'center', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'data-stream', layout: 'right-v', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'signal-columns', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'frame-shift', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: true }
+          ]
+        },
+        'series': {
+          recipeLabel: 'Narrative Engine',
+          palettes: paletteFamilies.core,
+          scenes: [
+            { bgVariant: 'frame-shift', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: true },
+            { bgVariant: 'signal-columns', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'horizon', layout: 'center', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'geo-triangle', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false }
+          ]
+        },
+        'episodic': {
+          recipeLabel: 'Narrative Engine',
+          palettes: paletteFamilies.core,
+          scenes: [
+            { bgVariant: 'frame-shift', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: true },
+            { bgVariant: 'signal-columns', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'horizon', layout: 'center', showGrid: true, showCorners: false, showOrbs: false, showRings: false }
+          ]
+        },
+        'specialists': {
+          recipeLabel: 'Operator Console',
+          palettes: paletteFamilies.authority,
+          scenes: [
+            { bgVariant: 'chart-base', layout: 'left-v', showGrid: true, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'data-stream', layout: 'left-v', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+            { bgVariant: 'signal-columns', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'dot-matrix', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false }
+          ]
+        },
+        'authority': {
+          recipeLabel: 'Operator Console',
+          palettes: paletteFamilies.authority,
+          scenes: [
+            { bgVariant: 'chart-base', layout: 'center', showGrid: true, showCorners: true, showOrbs: false, showRings: false },
+            { bgVariant: 'frame-shift', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: true },
+            { bgVariant: 'signal-columns', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false }
+          ]
+        }
+      };
 
-      // Select scene pool based on current editorial tab
-      let pool;
-      if (currentEditorialTab === 'tweet-style') pool = tweetScenes;
-      else if (currentEditorialTab === 'toolbox') pool = toolboxScenes;
-      else if (currentEditorialTab === 'deep-dive') pool = deepDiveScenes;
-      else if (currentEditorialTab === 'social-proof') pool = proofScenes;
-      else pool = allScenes;
+      const fallbackProfile = {
+        recipeLabel: 'ERIZON Core',
+        palettes: paletteFamilies.core,
+        scenes: [
+          { bgVariant: 'data-stream', layout: 'left-v', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+          { bgVariant: 'signal-columns', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+          { bgVariant: 'neon-wedge', layout: 'left-h', showGrid: false, showCorners: false, showOrbs: false, showRings: false },
+          { bgVariant: 'horizon', layout: 'center', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+          { bgVariant: 'frame-shift', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: true },
+          { bgVariant: 'bands', layout: 'left-v', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+          { bgVariant: 'crosslight', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+          { bgVariant: 'diagonal', layout: 'left-h', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+          { bgVariant: 'split', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+          { bgVariant: 'geo-triangle', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+          { bgVariant: 'geo-full-corner', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+          { bgVariant: 'slash-field', layout: 'left-h', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
+          { bgVariant: 'dot-matrix', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+          { bgVariant: 'ghost-type', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false }
+        ]
+      };
 
-      const scene = pool[Math.floor(Math.random() * pool.length)];
-      const palette = schemes[Math.floor(Math.random() * schemes.length)];
+      const profile = designChiefProfiles[currentEditorialTab] || fallbackProfile;
+      const scene = profile.scenes[Math.floor(Math.random() * profile.scenes.length)];
+      const palette = profile.palettes[Math.floor(Math.random() * profile.palettes.length)];
       currentVisualState = {
         palette,
         layout: scene.layout || 'center',
         gradClass: grads[Math.floor(Math.random() * grads.length)],
+        recipeLabel: profile.recipeLabel,
         bgVariant: scene.bgVariant,
         tweetMode: scene.tweetMode || false,
         showGrid: scene.showGrid,
@@ -2338,6 +2596,31 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // ============================================================
     // PUBLISH
     // ============================================================
+    async function buildPublicationPayload() {
+      const platforms = getSelectedPlatforms();
+      const caption = postContent.value;
+
+      if (currentPostType === 'instagram-carousel') {
+        const images = [];
+        for (let i = 0; i < carouselSlides.length; i++) {
+          showSlide(i);
+          await new Promise(r => setTimeout(r, 50));
+          images.push(await renderCard());
+        }
+        showSlide(0);
+        return { platforms, caption, images };
+      }
+
+      let imageBase64 = await renderCard();
+      if (platforms.includes('instagram')) {
+        imageBase64 = await renderInstagramFeedCanvas();
+      } else if (platforms.includes('instagram-story')) {
+        imageBase64 = await renderStoryCanvas();
+      }
+
+      return { platforms, caption, images: [imageBase64] };
+    }
+
     btnPublish.addEventListener('click', async () => {
       btnPublish.disabled = true;
       btnPublish.innerHTML = 'PUBLICANDO...';
@@ -2347,49 +2630,29 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       statusMsg.innerHTML = 'Preparando e enviando imagens para as plataformas...';
 
       try {
-        const platforms = [];
-        if (document.getElementById('pub-instagram').checked) platforms.push('instagram');
-        if (document.getElementById('pub-story').checked) platforms.push('instagram-story');
-        if (document.getElementById('pub-linkedin').checked) platforms.push('linkedin');
-
-        const caption = postContent.value;
+        const { platforms, caption, images } = await buildPublicationPayload();
         let results = [];
 
         if (currentPostType === 'instagram-carousel') {
-          const imageUrls = [];
-          for (let i = 0; i < carouselSlides.length; i++) {
-            showSlide(i);
-            await new Promise(r => setTimeout(r, 50)); // Pequeno delay para DOM atualizar
-            const imgData = await renderCard();
-            imageUrls.push(imgData);
-          }
-          showSlide(0); // Volta pro primeiro
-
           const res = await fetchJson('/api/publish-carousel', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              images: imageUrls,
-              caption: caption,
-              platforms: platforms
+              images,
+              caption,
+              platforms
             })
           });
           results = res.results || ['Carrossel publicado.'];
 
         } else {
-          let imageBase64 = await renderCard();
-          if (platforms.includes('instagram')) {
-            imageBase64 = await renderInstagramFeedCanvas();
-          } else if (platforms.includes('instagram-story')) {
-            imageBase64 = await renderStoryCanvas();
-          }
           const res = await fetchJson('/api/publish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               content: caption,
-              imageBase64: imageBase64,
-              platforms: platforms
+              imageBase64: images[0],
+              platforms
             })
           });
           results = res.results || ['Publicado.'];
@@ -2408,6 +2671,76 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         btnPublish.innerHTML = '✦ &nbsp;Aprovar e Publicar nas Redes';
       }
     });
+
+    btnSchedule.addEventListener('click', async () => {
+      btnSchedule.disabled = true;
+      setScheduleFeedback('Preparando post para agendamento...', 'info');
+
+      try {
+        if (!scheduleInput.value) throw new Error('Escolha data e hora para o agendamento.');
+        if (!postContent.value.trim()) throw new Error('Gere ou edite um conteÃºdo antes de agendar.');
+
+        const { platforms, caption, images } = await buildPublicationPayload();
+        if (!platforms.length) throw new Error('Selecione uma plataforma para o agendamento.');
+
+        const res = await fetchJson('/api/schedule', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            scheduledAt: scheduleInput.value,
+            postType: currentPostType,
+            editorialTab: currentEditorialTab,
+            caption,
+            platforms,
+            images
+          })
+        });
+
+        setScheduleFeedback('Agendado com sucesso para ' + new Date(res.item.scheduledAt).toLocaleString('pt-BR') + '.', 'success');
+        await loadScheduledPosts();
+      } catch (e) {
+        setScheduleFeedback(e.message, 'error');
+      } finally {
+        btnSchedule.disabled = false;
+      }
+    });
+
+    scheduleList.addEventListener('click', async e => {
+      const btn = e.target.closest('[data-schedule-cancel]');
+      if (!btn) return;
+
+      try {
+        await fetchJson('/api/schedule/cancel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: btn.dataset.scheduleCancel })
+        });
+        setScheduleFeedback('Agendamento cancelado.', 'success');
+        await loadScheduledPosts();
+      } catch (error) {
+        setScheduleFeedback(error.message, 'error');
+      }
+    });
+
+    btnAutomationToggle.addEventListener('click', async () => {
+      btnAutomationToggle.disabled = true;
+      try {
+        const enabledNow = btnAutomationToggle.textContent.includes('Desativar');
+        const res = await fetchJson('/api/automation-toggle', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enabled: !enabledNow })
+        });
+        applyAutomationState(res.settings);
+        setScheduleFeedback(res.settings.enabled ? 'AutomaÃ§Ã£o reativada.' : 'AutomaÃ§Ã£o pausada. A fila foi mantida.', 'success');
+      } catch (error) {
+        setScheduleFeedback(error.message, 'error');
+      } finally {
+        btnAutomationToggle.disabled = false;
+      }
+    });
+
+    loadScheduledPosts();
 
   </script>
 </body>
@@ -2476,6 +2809,50 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
+  if (req.method === 'GET' && url.pathname === '/api/schedule') {
+    try {
+      const items = await readScheduledPosts();
+      const settings = await readAutomationSettings();
+      res.status(200).json({
+        items: items.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()),
+        settings
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/run-scheduled') {
+    try {
+      const cronSecret = process.env.CRON_SECRET || '';
+      const authHeader = req.headers.authorization || '';
+      if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+
+      const settings = await readAutomationSettings();
+      if (!settings.enabled) {
+        res.status(200).json({
+          processed: 0,
+          skipped: true,
+          reason: 'automation_disabled'
+        });
+        return;
+      }
+
+      const result = await runDueScheduledPosts(agent);
+      res.status(200).json({
+        processed: result.processed,
+        items: result.posts
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+    return;
+  }
+
   if (req.method === 'GET') {
     res.setHeader('Content-Type', 'text/html');
     res.status(200).send(HTML_TEMPLATE);
@@ -2522,6 +2899,63 @@ export default async function handler(req: any, res: any) {
           }
         }
         res.status(200).json({ results });
+      } else if (url.pathname === '/api/schedule') {
+        const { scheduledAt, postType, editorialTab, caption, platforms, images } = body;
+        if (!scheduledAt) throw new Error('scheduledAt Ã© obrigatÃ³rio.');
+        if (!Array.isArray(platforms) || !platforms.length) throw new Error('Selecione pelo menos uma plataforma.');
+        if (!Array.isArray(images) || !images.length) throw new Error('Nenhuma imagem foi enviada para agendar.');
+        const scheduleTime = new Date(scheduledAt);
+        if (Number.isNaN(scheduleTime.getTime())) throw new Error('Data/hora invÃ¡lida para agendamento.');
+
+        const item = buildScheduledPost({
+          scheduledAt,
+          postType,
+          editorialTab,
+          caption,
+          platforms,
+          images
+        });
+        const items = await readScheduledPosts();
+        items.push(item);
+        await writeScheduledPosts(items);
+        res.status(200).json({ item });
+      } else if (url.pathname === '/api/schedule/cancel') {
+        const { id } = body;
+        const items = await readScheduledPosts();
+        const nextItems = items.filter(item => item.id !== id);
+        if (nextItems.length === items.length) throw new Error('Agendamento nÃ£o encontrado.');
+        await writeScheduledPosts(nextItems);
+        res.status(200).json({ ok: true });
+      } else if (url.pathname === '/api/automation-toggle') {
+        const settings = {
+          enabled: body?.enabled !== false,
+          updatedAt: new Date().toISOString()
+        };
+        await writeAutomationSettings(settings);
+        res.status(200).json({ settings });
+      } else if (url.pathname === '/api/run-scheduled') {
+        const cronSecret = process.env.CRON_SECRET || '';
+        const authHeader = req.headers.authorization || '';
+        if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+          res.status(401).json({ error: 'Unauthorized' });
+          return;
+        }
+
+        const settings = await readAutomationSettings();
+        if (!settings.enabled) {
+          res.status(200).json({
+            processed: 0,
+            skipped: true,
+            reason: 'automation_disabled'
+          });
+          return;
+        }
+
+        const result = await runDueScheduledPosts(agent);
+        res.status(200).json({
+          processed: result.processed,
+          items: result.posts
+        });
       } else {
         res.status(404).json({ error: 'Not Found' });
       }
@@ -2537,6 +2971,264 @@ export default async function handler(req: any, res: any) {
 
 async function uploadImageToCloud(base64Data: string): Promise<string> {
   return uploadImageToCloudForPlatform(base64Data, 'generic');
+}
+
+const SCHEDULE_STORE_PATH = path.resolve(__dirname, '../data/scheduled-posts.json');
+const SCHEDULE_BLOB_PATHNAME = 'erizon-scheduled-posts.json';
+const AUTOMATION_SETTINGS_PATH = path.resolve(__dirname, '../data/automation-settings.json');
+const AUTOMATION_SETTINGS_BLOB_PATHNAME = 'erizon-automation-settings.json';
+
+function defaultAutomationSettings(): AutomationSettings {
+  return {
+    enabled: true,
+    updatedAt: new Date().toISOString()
+  };
+}
+
+async function ensureScheduleStore(): Promise<void> {
+  await fs.promises.mkdir(path.dirname(SCHEDULE_STORE_PATH), { recursive: true });
+  if (!fs.existsSync(SCHEDULE_STORE_PATH)) {
+    await fs.promises.writeFile(SCHEDULE_STORE_PATH, '[]', 'utf8');
+  }
+  if (!fs.existsSync(AUTOMATION_SETTINGS_PATH)) {
+    await fs.promises.writeFile(AUTOMATION_SETTINGS_PATH, JSON.stringify(defaultAutomationSettings(), null, 2), 'utf8');
+  }
+}
+
+async function readScheduledPostsFromBlob(token: string): Promise<ScheduledPost[] | null> {
+  const listRes = await fetch(`https://blob.vercel-storage.com?prefix=${encodeURIComponent(SCHEDULE_BLOB_PATHNAME)}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'x-api-version': '7'
+    }
+  });
+
+  if (!listRes.ok) {
+    throw new Error(`Falha ao listar fila no Blob: ${await listRes.text()}`);
+  }
+
+  const listData = await listRes.json() as any;
+  const blobs = Array.isArray(listData?.blobs) ? listData.blobs : [];
+  const matches = blobs.filter((blob: any) => blob.pathname === SCHEDULE_BLOB_PATHNAME);
+  if (!matches.length) return null;
+
+  matches.sort((a: any, b: any) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+  const latestUrl = matches[0]?.url;
+  if (!latestUrl) return null;
+
+  const fileRes = await fetch(latestUrl, { cache: 'no-store' });
+  if (!fileRes.ok) {
+    throw new Error(`Falha ao ler fila do Blob: HTTP ${fileRes.status}`);
+  }
+
+  const raw = await fileRes.text();
+  const parsed = JSON.parse(raw);
+  return Array.isArray(parsed) ? parsed : [];
+}
+
+async function writeScheduledPostsToBlob(items: ScheduledPost[], token: string): Promise<void> {
+  const response = await fetch(`https://blob.vercel-storage.com/${SCHEDULE_BLOB_PATHNAME}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'x-api-version': '7'
+    },
+    body: JSON.stringify(items, null, 2)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Falha ao salvar fila no Blob: ${await response.text()}`);
+  }
+}
+
+async function readJsonBlobByPathname(pathname: string, token: string): Promise<any | null> {
+  const listRes = await fetch(`https://blob.vercel-storage.com?prefix=${encodeURIComponent(pathname)}`, {
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'x-api-version': '7'
+    }
+  });
+
+  if (!listRes.ok) {
+    throw new Error(`Falha ao listar blob ${pathname}: ${await listRes.text()}`);
+  }
+
+  const listData = await listRes.json() as any;
+  const blobs = Array.isArray(listData?.blobs) ? listData.blobs : [];
+  const matches = blobs.filter((blob: any) => blob.pathname === pathname);
+  if (!matches.length) return null;
+  matches.sort((a: any, b: any) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime());
+
+  const fileRes = await fetch(matches[0].url, { cache: 'no-store' });
+  if (!fileRes.ok) {
+    throw new Error(`Falha ao ler blob ${pathname}: HTTP ${fileRes.status}`);
+  }
+
+  return JSON.parse(await fileRes.text());
+}
+
+async function writeJsonBlob(pathname: string, payload: any, token: string): Promise<void> {
+  const response = await fetch(`https://blob.vercel-storage.com/${pathname}`, {
+    method: 'PUT',
+    headers: {
+      'Authorization': `Bearer ${token}`,
+      'Content-Type': 'application/json',
+      'x-api-version': '7'
+    },
+    body: JSON.stringify(payload, null, 2)
+  });
+
+  if (!response.ok) {
+    throw new Error(`Falha ao salvar blob ${pathname}: ${await response.text()}`);
+  }
+}
+
+async function readScheduledPosts(): Promise<ScheduledPost[]> {
+  const blobToken = getBlobToken();
+  if (blobToken) {
+    const items = await readScheduledPostsFromBlob(blobToken);
+    if (items) return items;
+  }
+
+  await ensureScheduleStore();
+  try {
+    const raw = await fs.promises.readFile(SCHEDULE_STORE_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeScheduledPosts(items: ScheduledPost[]): Promise<void> {
+  const blobToken = getBlobToken();
+  if (blobToken) {
+    await writeScheduledPostsToBlob(items, blobToken);
+    return;
+  }
+
+  await ensureScheduleStore();
+  await fs.promises.writeFile(SCHEDULE_STORE_PATH, JSON.stringify(items, null, 2), 'utf8');
+}
+
+async function readAutomationSettings(): Promise<AutomationSettings> {
+  const blobToken = getBlobToken();
+  if (blobToken) {
+    const settings = await readJsonBlobByPathname(AUTOMATION_SETTINGS_BLOB_PATHNAME, blobToken);
+    if (settings && typeof settings.enabled === 'boolean') {
+      return settings;
+    }
+  }
+
+  await ensureScheduleStore();
+  try {
+    const raw = await fs.promises.readFile(AUTOMATION_SETTINGS_PATH, 'utf8');
+    const parsed = JSON.parse(raw);
+    if (typeof parsed?.enabled === 'boolean') return parsed;
+  } catch {}
+
+  return defaultAutomationSettings();
+}
+
+async function writeAutomationSettings(settings: AutomationSettings): Promise<void> {
+  const nextSettings = {
+    enabled: settings.enabled !== false,
+    updatedAt: settings.updatedAt || new Date().toISOString()
+  };
+
+  const blobToken = getBlobToken();
+  if (blobToken) {
+    await writeJsonBlob(AUTOMATION_SETTINGS_BLOB_PATHNAME, nextSettings, blobToken);
+    return;
+  }
+
+  await ensureScheduleStore();
+  await fs.promises.writeFile(AUTOMATION_SETTINGS_PATH, JSON.stringify(nextSettings, null, 2), 'utf8');
+}
+
+function buildScheduledPost(input: {
+  scheduledAt: string;
+  postType: PostType;
+  editorialTab: EditorialTab;
+  caption: string;
+  platforms: string[];
+  images: string[];
+}): ScheduledPost {
+  return {
+    id: `sched_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    createdAt: new Date().toISOString(),
+    scheduledAt: new Date(input.scheduledAt).toISOString(),
+    postType: input.postType,
+    editorialTab: input.editorialTab,
+    caption: input.caption,
+    platforms: input.platforms,
+    images: input.images,
+    status: 'scheduled',
+  };
+}
+
+async function executeScheduledPost(agent: SocialMediaAgent, item: ScheduledPost): Promise<string[]> {
+  if (item.postType === 'instagram-carousel') {
+    const needsInstagramHost = item.platforms.includes('instagram');
+    const imageUrls = await Promise.all(
+      item.images.map(img => uploadImageToCloudForPlatform(img, needsInstagramHost ? 'instagram' : 'generic'))
+    );
+    const results: string[] = [];
+
+    if (item.platforms.includes('instagram')) {
+      try {
+        await agent.postCarouselToInstagram(imageUrls, item.caption);
+        results.push('🎠 Instagram Carrossel: Sucesso');
+      } catch (error: any) {
+        results.push(`🎠 Instagram Carrossel: Erro (${error.message || 'Erro desconhecido'})`);
+      }
+    }
+
+    if (item.platforms.includes('linkedin')) {
+      try {
+        await agent.postToSocialMedia(item.caption, imageUrls[0], item.images[0], ['linkedin']);
+        results.push('💼 LinkedIn (1º slide): Sucesso');
+      } catch (error: any) {
+        results.push(`💼 LinkedIn: Erro (${error.message || 'Erro desconhecido'})`);
+      }
+    }
+
+    return results;
+  }
+
+  const needsInstagramHost = item.platforms.includes('instagram') || item.platforms.includes('instagram-story');
+  const imageBase64 = item.images[0];
+  const imageUrl = await uploadImageToCloudForPlatform(imageBase64, needsInstagramHost ? 'instagram' : 'generic');
+  return agent.postToSocialMedia(item.caption, imageUrl, imageBase64, item.platforms);
+}
+
+async function runDueScheduledPosts(agent: SocialMediaAgent): Promise<{ processed: number; posts: ScheduledPost[] }> {
+  const items = await readScheduledPosts();
+  const now = Date.now();
+  let processed = 0;
+
+  for (const item of items) {
+    if (item.status !== 'scheduled') continue;
+    if (new Date(item.scheduledAt).getTime() > now) continue;
+
+    processed += 1;
+    try {
+      const results = await executeScheduledPost(agent, item);
+      item.status = results.some(result => result.includes('Erro')) ? 'failed' : 'published';
+      item.results = results;
+      item.publishedAt = new Date().toISOString();
+      item.lastError = item.status === 'failed' ? results.filter(result => result.includes('Erro')).join(' | ') : '';
+    } catch (error: any) {
+      item.status = 'failed';
+      item.results = [`Falha na automação: ${error.message || 'Erro desconhecido'}`];
+      item.lastError = error.message || 'Erro desconhecido';
+      item.publishedAt = new Date().toISOString();
+    }
+  }
+
+  await writeScheduledPosts(items);
+  return { processed, posts: items };
 }
 
 function getBlobToken(): string {
