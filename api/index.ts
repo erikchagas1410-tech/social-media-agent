@@ -253,6 +253,32 @@ interface AutomationSettings {
   updatedAt: string;
 }
 
+interface SquadSummary {
+  id: string;
+  name: string;
+  shortTitle: string;
+  description: string;
+  tags: string[];
+  agents: string[];
+  tasks: string[];
+  workflows: string[];
+  chiefAgent?: string;
+  readme?: string;
+  chiefPrompt?: string;
+}
+
+interface SquadChatTurn {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
+interface SquadArtifact {
+  type: 'none' | 'document' | 'image-brief';
+  title?: string;
+  content?: string;
+  format?: 'markdown' | 'text' | 'json';
+}
+
 function parseImagePayload(imageInput: string): ImagePayload {
   const match = imageInput.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
   if (match) {
@@ -914,6 +940,169 @@ Retorne JSON válido neste formato:
   }
 }
 
+function parseSquadYaml(raw: string): Partial<SquadSummary> {
+  const getSingle = (key: string): string => {
+    const match = raw.match(new RegExp(`^${key}:\\s*"?([^"\\n]+)"?`, 'm'));
+    return match ? match[1].trim() : '';
+  };
+
+  const readList = (section: string): string[] => {
+    const sectionMatch = raw.match(new RegExp(`${section}:\\s*\\n([\\s\\S]*?)(?:\\n\\S|$)`));
+    if (!sectionMatch) return [];
+    return sectionMatch[1]
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('- '))
+      .map(line => line.replace(/^- /, '').replace(/^["']|["']$/g, '').trim())
+      .filter(Boolean);
+  };
+
+  const componentsMatch = raw.match(/components:\s*\n([\s\S]*?)\nconfig:/);
+  const components = componentsMatch ? componentsMatch[1] : '';
+  const readComponentList = (key: string): string[] => {
+    const match = components.match(new RegExp(`${key}:\\s*\\n([\\s\\S]*?)(?:\\n\\s{2}\\w|$)`));
+    if (!match) return [];
+    return match[1]
+      .split('\n')
+      .map(line => line.trim())
+      .filter(line => line.startsWith('- '))
+      .map(line => line.replace(/^- /, '').trim())
+      .filter(Boolean);
+  };
+
+  return {
+    id: getSingle('name'),
+    name: getSingle('name'),
+    shortTitle: getSingle('short-title'),
+    description: getSingle('description'),
+    tags: readList('tags'),
+    agents: readComponentList('agents'),
+    tasks: readComponentList('tasks'),
+    workflows: readComponentList('workflows')
+  };
+}
+
+function fileStem(filename: string): string {
+  return filename.replace(/\.[^.]+$/, '');
+}
+
+async function loadSquadSummaries(): Promise<SquadSummary[]> {
+  const squadsRoot = path.resolve(__dirname, '../squads');
+  if (!fs.existsSync(squadsRoot)) return [];
+
+  const dirs = (await fs.promises.readdir(squadsRoot, { withFileTypes: true }))
+    .filter(entry => entry.isDirectory() && entry.name !== '_example');
+
+  const summaries: SquadSummary[] = [];
+  for (const dir of dirs) {
+    const squadPath = path.join(squadsRoot, dir.name);
+    const yamlPath = path.join(squadPath, 'squad.yaml');
+    if (!fs.existsSync(yamlPath)) continue;
+
+    const yamlRaw = await fs.promises.readFile(yamlPath, 'utf8');
+    const parsed = parseSquadYaml(yamlRaw);
+    const readmePath = path.join(squadPath, 'README.md');
+    const chiefAgentFile = (parsed.agents || []).find(agent => /chief|chair|orchestrator|vision-chief|traffic-chief|brand-chief|design-chief|copy-chief|story-chief|movement-chief|data-chief|hormozi-chief|cyber-chief/i.test(agent)) || parsed.agents?.[0] || '';
+    const chiefPath = chiefAgentFile ? path.join(squadPath, 'agents', chiefAgentFile) : '';
+
+    summaries.push({
+      id: parsed.id || dir.name,
+      name: parsed.name || dir.name,
+      shortTitle: parsed.shortTitle || dir.name,
+      description: parsed.description || '',
+      tags: parsed.tags || [],
+      agents: (parsed.agents || []).map(fileStem),
+      tasks: (parsed.tasks || []).map(fileStem),
+      workflows: (parsed.workflows || []).map(fileStem),
+      chiefAgent: chiefAgentFile ? fileStem(chiefAgentFile) : '',
+      readme: fs.existsSync(readmePath) ? (await fs.promises.readFile(readmePath, 'utf8')).slice(0, 4000) : '',
+      chiefPrompt: chiefPath && fs.existsSync(chiefPath) ? (await fs.promises.readFile(chiefPath, 'utf8')).slice(0, 5000) : ''
+    });
+  }
+
+  return summaries.sort((a, b) => a.shortTitle.localeCompare(b.shortTitle, 'pt-BR'));
+}
+
+async function getSquadById(id: string): Promise<SquadSummary | null> {
+  const squads = await loadSquadSummaries();
+  return squads.find(squad => squad.id === id) || null;
+}
+
+async function chatWithSquad(params: { squadId: string; message: string; history?: SquadChatTurn[] }): Promise<{ reply: string; artifact: SquadArtifact }> {
+  const squad = await getSquadById(params.squadId);
+  if (!squad) {
+    throw new Error('Squad não encontrado.');
+  }
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error('Configure a GROQ_API_KEY para conversar com os squads.');
+  }
+
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const systemPrompt = `Você está operando como o squad "${squad.shortTitle}".
+
+DADOS DO SQUAD:
+- id: ${squad.id}
+- descrição: ${squad.description}
+- chief/orchestrator: ${squad.chiefAgent || 'não informado'}
+- agentes: ${squad.agents.join(', ')}
+- tarefas: ${squad.tasks.join(', ')}
+- workflows: ${squad.workflows.join(', ')}
+- tags: ${squad.tags.join(', ')}
+
+README DO SQUAD:
+${(squad.readme || '').slice(0, 2500)}
+
+AGENTE PRINCIPAL / CHIEF:
+${(squad.chiefPrompt || '').slice(0, 3000)}
+
+REGRAS:
+- Responda como um squad especialista, não como assistente genérico.
+- Seja objetivo, útil e acionável.
+- Se o pedido for por documento, devolva um artefato em markdown completo.
+- Se o pedido envolver imagem, peça visual, criativo, post ou layout, devolva um artefato do tipo "image-brief" com direção visual, copy, estrutura e instruções de execução.
+- Se não houver artefato explícito, use type "none".
+- Nunca invente capacidades técnicas específicas do squad que não apareçam no contexto. Quando inferir, deixe implícito com cautela.
+
+RETORNE JSON VÁLIDO:
+{
+  "reply": "resposta principal ao usuário",
+  "artifact": {
+    "type": "none|document|image-brief",
+    "title": "título opcional",
+    "format": "markdown|text|json",
+    "content": "conteúdo opcional"
+  }
+}`;
+
+  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+    { role: 'system', content: systemPrompt }
+  ];
+
+  (params.history || []).slice(-10).forEach(turn => {
+    messages.push({ role: turn.role, content: turn.content });
+  });
+  messages.push({ role: 'user', content: params.message });
+
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    temperature: 0.7,
+    response_format: { type: 'json_object' },
+    messages
+  });
+
+  const raw = response.choices[0]?.message?.content || '{}';
+  const parsed = JSON.parse(raw);
+  return {
+    reply: parsed.reply || 'Sem resposta do squad.',
+    artifact: {
+      type: parsed?.artifact?.type || 'none',
+      title: parsed?.artifact?.title || '',
+      format: parsed?.artifact?.format || 'text',
+      content: parsed?.artifact?.content || ''
+    }
+  };
+}
+
 // ============================================================
 // HTML TEMPLATE — ERIZON Studio UI
 // ============================================================
@@ -1008,9 +1197,29 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     .btn-nav { background:rgba(188,19,254,.12); border:0.5px solid rgba(188,19,254,.3); color:#BC13FE; padding:8px 16px; border-radius:8px; cursor:pointer; font-family:'JetBrains Mono',monospace; font-size:12px; transition:all .2s; }
     .btn-nav:hover { background:rgba(188,19,254,.2); }
     .divider { height:0.5px; background:rgba(188,19,254,.15); margin:20px 0; }
+    .chat-shell { display:grid; grid-template-columns:280px minmax(0,1fr); gap:18px; }
+    .squad-list { display:flex; flex-direction:column; gap:10px; max-height:680px; overflow:auto; padding-right:4px; }
+    .squad-item { background:rgba(255,255,255,.03); border:0.5px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; cursor:pointer; transition:all .2s; }
+    .squad-item.active { border-color:#00F2FF; background:rgba(0,242,255,.08); box-shadow:0 0 0 1px rgba(0,242,255,.12) inset; }
+    .squad-item-title { font-size:13px; font-weight:700; color:#fff; }
+    .squad-item-copy { font-size:11px; line-height:1.5; color:rgba(255,255,255,.55); margin-top:6px; }
+    .chat-panel { background:rgba(255,255,255,.025); border:0.5px solid rgba(188,19,254,.16); border-radius:16px; padding:16px; min-height:680px; display:flex; flex-direction:column; }
+    .chat-log { flex:1; min-height:300px; max-height:520px; overflow:auto; display:flex; flex-direction:column; gap:12px; padding-right:4px; }
+    .chat-bubble { max-width:88%; border-radius:14px; padding:12px 14px; line-height:1.6; font-size:13px; white-space:pre-wrap; }
+    .chat-bubble.user { align-self:flex-end; background:rgba(188,19,254,.12); border:1px solid rgba(188,19,254,.24); color:#fff; }
+    .chat-bubble.assistant { align-self:flex-start; background:rgba(255,255,255,.04); border:1px solid rgba(255,255,255,.08); color:rgba(255,255,255,.82); }
+    .artifact-box { margin-top:14px; background:rgba(0,242,255,.05); border:1px solid rgba(0,242,255,.18); border-radius:12px; padding:14px; }
+    .artifact-pre { max-height:240px; overflow:auto; white-space:pre-wrap; font-size:12px; line-height:1.6; color:rgba(255,255,255,.75); }
+    .chat-actions { display:flex; gap:10px; margin-top:14px; flex-wrap:wrap; }
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     .pulsing { animation:pulse 1.5s ease-in-out infinite; }
     input[type="checkbox"] { accent-color:#BC13FE; width:14px; height:14px; }
+    @media (max-width: 960px) {
+      .chat-shell { grid-template-columns:1fr; }
+      .squad-list { max-height:none; }
+      .chat-panel { min-height:560px; }
+      .chat-bubble { max-width:100%; }
+    }
 
     /* ====== GEOMETRIC DECORATIVES ====== */
     .geo-tl { position:absolute; top:0; left:0; width:360px; height:360px; clip-path:polygon(0 0,100% 0,0 100%); pointer-events:none; }
@@ -1232,6 +1441,46 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     </div>
   </div>
 
+  <div class="max-w-7xl mx-auto mt-8">
+    <div class="panel">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:16px;flex-wrap:wrap;margin-bottom:18px;">
+        <div>
+          <div class="mono" style="font-size:10px;letter-spacing:.18em;color:#00F2FF;text-transform:uppercase;margin-bottom:8px;">Squads Integrados</div>
+          <h2 style="font-family:'Montserrat',sans-serif;font-size:1.4rem;font-weight:800;color:#fff;">Converse com cada squad</h2>
+          <p style="font-size:13px;color:rgba(255,255,255,.58);margin-top:6px;max-width:760px;">Cada squad tem chat próprio, contexto próprio e pode devolver respostas, documentos e briefs visuais dentro do projeto.</p>
+        </div>
+        <div class="mono" id="squad-count" style="font-size:11px;letter-spacing:.14em;color:#BC13FE;text-transform:uppercase;">Carregando squads...</div>
+      </div>
+      <div class="chat-shell">
+        <div class="squad-list" id="squad-list"></div>
+        <div class="chat-panel">
+          <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap;margin-bottom:14px;">
+            <div>
+              <div class="mono" id="active-squad-chip" style="font-size:10px;letter-spacing:.16em;color:#00F2FF;text-transform:uppercase;">Sem squad</div>
+              <div id="active-squad-title" style="font-size:22px;font-weight:800;color:#fff;margin-top:6px;">Selecione um squad</div>
+              <div id="active-squad-desc" style="font-size:13px;color:rgba(255,255,255,.56);margin-top:6px;max-width:760px;">Os squads importados vão aparecer aqui.</div>
+            </div>
+            <div class="mono" id="active-squad-meta" style="font-size:11px;letter-spacing:.1em;color:rgba(255,255,255,.38);text-transform:uppercase;"></div>
+          </div>
+          <div class="chat-log" id="squad-chat-log">
+            <div class="chat-bubble assistant">Selecione um squad para começar a conversa.</div>
+          </div>
+          <div id="squad-artifact" class="artifact-box hidden">
+            <div class="mono" id="squad-artifact-title" style="font-size:10px;letter-spacing:.16em;color:#00F2FF;text-transform:uppercase;margin-bottom:10px;"></div>
+            <pre id="squad-artifact-content" class="artifact-pre"></pre>
+            <div class="chat-actions">
+              <button id="btn-download-artifact" class="btn-nav">Baixar artefato</button>
+            </div>
+          </div>
+          <div class="chat-actions">
+            <textarea id="squad-chat-input" rows="4" class="field" placeholder="Peça estratégia, documento, diagnóstico, narrativa, criativo ou uma direção visual para esse squad."></textarea>
+            <button id="btn-send-squad" class="btn-primary" style="max-width:220px;">Enviar ao squad</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <script>
     // ============================================================
     // STATE
@@ -1251,6 +1500,10 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       showOrbs: false,
       showRings: false
     };
+    let squadCatalog = [];
+    let activeSquadId = '';
+    let squadChatHistories = {};
+    let latestSquadArtifact = null;
     const HISTORY_KEY = 'erizon-post-history-v1';
 
     function getPostHistory() {
@@ -1414,6 +1667,19 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     const scheduleList = document.getElementById('schedule-list');
     const btnAutomationToggle = document.getElementById('btn-automation-toggle');
     const automationStateLabel = document.getElementById('automation-state-label');
+    const squadList = document.getElementById('squad-list');
+    const squadCount = document.getElementById('squad-count');
+    const activeSquadChip = document.getElementById('active-squad-chip');
+    const activeSquadTitle = document.getElementById('active-squad-title');
+    const activeSquadDesc = document.getElementById('active-squad-desc');
+    const activeSquadMeta = document.getElementById('active-squad-meta');
+    const squadChatLog = document.getElementById('squad-chat-log');
+    const squadChatInput = document.getElementById('squad-chat-input');
+    const btnSendSquad = document.getElementById('btn-send-squad');
+    const squadArtifact = document.getElementById('squad-artifact');
+    const squadArtifactTitle = document.getElementById('squad-artifact-title');
+    const squadArtifactContent = document.getElementById('squad-artifact-content');
+    const btnDownloadArtifact = document.getElementById('btn-download-artifact');
 
     // ============================================================
     // EDITORIAL TABS & UPLOAD
@@ -1544,6 +1810,80 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         applyAutomationState({ enabled: true });
         renderScheduleList([]);
       }
+    }
+
+    function getActiveSquad() {
+      return squadCatalog.find(squad => squad.id === activeSquadId) || null;
+    }
+
+    function escapeHtml(value) {
+      return String(value || '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+    }
+
+    function renderSquadArtifact(artifact) {
+      latestSquadArtifact = artifact || null;
+      if (!artifact || artifact.type === 'none' || !artifact.content) {
+        squadArtifact.classList.add('hidden');
+        squadArtifactTitle.textContent = '';
+        squadArtifactContent.textContent = '';
+        return;
+      }
+
+      squadArtifact.classList.remove('hidden');
+      squadArtifactTitle.textContent = (artifact.type === 'document' ? 'Documento' : 'Image Brief') + (artifact.title ? ' · ' + artifact.title : '');
+      squadArtifactContent.textContent = artifact.content || '';
+    }
+
+    function renderSquadChat() {
+      const squad = getActiveSquad();
+      const history = squadChatHistories[activeSquadId] || [];
+
+      if (!squad) {
+        squadChatLog.innerHTML = '<div class="chat-bubble assistant">Selecione um squad para começar a conversa.</div>';
+        renderSquadArtifact(null);
+        return;
+      }
+
+      activeSquadChip.textContent = '/' + squad.id;
+      activeSquadTitle.textContent = squad.shortTitle || squad.name;
+      activeSquadDesc.textContent = squad.description || 'Sem descrição.';
+      activeSquadMeta.textContent = (squad.agents || []).length + ' agentes · ' + (squad.tasks || []).length + ' tarefas · ' + (squad.workflows || []).length + ' workflows';
+
+      if (!history.length) {
+        squadChatLog.innerHTML = '<div class="chat-bubble assistant">Chat pronto. Peça estratégia, diagnóstico, documento, roteiro, naming, criativo ou direção visual para este squad.</div>';
+      } else {
+        squadChatLog.innerHTML = history.map(turn =>
+          '<div class="chat-bubble ' + turn.role + '">' + escapeHtml(turn.content) + '</div>'
+        ).join('');
+      }
+      squadChatLog.scrollTop = squadChatLog.scrollHeight;
+    }
+
+    function renderSquadList() {
+      if (!squadCatalog.length) {
+        squadCount.textContent = 'Nenhum squad encontrado';
+        squadList.innerHTML = '<div class="chat-bubble assistant">Nenhum squad carregado.</div>';
+        return;
+      }
+
+      squadCount.textContent = squadCatalog.length + ' squads conectados';
+      squadList.innerHTML = squadCatalog.map(squad =>
+        '<button class="squad-item ' + (squad.id === activeSquadId ? 'active' : '') + '" data-squad-id="' + squad.id + '">'
+        + '<div class="squad-item-title">' + escapeHtml(squad.shortTitle || squad.name) + '</div>'
+        + '<div class="squad-item-copy">' + escapeHtml((squad.description || '').slice(0, 160)) + '</div>'
+        + '</button>'
+      ).join('');
+    }
+
+    async function loadSquads() {
+      const data = await fetchJson('/api/squads');
+      squadCatalog = data.items || [];
+      activeSquadId = activeSquadId || squadCatalog[0]?.id || '';
+      renderSquadList();
+      renderSquadChat();
     }
 
     // ============================================================
@@ -2740,7 +3080,82 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       }
     });
 
+    squadList.addEventListener('click', e => {
+      const btn = e.target.closest('[data-squad-id]');
+      if (!btn) return;
+      activeSquadId = btn.dataset.squadId;
+      renderSquadList();
+      renderSquadChat();
+    });
+
+    btnSendSquad.addEventListener('click', async () => {
+      const squad = getActiveSquad();
+      const message = squadChatInput.value.trim();
+      if (!squad) {
+        alert('Carregue um squad antes de enviar.');
+        return;
+      }
+      if (!message) return;
+
+      btnSendSquad.disabled = true;
+      btnSendSquad.textContent = 'Enviando...';
+
+      const history = squadChatHistories[activeSquadId] || [];
+      history.push({ role: 'user', content: message });
+      squadChatHistories[activeSquadId] = history;
+      squadChatInput.value = '';
+      renderSquadChat();
+
+      try {
+        const res = await fetchJson('/api/squad-chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            squadId: activeSquadId,
+            message,
+            history
+          })
+        });
+
+        history.push({ role: 'assistant', content: res.reply || 'Sem resposta.' });
+        squadChatHistories[activeSquadId] = history;
+        renderSquadChat();
+        renderSquadArtifact(res.artifact || null);
+      } catch (error) {
+        history.push({ role: 'assistant', content: 'Erro: ' + error.message });
+        squadChatHistories[activeSquadId] = history;
+        renderSquadChat();
+      } finally {
+        btnSendSquad.disabled = false;
+        btnSendSquad.textContent = 'Enviar ao squad';
+      }
+    });
+
+    btnDownloadArtifact.addEventListener('click', () => {
+      if (!latestSquadArtifact || !latestSquadArtifact.content) return;
+      const extension = latestSquadArtifact.format === 'markdown' ? 'md' : latestSquadArtifact.format === 'json' ? 'json' : 'txt';
+      const blob = new Blob([latestSquadArtifact.content], { type: 'text/plain;charset=utf-8' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = (latestSquadArtifact.title || 'artifact').toLowerCase().replace(/[^a-z0-9-_]+/gi, '-') + '.' + extension;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    });
+
+    squadChatInput.addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        btnSendSquad.click();
+      }
+    });
+
     loadScheduledPosts();
+    loadSquads().catch(error => {
+      squadCount.textContent = 'Erro ao carregar squads';
+      squadChatLog.innerHTML = '<div class="chat-bubble assistant">Erro ao carregar squads: ' + escapeHtml(error.message) + '</div>';
+    });
 
   </script>
 </body>
@@ -2817,6 +3232,16 @@ export default async function handler(req: any, res: any) {
         items: items.sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()),
         settings
       });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/squads') {
+    try {
+      const items = await loadSquadSummaries();
+      res.status(200).json({ items });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -2926,6 +3351,12 @@ export default async function handler(req: any, res: any) {
         if (nextItems.length === items.length) throw new Error('Agendamento nÃ£o encontrado.');
         await writeScheduledPosts(nextItems);
         res.status(200).json({ ok: true });
+      } else if (url.pathname === '/api/squad-chat') {
+        const { squadId, message, history } = body;
+        if (!squadId) throw new Error('squadId Ã© obrigatÃ³rio.');
+        if (!message) throw new Error('message Ã© obrigatÃ³rio.');
+        const result = await chatWithSquad({ squadId, message, history });
+        res.status(200).json(result);
       } else if (url.pathname === '/api/automation-toggle') {
         const settings = {
           enabled: body?.enabled !== false,
