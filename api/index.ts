@@ -279,6 +279,11 @@ interface SquadArtifact {
   format?: 'markdown' | 'text' | 'json';
 }
 
+function parseGroqWaitTime(message: string): string {
+  const match = String(message || '').match(/Please try again in ([^.,]+\d(?:\.\d+)?s)/i);
+  return match ? match[1] : '';
+}
+
 function parseImagePayload(imageInput: string): ImagePayload {
   const match = imageInput.match(/^data:(image\/[a-zA-Z0-9.+-]+);base64,(.+)$/);
   if (match) {
@@ -1029,16 +1034,18 @@ async function getSquadById(id: string): Promise<SquadSummary | null> {
 }
 
 async function chatWithSquad(params: { squadId: string; message: string; history?: SquadChatTurn[] }): Promise<{ reply: string; artifact: SquadArtifact }> {
-  const squad = await getSquadById(params.squadId);
-  if (!squad) {
-    throw new Error('Squad não encontrado.');
-  }
-  if (!process.env.GROQ_API_KEY) {
-    throw new Error('Configure a GROQ_API_KEY para conversar com os squads.');
-  }
+  try {
+    const squad = await getSquadById(params.squadId);
+    if (!squad) {
+      throw new Error('Squad não encontrado.');
+    }
+    if (!process.env.GROQ_API_KEY) {
+      throw new Error('Configure a GROQ_API_KEY para conversar com os squads.');
+    }
 
-  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
-  const systemPrompt = `Você está operando como o squad "${squad.shortTitle}".
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const squadChatModel = process.env.GROQ_SQUAD_CHAT_MODEL || 'llama-3.1-8b-instant';
+    const systemPrompt = `Você está operando como o squad "${squad.shortTitle}".
 
 DADOS DO SQUAD:
 - id: ${squad.id}
@@ -1050,16 +1057,17 @@ DADOS DO SQUAD:
 - tags: ${squad.tags.join(', ')}
 
 README DO SQUAD:
-${(squad.readme || '').slice(0, 2500)}
+${(squad.readme || '').slice(0, 900)}
 
 AGENTE PRINCIPAL / CHIEF:
-${(squad.chiefPrompt || '').slice(0, 3000)}
+${(squad.chiefPrompt || '').slice(0, 1400)}
 
 REGRAS:
 - Responda como um squad especialista, não como assistente genérico.
 - Seja objetivo, útil e acionável.
 - Se o pedido for por documento, devolva um artefato em markdown completo.
 - Se o pedido envolver imagem, peça visual, criativo, post ou layout, devolva um artefato do tipo "image-brief" com direção visual, copy, estrutura e instruções de execução.
+- Mantenha a resposta enxuta e de alto valor. Evite desperdiçar tokens.
 - Se não houver artefato explícito, use type "none".
 - Nunca invente capacidades técnicas específicas do squad que não apareçam no contexto. Quando inferir, deixe implícito com cautela.
 
@@ -1074,33 +1082,42 @@ RETORNE JSON VÁLIDO:
   }
 }`;
 
-  const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
-    { role: 'system', content: systemPrompt }
-  ];
+    const messages: Array<{ role: 'system' | 'user' | 'assistant'; content: string }> = [
+      { role: 'system', content: systemPrompt }
+    ];
 
-  (params.history || []).slice(-10).forEach(turn => {
-    messages.push({ role: turn.role, content: turn.content });
-  });
-  messages.push({ role: 'user', content: params.message });
+    (params.history || []).slice(-6).forEach(turn => {
+      messages.push({ role: turn.role, content: turn.content.slice(0, 1200) });
+    });
+    messages.push({ role: 'user', content: params.message.slice(0, 2400) });
 
-  const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
-    temperature: 0.7,
-    response_format: { type: 'json_object' },
-    messages
-  });
+    const response = await groq.chat.completions.create({
+      model: squadChatModel,
+      temperature: 0.6,
+      max_tokens: 900,
+      response_format: { type: 'json_object' },
+      messages
+    });
 
-  const raw = response.choices[0]?.message?.content || '{}';
-  const parsed = JSON.parse(raw);
-  return {
-    reply: parsed.reply || 'Sem resposta do squad.',
-    artifact: {
-      type: parsed?.artifact?.type || 'none',
-      title: parsed?.artifact?.title || '',
-      format: parsed?.artifact?.format || 'text',
-      content: parsed?.artifact?.content || ''
+    const raw = response.choices[0]?.message?.content || '{}';
+    const parsed = JSON.parse(raw);
+    return {
+      reply: parsed.reply || 'Sem resposta do squad.',
+      artifact: {
+        type: parsed?.artifact?.type || 'none',
+        title: parsed?.artifact?.title || '',
+        format: parsed?.artifact?.format || 'text',
+        content: parsed?.artifact?.content || ''
+      }
+    };
+  } catch (error: any) {
+    const message = String(error?.message || error || '');
+    if (message.includes('rate_limit_exceeded') || message.includes('Rate limit reached')) {
+      const waitTime = parseGroqWaitTime(message);
+      throw new Error(`A Groq bateu no limite diário do chat dos squads${waitTime ? `; tente novamente em ${waitTime}` : ''}. Reduzi o consumo desse fluxo, mas neste momento a sua cota do dia já foi quase toda usada.`);
     }
-  };
+    throw error;
+  }
 }
 
 // ============================================================
