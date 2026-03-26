@@ -792,8 +792,27 @@ Retorne JSON válido neste formato:
     }
   }
 
+  private async probeInstagramImageUrl(imageUrl: string, context: string): Promise<void> {
+    this.validateInstagramImageUrl(imageUrl, context);
+
+    const response = await fetch(imageUrl, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'User-Agent': 'facebookexternalhit/1.1' }
+    });
+
+    if (!response.ok) {
+      throw new Error(`[${context}] A URL hospedada respondeu HTTP ${response.status}: ${imageUrl}`);
+    }
+
+    const contentType = (response.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.startsWith('image/')) {
+      throw new Error(`[${context}] A URL hospedada não retornou imagem válida (${contentType || 'sem content-type'}): ${imageUrl}`);
+    }
+  }
+
   private async postToInstagramFeed(content: string, imageUrl: string): Promise<void> {
-    this.validateInstagramImageUrl(imageUrl, 'Instagram Feed');
+    await this.probeInstagramImageUrl(imageUrl, 'Instagram Feed');
 
     if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_ACCOUNT_ID) {
       throw new Error('Credenciais Instagram não configuradas.');
@@ -804,7 +823,7 @@ Retorne JSON válido neste formato:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_url: imageUrl, caption: content, access_token: process.env.INSTAGRAM_ACCESS_TOKEN })
     });
-    if (!res.ok) throw new Error(`Instagram Feed Create ${res.status}: ${await res.text()}`);
+    if (!res.ok) throw new Error(`Instagram Feed Create ${res.status} [${imageUrl}]: ${await res.text()}`);
     const data = await res.json() as any;
 
     await this.waitForInstagramMediaReady(data.id, process.env.INSTAGRAM_ACCESS_TOKEN);
@@ -819,7 +838,7 @@ Retorne JSON válido neste formato:
   }
 
   private async postToInstagramStory(imageUrl: string): Promise<void> {
-    this.validateInstagramImageUrl(imageUrl, 'Instagram Story');
+    await this.probeInstagramImageUrl(imageUrl, 'Instagram Story');
 
     if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_ACCOUNT_ID) {
       throw new Error('Credenciais Instagram não configuradas.');
@@ -830,7 +849,7 @@ Retorne JSON válido neste formato:
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_url: imageUrl, media_type: 'STORIES', access_token: process.env.INSTAGRAM_ACCESS_TOKEN })
     });
-    if (!res.ok) throw new Error(`Instagram Story Create ${res.status}: ${await res.text()}`);
+    if (!res.ok) throw new Error(`Instagram Story Create ${res.status} [${imageUrl}]: ${await res.text()}`);
     const data = await res.json() as any;
 
     await this.waitForInstagramMediaReady(data.id, process.env.INSTAGRAM_ACCESS_TOKEN);
@@ -2423,10 +2442,24 @@ async function uploadImageToCloud(base64Data: string): Promise<string> {
     }
 
     // ImgBB pode retornar a URL direta em diferentes campos dependendo da versão da API
-    const url: string = data?.data?.image?.url || data?.data?.url || data?.data?.display_url || '';
+    const rawCandidates = [data?.data?.url, data?.data?.image?.url, data?.data?.medium?.url, data?.data?.thumb?.url].filter(Boolean) as string[];
+    const url = rawCandidates.find(candidate => candidate.startsWith('https://i.ibb.co/')) || '';
     if (!url || !url.startsWith('http')) {
       throw new Error(`ImgBB retornou URL inválida. Resposta: ${JSON.stringify(data?.data)}`);
     }
+    const probe = await fetch(url, {
+      method: 'GET',
+      redirect: 'follow',
+      headers: { 'User-Agent': 'facebookexternalhit/1.1' }
+    });
+    if (!probe.ok) {
+      throw new Error(`ImgBB gerou URL inacessÃ­vel (HTTP ${probe.status}): ${url}`);
+    }
+    const contentType = (probe.headers.get('content-type') || '').toLowerCase();
+    if (!contentType.startsWith('image/')) {
+      throw new Error(`ImgBB gerou URL sem content-type de imagem (${contentType || 'vazio'}): ${url}`);
+    }
+    logger.info(`ImgBB upload OK: ${url} (${contentType})`);
     return url;
   }
 
