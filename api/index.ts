@@ -1333,6 +1333,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     const carouselNav   = document.getElementById('carousel-nav');
     const slideCounter  = document.getElementById('slide-counter');
     const slideBadge    = document.getElementById('slide-badge');
+    const pubInstagram  = document.getElementById('pub-instagram');
+    const pubStory      = document.getElementById('pub-story');
+    const pubLinkedin   = document.getElementById('pub-linkedin');
 
     // ============================================================
     // EDITORIAL TABS & UPLOAD
@@ -1369,34 +1372,37 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       updatePlatformToggles();
     });
 
+    function setSinglePublishTarget(target) {
+      pubInstagram.checked = target === 'instagram';
+      pubStory.checked = target === 'instagram-story';
+      pubLinkedin.checked = target === 'linkedin';
+    }
+
     function updatePlatformToggles() {
-      const pubIg   = document.getElementById('pub-instagram');
-      const pubStory = document.getElementById('pub-story-wrap');
-      const pubLi   = document.getElementById('pub-linkedin-wrap');
-      const pubIgWrap = pubIg.closest('label');
+      const carouselNote = document.getElementById('li-carousel-note');
+      carouselNote.classList.toggle('hidden', currentPostType !== 'instagram-carousel');
 
       if (currentPostType === 'linkedin') {
-        pubIgWrap.style.display = 'none';
-        pubStory.style.display = 'none';
-        document.getElementById('pub-linkedin').checked = true;
+        setSinglePublishTarget('linkedin');
       } else if (currentPostType === 'instagram-story') {
-        pubIgWrap.style.display = 'none';
-        pubStory.style.display = 'flex';
-        pubLi.style.display = 'none';
-        document.getElementById('pub-story').checked = true;
-      } else if (currentPostType === 'instagram-carousel') {
-        pubIgWrap.style.display = 'flex';
-        pubStory.style.display = 'none';
-        pubLi.style.display = 'flex';
-        pubIg.checked = true;
-        document.getElementById('li-carousel-note').classList.remove('hidden');
+        setSinglePublishTarget('instagram-story');
       } else {
-        pubIgWrap.style.display = 'flex';
-        pubStory.style.display = 'flex';
-        pubLi.style.display = 'flex';
-        document.getElementById('li-carousel-note').classList.add('hidden');
+        setSinglePublishTarget('instagram');
       }
     }
+
+    [pubInstagram, pubStory, pubLinkedin].forEach(input => {
+      input.addEventListener('change', e => {
+        if (!e.target.checked) {
+          updatePlatformToggles();
+          return;
+        }
+
+        if (e.target === pubInstagram) setSinglePublishTarget('instagram');
+        if (e.target === pubStory) setSinglePublishTarget('instagram-story');
+        if (e.target === pubLinkedin) setSinglePublishTarget('linkedin');
+      });
+    });
 
     // ============================================================
     // CARD SCALING
@@ -2027,6 +2033,111 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       return canvas.toDataURL('image/jpeg', 0.92);
     }
 
+    async function renderInstagramFeedCanvas() {
+      const baseCard = await renderCard();
+      const img = new Image();
+      await new Promise(res => { img.onload = res; img.src = baseCard; });
+
+      const W = 1080, H = 1350;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#0B0112';
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.strokeStyle = 'rgba(188,19,254,0.04)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+      const topGlow = ctx.createRadialGradient(W / 2, 80, 0, W / 2, 80, 460);
+      topGlow.addColorStop(0, 'rgba(188,19,254,0.18)');
+      topGlow.addColorStop(1, 'rgba(11,1,18,0)');
+      ctx.fillStyle = topGlow;
+      ctx.fillRect(0, 0, W, 520);
+
+      const bottomGlow = ctx.createRadialGradient(W / 2, H - 80, 0, W / 2, H - 80, 460);
+      bottomGlow.addColorStop(0, 'rgba(255,0,229,0.12)');
+      bottomGlow.addColorStop(1, 'rgba(11,1,18,0)');
+      ctx.fillStyle = bottomGlow;
+      ctx.fillRect(0, H - 520, W, 520);
+
+      const cardWidth = 920;
+      const cardHeight = 920;
+      const cardX = (W - cardWidth) / 2;
+      const cardY = (H - cardHeight) / 2;
+      ctx.drawImage(img, cardX, cardY, cardWidth, cardHeight);
+
+      const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
+      lineGrad.addColorStop(0, 'transparent');
+      lineGrad.addColorStop(0.5, '#BC13FE');
+      lineGrad.addColorStop(1, 'transparent');
+      ctx.strokeStyle = lineGrad;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(88, cardY - 28); ctx.lineTo(W - 88, cardY - 28); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(88, cardY + cardHeight + 28); ctx.lineTo(W - 88, cardY + cardHeight + 28); ctx.stroke();
+
+      return canvas.toDataURL('image/jpeg', 0.92);
+    }
+
+    async function renderStoryCanvas() {
+      const baseCard = await renderCard();
+      const img = new Image();
+      await new Promise(res => { img.onload = res; img.src = baseCard; });
+
+      const W = 1080, H = 1920;
+      const canvas = document.createElement('canvas');
+      canvas.width = W;
+      canvas.height = H;
+      const ctx = canvas.getContext('2d');
+
+      ctx.fillStyle = '#0B0112';
+      ctx.fillRect(0, 0, W, H);
+
+      ctx.strokeStyle = 'rgba(188,19,254,0.04)';
+      ctx.lineWidth = 1;
+      for (let x = 0; x <= W; x += 60) { ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, H); ctx.stroke(); }
+      for (let y = 0; y <= H; y += 60) { ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(W, y); ctx.stroke(); }
+
+      const topGlow = ctx.createRadialGradient(W / 2, 0, 0, W / 2, 0, 520);
+      topGlow.addColorStop(0, 'rgba(188,19,254,0.22)');
+      topGlow.addColorStop(1, 'rgba(11,1,18,0)');
+      ctx.fillStyle = topGlow;
+      ctx.fillRect(0, 0, W, 620);
+
+      const bottomGlow = ctx.createRadialGradient(W / 2, H, 0, W / 2, H, 520);
+      bottomGlow.addColorStop(0, 'rgba(255,0,229,0.16)');
+      bottomGlow.addColorStop(1, 'rgba(11,1,18,0)');
+      ctx.fillStyle = bottomGlow;
+      ctx.fillRect(0, H - 620, W, 620);
+
+      const cardSize = 920;
+      const cardX = (W - cardSize) / 2;
+      const cardY = (H - cardSize) / 2;
+      ctx.drawImage(img, cardX, cardY, cardSize, cardSize);
+
+      const lineGrad = ctx.createLinearGradient(0, 0, W, 0);
+      lineGrad.addColorStop(0, 'transparent');
+      lineGrad.addColorStop(0.5, '#BC13FE');
+      lineGrad.addColorStop(1, 'transparent');
+      ctx.strokeStyle = lineGrad;
+      ctx.lineWidth = 1.5;
+      ctx.beginPath(); ctx.moveTo(72, cardY - 28); ctx.lineTo(W - 72, cardY - 28); ctx.stroke();
+      ctx.beginPath(); ctx.moveTo(72, cardY + cardSize + 28); ctx.lineTo(W - 72, cardY + cardSize + 28); ctx.stroke();
+
+      if (processedLogoUrl) {
+        const logoImg = new Image();
+        await new Promise(res => { logoImg.onload = res; logoImg.src = processedLogoUrl; });
+        const logoH = 64;
+        const logoW = 256;
+        ctx.drawImage(logoImg, (W - logoW) / 2, H - 92 - logoH, logoW, logoH);
+      }
+
+      return canvas.toDataURL('image/jpeg', 0.92);
+    }
+
     // Gera imagem 1080×1920 para Story: card centralizado + brand background nas faixas
     async function renderCardCanvas() {
       await waitForRenderAssets();
@@ -2266,7 +2377,12 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           results = res.results || ['Carrossel publicado.'];
 
         } else {
-          const imageBase64 = await renderCard();
+          let imageBase64 = await renderCard();
+          if (platforms.includes('instagram')) {
+            imageBase64 = await renderInstagramFeedCanvas();
+          } else if (platforms.includes('instagram-story')) {
+            imageBase64 = await renderStoryCanvas();
+          }
           const res = await fetchJson('/api/publish', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
