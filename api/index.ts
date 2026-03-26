@@ -313,7 +313,18 @@ ${lines}`;
             : 'Feed Instagram (1080x1080). Hook visual poderoso. Caption até 2.200 chars com quebras de linha, emojis estratégicos e CTA para salvar/compartilhar.',
         'instagram-story': 'Story Instagram. Conteúdo rápido, impactante, que gera resposta/swipe. H1 ainda mais curto e chocante. Caption máximo 3 linhas, muito direto.',
         'instagram-carousel': 'SLIDE 1 (capa) de um carrossel. Hook DEVASTADOR usando gancho de MEDO, CURIOSIDADE, AUTORIDADE ou IDENTIFICAÇÃO. Caption completa como post solo. Termine com CTA "Comente IA" ou "Salve para não esquecer".',
-        'linkedin': 'Feed LinkedIn para profissionais de marketing. Tom analítico e de autoridade. Caption mais longa com insights e dados. Menos emojis, mais substância. 3-5 hashtags profissionais.'
+        'linkedin': `Feed LinkedIn — formato editorial premium que impressiona analistas de growth, CMOs, investidores e fundadores.
+
+ESTRUTURA OBRIGATÓRIA DA CAPTION (use quebras de linha entre cada bloco):
+1. HEADLINE DE ABERTURA (1 linha): afirmação forte, dado surpreendente ou posicionamento contrário ao senso comum do mercado. Sem emoji. Sem pergunta retórica. Começa com o insight.
+2. CONTEXTO DE MERCADO (2-3 linhas): o problema real que o mercado de tráfego pago enfrenta. Use dados específicos, tendências, ou comportamento observado em agências e gestores reais.
+3. COMO A ERIZON RESOLVE (3-4 linhas): explique a abordagem técnica — o que o sistema detecta, como o algoritmo funciona, qual decisão automatiza. Seja específico: mencione Pulse, Decision Feed, Risk Radar ou Copiloto IA com contexto real.
+4. IMPLICAÇÃO PARA O NEGÓCIO (2-3 linhas): o que isso significa em termos de margem, escala, eficiência operacional. Conecte à realidade de quem gerencia budget expressivo.
+5. ENCERRAMENTO COM POSICIONAMENTO (1-2 linhas): visão sobre o futuro da gestão de tráfego com IA. Tom de liderança de mercado, não de vendas.
+6. HASHTAGS (1 linha): 5-7 hashtags profissionais — #GrowthMarketing #PerformanceMarketing #MarketingOperations #AIMarketing #MetaAds #MarketingStrategy #Erizon
+
+TOM: analítico, direto, sem hype, sem bullet points excessivos. Escreva como um executivo que conhece os dados. Uma ou duas quebras de linha entre blocos — nunca parece post de Instagram. Caption total entre 1.800 e 2.500 caracteres.
+H1 e sub no CARD devem refletir o posicionamento de autoridade — H1 como manchete de publicação especializada, sub como lead do artigo.`
       };
 
       const tabPrompt = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
@@ -342,8 +353,19 @@ FOCO EDITORIAL: ${tabPrompt}
 ${tabContextBlock ? `\n${tabContextBlock}\n` : ''}
 HISTORICO GERAL RECENTE (todos os pilares — evite repetição de ângulos):
 ${this.buildRecentPostsBlock(recentPosts)}
-
-REGRAS ABSOLUTAS DE COPYWRITING VIRAL (2026):
+${postType === 'linkedin' ? `
+REGRAS ESPECÍFICAS LINKEDIN — FORMATO EDITORIAL PREMIUM:
+1. A caption é a peça principal — deve ser um artigo de opinião técnica, não um post promocional
+2. Abra com uma afirmação que analistas de growth e CMOs vão querer rebater ou salvar — dado concreto ou visão contrária ao mercado
+3. Mostre profundidade: conecte o problema do mercado à solução da Erizon com lógica de causa e efeito
+4. Use números e benchmarks que profissionais reconhecem: "taxa de saturação acima de 4.5 de frequência", "ROAS de break-even calculado por nicho", "latência de detecção abaixo de 15 minutos"
+5. Tom de founder/analista sênior — sem emojis de mão ou foguete. Máximo 2 emojis simbólicos na caption inteira
+6. H1 no card deve parecer manchete de publicação especializada (MIT Technology Review, CB Insights, Techcrunch Brasil)
+7. Sub deve complementar o H1 como o lead do artigo — primeira frase que prende o leitor profissional
+8. Não use bullet points excessivos. Prosa técnica fluida é mais impressionante no LinkedIn
+9. Encerre com posicionamento de liderança de mercado — a Erizon como o futuro da operação de performance
+10. Caption entre 1.800 e 2.500 caracteres — profundidade é o que diferencia no feed do LinkedIn
+` : `REGRAS ABSOLUTAS DE COPYWRITING VIRAL (2026):
 1. H1 deve PARAR O SCROLL nos primeiros 3 segundos: máximo 6 palavras, cria curiosidade OU choca OU muda comportamento
 2. Cada post foca em UM único pilar editorial — nunca misture temas. O algoritmo indexa por território semântico
 3. Caption: hook com keyword real → problema → insight surpresa → CTA estratégico (salvar, comentar "IA" ou compartilhar)
@@ -354,7 +376,7 @@ REGRAS ABSOLUTAS DE COPYWRITING VIRAL (2026):
 8. Escolha sempre um dos 4 ganchos virais: MEDO (erro/perda) | CURIOSIDADE (segredo/oculto) | AUTORIDADE (top agências) | IDENTIFICAÇÃO (o que o gestor sente mas não expressa)
 9. SAVEABLE: conteúdo utilitário termina SEMPRE com "Salve esse post — você vai precisar amanhã"
 10. SHAREABLE: conteúdo de opinião/tweet termina com "Concorda? Marca alguém que precisa ver isso" para gerar compartilhamento nos Stories
-11. CTA DE COMENTÁRIO: quando o post for de alta curiosidade, use "Comente IA aqui embaixo para receber [benefício] no Direct"
+11. CTA DE COMENTÁRIO: quando o post for de alta curiosidade, use "Comente IA aqui embaixo para receber [benefício] no Direct"`}
 12. A caption deve conter palavras-chave reais que gestores pesquisam no Instagram (SEO interno)
 13. Conteúdo deve gerar DECISÃO ou MUDANÇA DE COMPORTAMENTO, não apenas informar
 
@@ -645,8 +667,13 @@ Retorne JSON válido neste formato:
   }
 
   async postCarouselToInstagram(imageUrls: string[], caption: string): Promise<string> {
-    if (imageUrls.some(url => url.startsWith('data:'))) {
-      throw new Error('O Meta exige uma URL pública para as imagens. Adicione a variável IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN no seu arquivo .env.');
+    const invalidUrl = imageUrls.find(url => !url || url.startsWith('data:') || !url.startsWith('http'));
+    if (invalidUrl !== undefined) {
+      throw new Error(
+        invalidUrl === ''
+          ? 'Uma URL de imagem está vazia. Verifique se IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN estão configurados corretamente no .env.'
+          : 'O Meta exige URLs públicas https://. Configure IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN no .env.'
+      );
     }
 
     if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_ACCOUNT_ID) {
@@ -2366,7 +2393,7 @@ export default async function handler(req: any, res: any) {
 async function uploadImageToCloud(base64Data: string): Promise<string> {
   const image = parseImagePayload(base64Data);
 
-  // 1. ImgBB (Simples e gratuito, ideal para Instagram)
+  // 1. ImgBB
   if (process.env.IMGBB_API_KEY) {
     const formData = new URLSearchParams();
     formData.append('key', process.env.IMGBB_API_KEY);
@@ -2376,9 +2403,23 @@ async function uploadImageToCloud(base64Data: string): Promise<string> {
       method: 'POST',
       body: formData
     });
+
+    if (!response.ok) {
+      throw new Error(`ImgBB HTTP ${response.status}: ${await response.text()}`);
+    }
+
     const data = await response.json() as any;
-    if (data.success) return data.data.url;
-    throw new Error(`Falha no ImgBB: ${JSON.stringify(data)}`);
+
+    if (!data.success) {
+      throw new Error(`Falha no ImgBB: ${JSON.stringify(data)}`);
+    }
+
+    // ImgBB pode retornar a URL direta em diferentes campos dependendo da versão da API
+    const url: string = data?.data?.image?.url || data?.data?.url || data?.data?.display_url || '';
+    if (!url || !url.startsWith('http')) {
+      throw new Error(`ImgBB retornou URL inválida. Resposta: ${JSON.stringify(data?.data)}`);
+    }
+    return url;
   }
 
   // 2. Vercel Blob
@@ -2391,21 +2432,24 @@ async function uploadImageToCloud(base64Data: string): Promise<string> {
       headers: {
         'Authorization': `Bearer ${process.env.BLOB_UPLOAD_TOKEN}`,
         'Content-Type': image.mimeType,
-        'x-api-version': '7' // Vercel exige isso na API REST direta
+        'x-api-version': '7'
       },
       body: buffer,
     });
 
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Falha no upload para o Vercel Blob: ${errorText}`);
+      throw new Error(`Falha no Vercel Blob: ${await response.text()}`);
     }
 
     const data = await response.json() as any;
-    return data.url;
+    const url: string = data?.url || '';
+    if (!url || !url.startsWith('http')) {
+      throw new Error(`Vercel Blob retornou URL inválida: ${JSON.stringify(data)}`);
+    }
+    return url;
   }
 
-  // 3. Fallback local (Funciona para o LinkedIn, mas o Instagram recusa Base64)
-  logger.warn('Nenhum serviço de hospedagem de imagem configurado no .env (IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN). Retornando Base64 direto.');
+  // 3. Fallback (LinkedIn aceita base64, Instagram não)
+  logger.warn('Nenhum serviço de hospedagem configurado (IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN). Retornando Base64.');
   return base64Data;
 }
