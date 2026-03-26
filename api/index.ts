@@ -479,6 +479,73 @@ ${blockedLines}
 PROIBIDO cair em frase vaga tipo "a plataforma que sua agência precisava" sem ancorar em um fato concreto, funcionalidade, diferencial ou benefício específico da lista fresca acima.`;
   }
 
+  private pickFallbackAngle(recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon'): BrandAngle {
+    const recentCorpus = recentPosts
+      .slice(-16)
+      .map(post => `${post.h1 || ''} ${post.caption || ''} ${post.angle || ''}`.toLowerCase())
+      .join(' ');
+
+    const eligible = ERIZON_BRAND_ANGLES.filter(angle => !angle.tabs || angle.tabs.includes(editorialTab) || editorialTab === 'erizon');
+    const fresh = eligible.filter(angle => !angle.keywords.some(keyword => recentCorpus.includes(keyword.toLowerCase())));
+    const pool = fresh.length ? fresh : eligible;
+    const idx = recentPosts.length % Math.max(pool.length, 1);
+    return pool[idx] || ERIZON_BRAND_ANGLES[0];
+  }
+
+  private buildOfflineFallbackPost(recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon'): PostContent {
+    const angle = this.pickFallbackAngle(recentPosts, editorialTab);
+    const h1Map: Record<string, string> = {
+      'centralized-client-management': 'Clientes em<br><span class="grad">um painel.</span>',
+      'instagram-performance-reports': 'Instagram com<br><span class="grad">relatório pronto.</span>',
+      'meta-graph-api-real-data': 'Dados reais<br><span class="grad">sem gambiarra.</span>',
+      'meeting-ready-reports': 'Relatórios que<br><span class="grad">convencem.</span>',
+      'billing-and-plans': 'Billing da agência<br><span class="grad">integrado.</span>',
+      'dashboard-admin': 'Sua operação<br><span class="grad">visível.</span>',
+      'time-savings': 'Horas viram<br><span class="grad">minutos.</span>',
+      'professional-deliveries': 'Entregas com<br><span class="grad">credibilidade.</span>',
+      'scale-without-chaos': 'Escala sem<br><span class="grad">bagunça.</span>',
+      'all-in-one-platform': 'Tudo em<br><span class="grad">um lugar.</span>',
+      'cost-benefit': 'Mais sistema,<br><span class="grad">menos custo.</span>',
+      'brazilian-agencies-reality': 'Feita para<br><span class="grad">agências BR.</span>',
+      'daily-ux': 'Interface que<br><span class="grad">flui.</span>',
+      'modern-infrastructure': 'Infra pronta<br><span class="grad">pra crescer.</span>'
+    };
+
+    return {
+      eyebrow: '// ERIZON Platform',
+      h1: h1Map[angle.slug] || 'ERIZON com<br><span class="grad">fato real.</span>',
+      sub: `A ERIZON resolve uma dor concreta da agência com foco em <strong>${angle.title.toLowerCase()}</strong>: ${angle.description}. Em vez de depender de planilhas, capturas e apresentações manuais, a operação ganha clareza, velocidade e uma entrega mais profissional para cada cliente.`,
+      supporting: [
+        `Fato-base desta geração: ${angle.title}.`,
+        `Use a ERIZON para transformar ${angle.keywords.slice(0, 2).join(' e ')} em valor percebido pelo cliente.`,
+        'O post foi variado automaticamente para não repetir a mesma promessa vaga da geração anterior.'
+      ],
+      stats: [
+        { value: '1', label: 'plataforma' },
+        { value: '100%', label: 'mais clareza' },
+        { value: '0', label: 'planilhas soltas' }
+      ],
+      formatHint: 'fact',
+      caption: `A ERIZON não é só "mais uma plataforma".\n\nNesta geração, o foco é ${angle.title.toLowerCase()}.\n\n${angle.description.charAt(0).toUpperCase() + angle.description.slice(1)}.\n\nEsse é o tipo de ganho que faz a agência parecer mais organizada, mais profissional e mais pronta para crescer sem caos.\n\nSalve esse post para lembrar desse diferencial da ERIZON.\n\n#Erizon #MarketingDigital #AgenciaDigital #Relatorios #Dashboard`
+    };
+  }
+
+  private buildOfflineFallbackCarousel(recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon'): CarouselContent {
+    const angle = this.pickFallbackAngle(recentPosts, editorialTab);
+    return {
+      slides: [
+        { eyebrow: '// ERIZON', h1: 'O problema<br><span class="grad">é operativo.</span>', sub: 'Planilhas e prints <strong>travam a escala</strong> da agência.' },
+        { eyebrow: '// Fato', h1: angle.title.split(' ').slice(0, 2).join(' ') + '<br><span class="grad2">real.</span>', sub: `<strong>${angle.title}</strong> é um dos diferenciais concretos da plataforma.` },
+        { eyebrow: '// Dor', h1: 'Menos tarefas<br><span class="grad3">manuais.</span>', sub: 'O time para de montar entrega <strong>no braço</strong>.' },
+        { eyebrow: '// Plataforma', h1: 'Tudo mais<br><span class="grad">organizado.</span>', sub: 'Clientes, métricas e operação <strong>no mesmo fluxo</strong>.' },
+        { eyebrow: '// Valor', h1: 'Cliente vê<br><span class="grad2">valor.</span>', sub: 'A entrega melhora e a percepção <strong>sobe rápido</strong>.' },
+        { eyebrow: '// Escala', h1: 'Cresça sem<br><span class="grad3">caos.</span>', sub: 'A agência escala com mais previsibilidade <strong>e controle</strong>.' },
+        { eyebrow: '// CTA', h1: 'Salve esse<br><span class="grad">ângulo.</span>', sub: 'Use esse diferencial da ERIZON <strong>na próxima reunião</strong>.' }
+      ],
+      caption: `Carrossel fallback baseado em ${angle.title.toLowerCase()}.\n\n${angle.description.charAt(0).toUpperCase() + angle.description.slice(1)}.\n\nSalve para usar esse argumento na sua comunicação da ERIZON.\n\n#Erizon #AgenciaDigital #MarketingDigital`
+    };
+  }
+
   async generatePost(postType: PostType = 'instagram-feed', recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon', uploadContext: string = ''): Promise<PostContent> {
     try {
       if (!process.env.GROQ_API_KEY) {
@@ -605,23 +672,7 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
       return JSON.parse(jsonContent);
     } catch (error) {
       logger.error('Erro ao gerar post:', error);
-      return {
-        eyebrow: '// Risk Radar',
-        h1: 'Seu ROAS<br><span class="grad">mente.</span>',
-        sub: 'ROAS de vaidade destrói margem sem fazer barulho. <strong>Aprenda a separar número bonito de operação saudável.</strong>',
-        supporting: [
-          'ROAS alto não garante lucro.',
-          'Frequência subindo pode mascarar queda de eficiência.',
-          'Break-even real decide se escalar faz sentido.'
-        ],
-        stats: [
-          { value: '24h', label: 'alerta crítico' },
-          { value: '3x', label: 'mais clareza' },
-          { value: '-28%', label: 'gasto evitado' }
-        ],
-        formatHint: 'stats',
-        caption: '🚨 Seu ROAS está alto, mas sua margem está caindo?\n\nIsso não é coincidência. É a armadilha das métricas de vaidade.\n\nA Erizon calcula o ROAS de break-even real das suas campanhas — e te diz exatamente quando o "sucesso" está te custando dinheiro.\n\nSalve esse post. Você vai precisar. 📌\n\n#GestordeTrafego #MetaAds #Erizon #ROAS #Performance'
-      };
+      return this.buildOfflineFallbackPost(recentPosts, editorialTab);
     }
   }
 
@@ -703,16 +754,7 @@ RETORNE JSON VÁLIDO com exatamente 7 slides:
       return JSON.parse(jsonContent);
     } catch (error) {
       logger.error('Erro ao gerar carrossel:', error);
-      return {
-        slides: [
-          { eyebrow: '// Risk Radar', h1: 'Você está<br><span class="grad">perdendo dinheiro.</span>', sub: 'E provavelmente <strong>não sabe disso.</strong>' },
-          { eyebrow: '// O Problema', h1: 'Frequência<br><span class="grad2">acima do limite.</span>', sub: 'Quando seu público já viu o anúncio <strong>vezes demais.</strong>' },
-          { eyebrow: '// A Revelação', h1: 'ROAS cai.<br><span class="grad3">Budget sobe.</span>', sub: 'A combinação que <strong>destrói a margem silenciosamente.</strong>' },
-          { eyebrow: '// A Solução', h1: 'Risk Radar<br><span class="grad">detecta antes.</span>', sub: 'Alertas em tempo real antes <strong>de você perder R$1.</strong>' },
-          { eyebrow: '// Próximo Passo', h1: 'Comece<br><span class="grad">agora.</span>', sub: 'Teste a Erizon e veja suas campanhas <strong>em outro nível.</strong>' }
-        ],
-        caption: '🎯 Você sabe quando uma campanha começa a saturar?\n\nA maioria dos gestores descobre DEPOIS — quando o ROAS já caiu e o budget já foi embora.\n\nO Risk Radar da Erizon detecta fadiga de criativo e saturação de público ANTES de custarem dinheiro.\n\nDeslize para entender como. 👉\n\n#GestordeTrafego #MetaAds #Erizon #RiskRadar #TrafegoPago #Performance'
-      };
+      return this.buildOfflineFallbackCarousel(recentPosts, editorialTab);
     }
   }
 
