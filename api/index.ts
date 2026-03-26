@@ -90,6 +90,24 @@ FÓRMULAS DE HOOK QUE VIRALIZAM:
 5. ANTI-MITO: "ROAS 4x não é lucro. Aprenda a diferença."
 6. ANTES/DEPOIS: "Antes: 4h em planilha. Depois: 2 minutos com Erizon."
 
+4 GANCHOS VIRAIS PARA POSTS ESTÁTICOS:
+- GANCHO DE MEDO: Aponte um erro ou perda que o gestor não percebe — ex: "O erro de R$10.000 que a maioria dos gestores comete (e como a IA evita)."
+- GANCHO DE CURIOSIDADE: Revele algo oculto que o mercado não mostra — ex: "O que o Meta Ads não te conta sobre o ROAS real."
+- GANCHO DE AUTORIDADE: Posicione a Erizon como o que as top agências já usam — ex: "Como as top agências estão usando IA para escalar 5x mais rápido."
+- GANCHO DE IDENTIFICAÇÃO: Diga em voz alta o que o gestor sente mas não expressa — ex: "Você passa mais tempo em planilhas do que em estratégias? Leia isso." Esse tipo gera compartilhamento nos Stories de outras pessoas.
+
+LOOPS DE ENGAJAMENTO:
+- SHAREABLE CONTENT: Escreva o que o público pensa, mas não sabe expressar. Isso faz a pessoa postar no próprio Story.
+- SAVEABLE CONTENT: Crie tutoriais e checklists que sirvam como consulta rápida. O gestor salva porque vai precisar amanhã.
+- CTA DE COMENTÁRIO: Peça para comentar "IA" para receber mais informação no Direct — aumenta engajamento e conversão.
+- CTA DE SALVAMENTO: Termine sempre com "Salve para não esquecer" ou "Guarda esse post — você vai precisar".
+
+CADÊNCIA SEMANAL (4x por semana):
+- SEGUNDA: Carrossel educativo (Deep Dive técnico, guia, como a IA resolve)
+- QUARTA: Imagem única / Infográfico (tabela comparativa, fluxo de decisão, cheat sheet)
+- SEXTA: Carrossel de prova social (estudo de caso, antes/depois, resultado real)
+- DOMINGO: Tweet Style (frase de impacto polêmica, identificável, compartilhável)
+
 HASHTAGS: #GestordeTrafego #MetaAds #Erizon #InteligenciaOperacional #MarketingDigital #TrafegoPago #Performance #AgenciaDigital #ROAS #FacebookAds
 `;
 
@@ -207,7 +225,7 @@ function parseImagePayload(imageInput: string): ImagePayload {
   return { base64: imageInput, mimeType: 'image/jpeg', extension: 'jpg' };
 }
 
-type EditorialTab = 'erizon' | 'specialists' | 'market' | 'diagnostics' | 'stories' | 'social-proof' | 'anti-myth' | 'series' | 'uploads' | 'seo-search' | 'retention' | 'authority' | 'episodic';
+type EditorialTab = 'erizon' | 'specialists' | 'market' | 'diagnostics' | 'stories' | 'social-proof' | 'anti-myth' | 'series' | 'uploads' | 'seo-search' | 'retention' | 'authority' | 'episodic' | 'deep-dive' | 'toolbox' | 'tweet-style';
 
 const TAB_CONTEXTS: Record<string, string> = {
   'erizon': 'Foque 100% na ERIZON: o que a plataforma calcula, como funciona o copiloto, pulse, decision feed, risk radar. Provas de valor, economia de tempo, bastidores, objeções comuns.',
@@ -222,7 +240,10 @@ const TAB_CONTEXTS: Record<string, string> = {
   'seo-search': 'Foque em SEO do Instagram 2026: escreva captions com frases que gestores de tráfego realmente pesquisam. Use vocabulário real do mercado: "campanha dando prejuízo", "ROAS caindo", "como escalar sem perder margem", "frequência alta no Meta Ads". O conteúdo deve aparecer como resposta às buscas internas do Instagram. Termine com keywords naturais embutidas na legenda e CTA que incentive salvar.',
   'retention': 'Foque em retenção invisível 2026: crie conteúdo que faz a pessoa PAUSAR o scroll, rever o post, salvar e mandar no direct. Evite conteúdo apenas informativo — o post precisa gerar a sensação "caramba, preciso salvar isso agora". Use dados específicos, revelações surpreendentes, insights contraintuitivos. O algoritmo 2026 mede tempo de permanência, retorno ao post e compartilhamentos privados acima de tudo.',
   'authority': 'Foque em autoridade por posicionamento forte: opinião contundente, visão contrária ao consenso, corte claro sobre o que está errado no mercado. Exemplo de abordagem: "Se você ainda analisa campanha só por ROAS, você tá atrasado", "A maioria dos gestores confunde sobrevivência com estratégia". Não seja genérico — bata de frente com comportamentos errados do mercado que a ERIZON foi criada para resolver. Isso gera saves, shares e debate.',
-  'episodic': 'Foque em narrativa episódica (série de 3 posts conectados): crie o EPISÓDIO 1 de uma sequência. Dia 1: apresente o PROBLEMA de forma chocante. O post deve terminar gerando curiosidade para o próximo. Use a estrutura de série reconhecível para criar vício de audiência e retorno ao perfil. Inclua no eyebrow a marcação do episódio: "// Ep. 1 de 3".'
+  'episodic': 'Foque em narrativa episódica (série de 3 posts conectados): crie o EPISÓDIO 1 de uma sequência. Dia 1: apresente o PROBLEMA de forma chocante. O post deve terminar gerando curiosidade para o próximo. Use a estrutura de série reconhecível para criar vício de audiência e retorno ao perfil. Inclua no eyebrow a marcação do episódio: "// Ep. 1 de 3".',
+  'deep-dive': 'Foque em conteúdo educativo técnico de alta profundidade (Deep Dive): explique como a IA da Erizon funciona por dentro, como o algoritmo detecta fadiga, como o Decision Feed gera ações, como o Risk Radar calcula risco. Objetivo: AUTORIDADE. O gestor deve terminar o post sabendo mais do que sabia antes. Use analogias técnicas, dados internos e lógica de engenharia de campanhas. Ideal para carrossel de 7-10 slides com estrutura: problema → explicação técnica → como a IA resolve → resultado mensurável.',
+  'toolbox': 'Foque em conteúdo utilitário de alta utilidade (Ferramentas/Cheat Sheet): crie checklists, guias de bolso, tabelas comparativas e frameworks práticos para o dia a dia do gestor. Objetivo: SALVAMENTOS MÁXIMOS — o gestor precisa guardar porque vai usar amanhã. Exemplos: "Checklist de 7 pontos antes de escalar budget", "Tabela: Gestão Manual vs Gestão com Erizon AI", "Fluxo de decisão quando o ROAS cai". Termine SEMPRE com: "Salve esse post — você vai precisar".',
+  'tweet-style': 'Foque em frases de impacto curtas e polêmicas (Tweet Style): uma frase que diz o que o gestor PENSA mas não sabe expressar, ou que vai contra o senso comum do mercado. Objetivo: COMPARTILHAMENTOS — a pessoa posta no próprio Story porque se identifica 100%. Exemplos: "Gestor que não usa IA em 2026 está operando botões, não estratégia.", "ROAS é vaidade. Margem é sanidade. Decisão automatizada é o futuro.", "Você não está gerindo tráfego. Você está apagando incêndio de dados." Subtítulo deve aprofundar a polêmica em 1 linha. Caption deve provocar debate: "Concorda? Comenta aqui."'
 };
 
 // ============================================================
@@ -285,15 +306,19 @@ ${lines}`;
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
       const platformHints: Record<PostType, string> = {
-        'instagram-feed': 'Feed Instagram (1080x1080). Hook visual poderoso. Caption até 2.200 chars com quebras de linha, emojis estratégicos e CTA para salvar/compartilhar.',
+        'instagram-feed': editorialTab === 'tweet-style'
+          ? 'Feed Instagram (1080x1080) no formato TWEET STYLE: fundo minimalista, uma frase única curta e polêmica, sem elementos decorativos. H1 é a frase inteira — impactante, identificável, compartilhável. Sub: aprofunda em 1 linha. Sem stats, sem supporting blocks. Caption provoca debate: "Concorda? Comenta aqui."'
+          : editorialTab === 'toolbox'
+            ? 'Feed Instagram (1080x1080) no formato INFOGRÁFICO / CHEAT SHEET: visual denso com informação útil. H1 descreve o que o gestor vai aprender. Sub lista o que contém. Supporting blocks com os itens do checklist/tabela. Caption termina OBRIGATORIAMENTE com "Salve esse post — você vai precisar".'
+            : 'Feed Instagram (1080x1080). Hook visual poderoso. Caption até 2.200 chars com quebras de linha, emojis estratégicos e CTA para salvar/compartilhar.',
         'instagram-story': 'Story Instagram. Conteúdo rápido, impactante, que gera resposta/swipe. H1 ainda mais curto e chocante. Caption máximo 3 linhas, muito direto.',
-        'instagram-carousel': 'SLIDE 1 (capa) de um carrossel. Hook DEVASTADOR que obrigue a deslizar. Use padrão de curiosidade irresistível ou choque. Caption completa como post solo.',
+        'instagram-carousel': 'SLIDE 1 (capa) de um carrossel. Hook DEVASTADOR usando gancho de MEDO, CURIOSIDADE, AUTORIDADE ou IDENTIFICAÇÃO. Caption completa como post solo. Termine com CTA "Comente IA" ou "Salve para não esquecer".',
         'linkedin': 'Feed LinkedIn para profissionais de marketing. Tom analítico e de autoridade. Caption mais longa com insights e dados. Menos emojis, mais substância. 3-5 hashtags profissionais.'
       };
 
       const tabPrompt = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
 
-      const CONTINUITY_TABS = new Set(['series', 'specialists', 'anti-myth', 'diagnostics']);
+      const CONTINUITY_TABS = new Set(['series', 'specialists', 'anti-myth', 'diagnostics', 'deep-dive', 'toolbox', 'tweet-style']);
       const tabContextBlock = CONTINUITY_TABS.has(editorialTab)
         ? this.buildTabContextBlock(editorialTab, recentPosts)
         : '';
@@ -321,17 +346,17 @@ ${this.buildRecentPostsBlock(recentPosts)}
 REGRAS ABSOLUTAS DE COPYWRITING VIRAL (2026):
 1. H1 deve PARAR O SCROLL nos primeiros 3 segundos: máximo 6 palavras, cria curiosidade OU choca OU muda comportamento
 2. Cada post foca em UM único pilar editorial — nunca misture temas. O algoritmo indexa por território semântico
-3. Caption: hook (palavra que gestores pesquisam) → problema → insight surpresa → CTA de salvar/direct
+3. Caption: hook com keyword real → problema → insight surpresa → CTA estratégico (salvar, comentar "IA" ou compartilhar)
 4. NUNCA use linguagem corporativa ou genérica. Escreva como expert humano com experiência real, não como IA
 5. Use dados específicos e reais: "frequência 4.2", "ROAS 2.1 com CPL R$47" (autoridade e credibilidade)
 6. H1: MÁXIMO 6 PALAVRAS com <br> na metade e <span class='grad'>palavra-impacto</span> na palavra mais forte
 7. Nunca repita ângulo, promessa, dor principal ou CTA dominante do histórico recente
-8. Instagram deve maximizar: SALVAMENTO > compartilhamento por direct > retorno ao post > comentário
-9. LinkedIn deve maximizar autoridade, clareza estratégica e percepção premium da ERIZON
-10. O card precisa ter densidade visual e intelectual: headline forte + subtítulo mais desenvolvido + blocos auxiliares
-11. Sempre que possível, inclua checklist, mini-provas, comparativos curtos ou métricas rápidas
-12. A caption deve conter palavras-chave reais que gestores de tráfego pesquisam no Instagram (SEO interno)
-13. Conteúdo deve gerar DECISÃO ou MUDANÇA DE COMPORTAMENTO, não apenas informar — isso é o que o algoritmo 2026 mais distribui
+8. Escolha sempre um dos 4 ganchos virais: MEDO (erro/perda) | CURIOSIDADE (segredo/oculto) | AUTORIDADE (top agências) | IDENTIFICAÇÃO (o que o gestor sente mas não expressa)
+9. SAVEABLE: conteúdo utilitário termina SEMPRE com "Salve esse post — você vai precisar amanhã"
+10. SHAREABLE: conteúdo de opinião/tweet termina com "Concorda? Marca alguém que precisa ver isso" para gerar compartilhamento nos Stories
+11. CTA DE COMENTÁRIO: quando o post for de alta curiosidade, use "Comente IA aqui embaixo para receber [benefício] no Direct"
+12. A caption deve conter palavras-chave reais que gestores pesquisam no Instagram (SEO interno)
+13. Conteúdo deve gerar DECISÃO ou MUDANÇA DE COMPORTAMENTO, não apenas informar
 
 RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
 {
@@ -402,26 +427,29 @@ FOCO EDITORIAL: ${tabPromptCarousel}
 HISTÓRICO RECENTE DE POSTS DA ERIZON:
 ${this.buildRecentPostsBlock(recentPosts)}
 
-ESTRUTURA DO CARROSSEL (5 slides obrigatórios — narrativa episódica que vicia):
-- Slide 1 (CAPA/HOOK): Hook DEVASTADOR nos primeiros 3 segundos. O título deve fazer a pessoa parar o scroll e sentir: "preciso ver isso". Choque ou curiosidade irresistível.
-- Slide 2 (PROBLEMA): Aprofunda a dor com dado real e específico — frequência, ROAS, budget desperdiçado. Gestor deve pensar "isso acontece comigo".
-- Slide 3 (REVELAÇÃO): O insight contraintuitivo que muda tudo. Dado ou descoberta que ninguém fala abertamente. Cria o momento "caramba".
-- Slide 4 (SOLUÇÃO): Como a Erizon resolve — específico, um produto, um benefício concreto com resultado mensurável.
-- Slide 5 (CTA): Salvar o carrossel é a ação principal. Depois: compartilhar no direct para outro gestor, comentar ou testar.
+ESTRUTURA DO CARROSSEL (7 a 10 slides — narrativa progressiva que prende até o fim):
+- Slide 1 (CAPA/HOOK): Hook DEVASTADOR usando um dos 4 ganchos: MEDO (erro que custa dinheiro), CURIOSIDADE (o que o mercado não mostra), AUTORIDADE (o que as top agências já fazem) ou IDENTIFICAÇÃO (o que o gestor sente mas não expressa). Deve fazer parar o scroll e sentir "preciso ver isso".
+- Slides 2-3 (PROBLEMA): Aprofunda a dor com dados reais e específicos — frequência acima do limite, ROAS caindo, budget desperdiçado. Cada slide adiciona uma camada do problema. Gestor pensa "isso acontece comigo".
+- Slides 4-6 (COMO A IA RESOLVE): Passo a passo de como a Erizon detecta e resolve o problema — específico, um produto por slide (Pulse, Decision Feed, Risk Radar, Copiloto IA). Mostre a lógica por trás, não só o resultado.
+- Slide 7-8 (RESULTADO/COMPARATIVO): Antes vs Depois. Gestão manual vs Erizon AI. Use números reais ou plausíveis. Tabela comparativa se possível.
+- Slide 9-10 (CTA): Slide final com CTA claro. Prioridade: "Comente IA para receber [benefício] no Direct" OU "Salve esse carrossel — você vai precisar amanhã". Nunca termine sem uma ação específica.
 
 REGRAS POR SLIDE:
-- eyebrow: categoria do slide (ex: // O Problema | // A Revelação | // A Solução)
+- eyebrow: categoria do slide (ex: // O Problema | // A Revelação | // Como a IA Resolve | // O Comparativo | // Próximo Passo)
 - h1: MÁXIMO 5 PALAVRAS com <br> na metade e <span class='grad'> na palavra de impacto
-- sub: até 12 palavras com <strong> no trecho mais forte — linguagem humana, não corporativa
-- A narrativa deve fluir com progressão e curiosidade crescente — cada slide abre gancho pro próximo
+- sub: até 14 palavras com <strong> no trecho mais forte — linguagem humana, não corporativa
+- Narrativa progressiva com curiosidade crescente — cada slide é gancho para o próximo
 - Nunca repita hook, dor principal, promessa ou CTA dominante do histórico recente
-- Use vocabulário que gestores de tráfego pesquisam (SEO interno): CPL, ROAS, frequência, fadiga, budget, escala
+- Use vocabulário que gestores pesquisam (SEO): CPL, ROAS, frequência, fadiga, budget, escala, margem
 
-CAPTION: conta a história toda com palavras-chave reais de busca, inclui insight de cada slide, termina com CTA de salvamento e hashtags.
+RETORNE EXATAMENTE 7 SLIDES no JSON (pode ser mais, nunca menos de 7).
+CAPTION: conta a história completa, keywords reais de busca, CTA "Comente IA" ou "Salve para não esquecer" e hashtags.
 
-RETORNE JSON VÁLIDO:
+RETORNE JSON VÁLIDO com exatamente 7 slides:
 {
   "slides": [
+    { "eyebrow": "string", "h1": "string", "sub": "string" },
+    { "eyebrow": "string", "h1": "string", "sub": "string" },
     { "eyebrow": "string", "h1": "string", "sub": "string" },
     { "eyebrow": "string", "h1": "string", "sub": "string" },
     { "eyebrow": "string", "h1": "string", "sub": "string" },
@@ -505,7 +533,8 @@ CONTEXTO ALGORITMO 2026: O Instagram distribui interpretação semântica, não 
 
 Monte um plano prático para 2026 levando em conta essas mudanças do algoritmo.
 Foque em: posicionamento semântico (território claro), retenção invisível (salvamentos, DMs), narrativa contínua (séries), autoridade por posição forte, SEO interno e cadência consistente.
-O objetivo é crescimento orgânico consistente, não virais pontuais.
+A cadência semanal deve seguir o modelo 4x/semana: Segunda (carrossel deep dive educativo), Quarta (imagem única / infográfico / cheat sheet), Sexta (carrossel prova social / estudo de caso), Domingo (tweet style / frase de impacto polêmica).
+O objetivo é crescimento orgânico consistente com posts estáticos de alta qualidade, não virais pontuais.
 
 Retorne JSON válido neste formato:
 {
@@ -513,7 +542,7 @@ Retorne JSON válido neste formato:
   "instagram": ["string", "string", "string", "string"],
   "linkedin": ["string", "string", "string", "string"],
   "growthLoops": ["string", "string", "string"],
-  "weeklyCadence": ["string", "string", "string"]
+  "weeklyCadence": ["string", "string", "string", "string"]
 }`
           },
           {
@@ -906,6 +935,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           <button class="tab-btn" data-tab="retention">⏱ Retenção</button>
           <button class="tab-btn" data-tab="authority">🎯 Autoridade</button>
           <button class="tab-btn" data-tab="episodic">📺 Episódico</button>
+          <button class="tab-btn" data-tab="deep-dive">🧠 Deep Dive</button>
+          <button class="tab-btn" data-tab="toolbox">🛠 Ferramentas</button>
+          <button class="tab-btn" data-tab="tweet-style">💬 Tweet Style</button>
           <button class="tab-btn upload-tab" data-tab="uploads">⇧ Uploads / Feedbacks</button>
         </div>
       </div>
