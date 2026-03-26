@@ -780,10 +780,20 @@ Retorne JSON válido neste formato:
     logger.info(`Postado no LinkedIn: ${post.id}`);
   }
 
-  private async postToInstagramFeed(content: string, imageUrl: string): Promise<void> {
-    if (imageUrl.startsWith('data:')) {
-      throw new Error('O Meta exige uma URL pública da imagem. Adicione a variável IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN no seu arquivo .env para hospedar a imagem automaticamente.');
+  private validateInstagramImageUrl(imageUrl: string, context: string): void {
+    if (!imageUrl) {
+      throw new Error(`[${context}] URL da imagem está vazia. Verifique se IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN estão configurados corretamente no .env.`);
     }
+    if (imageUrl.startsWith('data:')) {
+      throw new Error(`[${context}] O Meta não aceita imagens em Base64. Configure IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN no .env para hospedar as imagens automaticamente.`);
+    }
+    if (!imageUrl.startsWith('https://')) {
+      throw new Error(`[${context}] URL inválida recebida: "${imageUrl.slice(0, 80)}". O Meta exige URL pública https://.`);
+    }
+  }
+
+  private async postToInstagramFeed(content: string, imageUrl: string): Promise<void> {
+    this.validateInstagramImageUrl(imageUrl, 'Instagram Feed');
 
     if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_ACCOUNT_ID) {
       throw new Error('Credenciais Instagram não configuradas.');
@@ -809,9 +819,7 @@ Retorne JSON válido neste formato:
   }
 
   private async postToInstagramStory(imageUrl: string): Promise<void> {
-    if (imageUrl.startsWith('data:')) {
-      throw new Error('O Meta exige uma URL pública da imagem. Adicione a variável IMGBB_API_KEY ou BLOB_UPLOAD_TOKEN no seu arquivo .env para hospedar a imagem automaticamente.');
-    }
+    this.validateInstagramImageUrl(imageUrl, 'Instagram Story');
 
     if (!process.env.INSTAGRAM_ACCESS_TOKEN || !process.env.INSTAGRAM_ACCOUNT_ID) {
       throw new Error('Credenciais Instagram não configuradas.');
