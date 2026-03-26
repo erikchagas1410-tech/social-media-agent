@@ -2380,12 +2380,14 @@ export default async function handler(req: any, res: any) {
         res.status(200).json(content);
       } else if (url.pathname === '/api/publish') {
         const { content, imageBase64, platforms } = body;
-        const imageUrl = await uploadImageToCloud(imageBase64);
+        const needsInstagramHost = (platforms || []).includes('instagram') || (platforms || []).includes('instagram-story');
+        const imageUrl = await uploadImageToCloudForPlatform(imageBase64, needsInstagramHost ? 'instagram' : 'generic');
         const results = await agent.postToSocialMedia(content, imageUrl, imageBase64, platforms);
         res.status(200).json({ results });
       } else if (url.pathname === '/api/publish-carousel') {
         const { images, caption, platforms } = body;
-        const imageUrls = await Promise.all(images.map((img: any) => uploadImageToCloud(img)));
+        const needsInstagramHost = (platforms || []).includes('instagram');
+        const imageUrls = await Promise.all(images.map((img: any) => uploadImageToCloudForPlatform(img, needsInstagramHost ? 'instagram' : 'generic')));
         const results = [];
         if (platforms.includes('instagram')) {
           try {
@@ -2418,7 +2420,49 @@ export default async function handler(req: any, res: any) {
 }
 
 async function uploadImageToCloud(base64Data: string): Promise<string> {
+  return uploadImageToCloudForPlatform(base64Data, 'generic');
+}
+
+function getBlobToken(): string {
+  return process.env.BLOB_UPLOAD_TOKEN || process.env.BLOB_READ_WRITE_TOKEN || '';
+}
+
+async function uploadImageToCloudForPlatform(base64Data: string, target: 'instagram' | 'generic'): Promise<string> {
   const image = parseImagePayload(base64Data);
+
+  const blobToken = getBlobToken();
+
+  // Instagram: prioriza Vercel Blob, porque o Meta está rejeitando as URLs do ImgBB neste fluxo.
+  if (target === 'instagram' && blobToken) {
+    const filename = `erizon-post-${Date.now()}.${image.extension}`;
+    const buffer = Buffer.from(image.base64, 'base64');
+
+    const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+      method: 'PUT',
+      headers: {
+        'Authorization': `Bearer ${blobToken}`,
+        'Content-Type': image.mimeType,
+        'x-api-version': '7'
+      },
+      body: buffer,
+    });
+
+    if (!response.ok) {
+      throw new Error(`Falha no Vercel Blob: ${await response.text()}`);
+    }
+
+    const data = await response.json() as any;
+    const url: string = data?.url || '';
+    if (!url || !url.startsWith('http')) {
+      throw new Error(`Vercel Blob retornou URL inválida: ${JSON.stringify(data)}`);
+    }
+    logger.info(`Vercel Blob upload OK: ${url}`);
+    return url;
+  }
+
+  if (target === 'instagram' && process.env.IMGBB_API_KEY && !blobToken) {
+    throw new Error('Instagram: o Meta está rejeitando as URLs do ImgBB neste fluxo. Configure BLOB_READ_WRITE_TOKEN ou BLOB_UPLOAD_TOKEN na Vercel para hospedar a mídia no Vercel Blob.');
+  }
 
   // 1. ImgBB
   if (process.env.IMGBB_API_KEY) {
@@ -2464,14 +2508,14 @@ async function uploadImageToCloud(base64Data: string): Promise<string> {
   }
 
   // 2. Vercel Blob
-  if (process.env.BLOB_UPLOAD_TOKEN) {
+  if (blobToken) {
     const filename = `erizon-post-${Date.now()}.${image.extension}`;
     const buffer = Buffer.from(image.base64, 'base64');
 
     const response = await fetch(`https://blob.vercel-storage.com/${filename}`, {
       method: 'PUT',
       headers: {
-        'Authorization': `Bearer ${process.env.BLOB_UPLOAD_TOKEN}`,
+        'Authorization': `Bearer ${blobToken}`,
         'Content-Type': image.mimeType,
         'x-api-version': '7'
       },
