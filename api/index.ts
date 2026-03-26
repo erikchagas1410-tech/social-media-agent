@@ -93,6 +93,63 @@ FÓRMULAS DE HOOK QUE VIRALIZAM:
 HASHTAGS: #GestordeTrafego #MetaAds #Erizon #InteligenciaOperacional #MarketingDigital #TrafegoPago #Performance #AgenciaDigital #ROAS #FacebookAds
 `;
 
+// ============================================================
+// INSTAGRAM 2026 ALGORITHM INTELLIGENCE
+// ============================================================
+const INSTAGRAM_2026_INTELLIGENCE = `
+=== ALGORITMO INSTAGRAM 2026 — INTELIGÊNCIA ESTRATÉGICA ===
+
+MUDANÇA CENTRAL: O algoritmo não distribui post — distribui INTERPRETAÇÃO.
+- Ele entende sobre o que você fala, pra quem é relevante, em qual contexto aparece
+- Perfis generalistas perdem alcance. Quem domina UM território temático é indexável
+- Território ERIZON: "lucro e decisão inteligente em campanhas de tráfego pago"
+
+INSTAGRAM COMO MOTOR DE BUSCA (SEO interno):
+- Palavras-chave estratégicas em: legendas, alt text, eyebrow do card, bio
+- Use frases que gestores de tráfego realmente pesquisam: "campanha dando prejuízo", "ROAS caindo", "como escalar sem perder margem"
+- Evite palavras genéricas. Use vocabulário real do público: gestor, verba, budget, ROAS, CPL, frequência, criativo
+
+RETENÇÃO INVISÍVEL — métricas que o algoritmo mais valoriza em 2026:
+- Tempo de permanência no post (pausa no feed)
+- Retorno ao post (assistiu de novo)
+- Salvamento (vou precisar disso depois)
+- Compartilhamento por Direct e grupos (relevância privada)
+- Comentários ainda importam, mas MENOS que os acima
+- Tradução: conteúdo deve fazer pensar "caramba, preciso salvar isso"
+
+CONTEÚDO QUE GERA DECISÃO > conteúdo útil:
+- Conteúdo forte = muda comportamento, não apenas informa
+- Exemplos fracos: "dicas de tráfego", "como melhorar ROAS"
+- Exemplos fortes: "se sua campanha tem isso, você tá jogando dinheiro fora hoje", "o erro que destrói o ROAS silenciosamente"
+
+PRIMEIROS 3 SEGUNDOS DEFINEM DISTRIBUIÇÃO:
+- O algoritmo usa o % de usuários que passam dos 3 primeiros segundos como filtro primário
+- Hook visual + textual deve ser impossível de ignorar
+- Posts "morrem" em 20 min mas podem renascer em 48h-7 dias — pense em biblioteca, não em viral
+
+NARRATIVA CONTÍNUA > posts isolados:
+- Episódios e séries viciam a audiência e aumentam retorno ao perfil
+- Estrutura vencedora: Dia 1 (problema), Dia 2 (diagnóstico), Dia 3 (decisão/solução)
+- Stories = episódios conectados, não fotos aleatórias
+
+AUTORIDADE VEM DE POSIÇÃO FORTE, não de estética:
+- Opinião forte + corte claro + visão diferente = salva + compartilha + debate
+- Bater de frente com consensos errados do mercado gera autoridade real
+- Exemplo: "Se você ainda analisa campanha só por ROAS, você tá atrasado"
+
+CONTEÚDO "COM CARA DE IA" ESTÁ SENDO PENALIZADO:
+- Evite estrutura perfeita demais e linguagem corporativa
+- Use contexto real, bastidor, experiência específica
+- Formato humano: "Analisei 37 campanhas essa semana e 80% tinham o mesmo erro"
+- Música perde protagonismo — vídeos sem música performam melhor quando o conteúdo é forte
+
+CADÊNCIA VENCEDORA 2026:
+- 3 Reels/semana (dor + decisão) + 2 carrosséis (profundo + salvável) + Stories DIÁRIOS (narrativa)
+- Carrossel = formato mais forte para salvamentos e profundidade
+- Reel = melhor para alcance e novos olhares
+- DMs e grupos > likes. Conteúdo que gera compartilhamento privado tem distribuição multiplicada
+`;
+
 type PostType = 'instagram-feed' | 'instagram-story' | 'instagram-carousel' | 'linkedin';
 
 interface PostContent {
@@ -116,6 +173,7 @@ interface PostMemoryEntry {
   h1: string;
   caption: string;
   angle?: string;
+  tab?: string;
   createdAt?: string;
 }
 
@@ -149,7 +207,7 @@ function parseImagePayload(imageInput: string): ImagePayload {
   return { base64: imageInput, mimeType: 'image/jpeg', extension: 'jpg' };
 }
 
-type EditorialTab = 'erizon' | 'specialists' | 'market' | 'diagnostics' | 'stories' | 'social-proof' | 'anti-myth' | 'series' | 'uploads';
+type EditorialTab = 'erizon' | 'specialists' | 'market' | 'diagnostics' | 'stories' | 'social-proof' | 'anti-myth' | 'series' | 'uploads' | 'seo-search' | 'retention' | 'authority' | 'episodic';
 
 const TAB_CONTEXTS: Record<string, string> = {
   'erizon': 'Foque 100% na ERIZON: o que a plataforma calcula, como funciona o copiloto, pulse, decision feed, risk radar. Provas de valor, economia de tempo, bastidores, objeções comuns.',
@@ -160,7 +218,11 @@ const TAB_CONTEXTS: Record<string, string> = {
   'social-proof': 'Foque em prova social: antes/depois, tempo economizado, problema detectado antes da perda, cases resumidos.',
   'anti-myth': 'Foque em quebrar mitos: "ROAS alto não significa lucro", "mais orçamento não corrige campanha ruim", "dashboard não é decisão".',
   'series': 'Foque em uma série fixa: "Radar da Semana", "Erro Caro", "Decisão de Hoje", "Raio-X de Campanha" ou "1 Minuto de Operação".',
-  'uploads': 'Foque em feedback de clientes: celebre um resultado, agradeça o cliente, crie um hook mostrando que o método funciona. Se houver contexto adicional do usuário, use-o.'
+  'uploads': 'Foque em feedback de clientes: celebre um resultado, agradeça o cliente, crie um hook mostrando que o método funciona. Se houver contexto adicional do usuário, use-o.',
+  'seo-search': 'Foque em SEO do Instagram 2026: escreva captions com frases que gestores de tráfego realmente pesquisam. Use vocabulário real do mercado: "campanha dando prejuízo", "ROAS caindo", "como escalar sem perder margem", "frequência alta no Meta Ads". O conteúdo deve aparecer como resposta às buscas internas do Instagram. Termine com keywords naturais embutidas na legenda e CTA que incentive salvar.',
+  'retention': 'Foque em retenção invisível 2026: crie conteúdo que faz a pessoa PAUSAR o scroll, rever o post, salvar e mandar no direct. Evite conteúdo apenas informativo — o post precisa gerar a sensação "caramba, preciso salvar isso agora". Use dados específicos, revelações surpreendentes, insights contraintuitivos. O algoritmo 2026 mede tempo de permanência, retorno ao post e compartilhamentos privados acima de tudo.',
+  'authority': 'Foque em autoridade por posicionamento forte: opinião contundente, visão contrária ao consenso, corte claro sobre o que está errado no mercado. Exemplo de abordagem: "Se você ainda analisa campanha só por ROAS, você tá atrasado", "A maioria dos gestores confunde sobrevivência com estratégia". Não seja genérico — bata de frente com comportamentos errados do mercado que a ERIZON foi criada para resolver. Isso gera saves, shares e debate.',
+  'episodic': 'Foque em narrativa episódica (série de 3 posts conectados): crie o EPISÓDIO 1 de uma sequência. Dia 1: apresente o PROBLEMA de forma chocante. O post deve terminar gerando curiosidade para o próximo. Use a estrutura de série reconhecível para criar vício de audiência e retorno ao perfil. Inclua no eyebrow a marcação do episódio: "// Ep. 1 de 3".'
 };
 
 // ============================================================
@@ -180,6 +242,7 @@ class SocialMediaAgent {
         const parts = [
           `#${idx + 1}`,
           `plataforma=${post.platform}`,
+          `tab=${post.tab || 'geral'}`,
           `eyebrow=${post.eyebrow || '-'}`,
           `h1=${post.h1 || '-'}`,
           `angulo=${post.angle || '-'}`,
@@ -190,7 +253,25 @@ class SocialMediaAgent {
       .join('\n');
   }
 
-  async generatePost(postType: PostType = 'instagram-feed', recentPosts: PostMemoryEntry[] = [], editorialTab: string = 'erizon', uploadContext: string = ''): Promise<PostContent> {
+  private buildTabContextBlock(tab: string, recentPosts: PostMemoryEntry[] = []): string {
+    const tabPosts = recentPosts.filter(p => p.tab === tab);
+    if (!tabPosts.length) return '';
+
+    const lines = tabPosts
+      .slice(-6)
+      .map((post, idx) => {
+        const captionSnippet = (post.caption || '').slice(0, 220);
+        return `Post ${idx + 1}:\n  Título: ${post.h1 || '-'}\n  Eyebrow: ${post.eyebrow || '-'}\n  Ângulo: ${post.angle || '-'}\n  Caption: ${captionSnippet}`;
+      })
+      .join('\n\n');
+
+    return `=== HISTÓRICO DESTA SÉRIE/PILAR (últimos ${tabPosts.length > 6 ? 6 : tabPosts.length} posts do tab "${tab}") ===
+Use este histórico para CONTINUAR o raciocínio, aprofundar a narrativa ou avançar para o próximo estágio. NÃO repita o mesmo ângulo, título ou argumento. Construa em cima do que já foi dito.
+
+${lines}`;
+  }
+
+  async generatePost(postType: PostType = 'instagram-feed', recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon', uploadContext: string = ''): Promise<PostContent> {
     try {
       if (!process.env.GROQ_API_KEY) {
         return {
@@ -211,34 +292,46 @@ class SocialMediaAgent {
       };
 
       const tabPrompt = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
+
+      const CONTINUITY_TABS = new Set(['series', 'specialists', 'anti-myth', 'diagnostics']);
+      const tabContextBlock = CONTINUITY_TABS.has(editorialTab)
+        ? this.buildTabContextBlock(editorialTab, recentPosts)
+        : '';
+
       let userContext = `Gere um conteúdo VIRAL e INÉDITO para a ERIZON. Escolha um pilar editorial inesperado, com potencial real de engajamento e aquisição. Não repita o histórico recente. Tipo: ${postType}`;
-      
+
       if (editorialTab === 'uploads' && uploadContext) {
         userContext = `Gere um conteúdo VIRAL baseado neste feedback/print enviado pelo usuário: "${uploadContext}". Destaque o resultado, crie um hook forte e uma prova social inquestionável. Tipo: ${postType}`;
+      } else if (CONTINUITY_TABS.has(editorialTab) && tabContextBlock) {
+        userContext = `Continue a narrativa deste pilar. Leia o histórico da série acima e crie o PRÓXIMO post — avance o raciocínio, aprofunde ou abra um novo ângulo que flua naturalmente do que já foi dito. Nunca repita títulos ou argumentos anteriores. Tipo: ${postType}`;
       }
 
       const systemPrompt = `Você é o estrategista-chefe de marketing e social media da ERIZON — especialista em criar conteúdo viral que engaja gestores de tráfego, faz o perfil explodir e gera leads qualificados no Brasil.
 
 ${ERIZON_BRAND_CONTEXT}
 
+${INSTAGRAM_2026_INTELLIGENCE}
+
 TIPO DE POST: ${platformHints[postType]}
 FOCO EDITORIAL: ${tabPrompt}
-
-HISTORICO RECENTE DE POSTS DA ERIZON:
+${tabContextBlock ? `\n${tabContextBlock}\n` : ''}
+HISTORICO GERAL RECENTE (todos os pilares — evite repetição de ângulos):
 ${this.buildRecentPostsBlock(recentPosts)}
 
-REGRAS ABSOLUTAS DE COPYWRITING VIRAL:
-1. H1 deve PARAR O SCROLL: máximo 6 palavras, cria curiosidade OU choca OU faz o leitor concordar instantaneamente
-2. Cada post foca em UM único pilar editorial — nunca misture temas
-3. Caption: hook → desenvolvimento → dado/prova → CTA (salva / comenta / compartilha)
-4. Nunca use linguagem corporativa genérica. Fale como expert que domina tráfego pago
-5. Use dados e números específicos quando relevante (aumentam autoridade e credibilidade)
+REGRAS ABSOLUTAS DE COPYWRITING VIRAL (2026):
+1. H1 deve PARAR O SCROLL nos primeiros 3 segundos: máximo 6 palavras, cria curiosidade OU choca OU muda comportamento
+2. Cada post foca em UM único pilar editorial — nunca misture temas. O algoritmo indexa por território semântico
+3. Caption: hook (palavra que gestores pesquisam) → problema → insight surpresa → CTA de salvar/direct
+4. NUNCA use linguagem corporativa ou genérica. Escreva como expert humano com experiência real, não como IA
+5. Use dados específicos e reais: "frequência 4.2", "ROAS 2.1 com CPL R$47" (autoridade e credibilidade)
 6. H1: MÁXIMO 6 PALAVRAS com <br> na metade e <span class='grad'>palavra-impacto</span> na palavra mais forte
 7. Nunca repita ângulo, promessa, dor principal ou CTA dominante do histórico recente
-8. Instagram deve maximizar salvamento, compartilhamento e resposta no direct
+8. Instagram deve maximizar: SALVAMENTO > compartilhamento por direct > retorno ao post > comentário
 9. LinkedIn deve maximizar autoridade, clareza estratégica e percepção premium da ERIZON
-10. O card precisa ter densidade visual e intelectual: headline forte + subtítulo mais desenvolvido + blocos auxiliares de conteúdo
-11. Sempre que possível, inclua checklist, mini-provas, comparativos curtos ou métricas rápidas inspiradas em posts premium de performance marketing
+10. O card precisa ter densidade visual e intelectual: headline forte + subtítulo mais desenvolvido + blocos auxiliares
+11. Sempre que possível, inclua checklist, mini-provas, comparativos curtos ou métricas rápidas
+12. A caption deve conter palavras-chave reais que gestores de tráfego pesquisam no Instagram (SEO interno)
+13. Conteúdo deve gerar DECISÃO ou MUDANÇA DE COMPORTAMENTO, não apenas informar — isso é o que o algoritmo 2026 mais distribui
 
 RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
 {
@@ -285,7 +378,7 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
     }
   }
 
-  async generateCarousel(recentPosts: PostMemoryEntry[] = [], editorialTab: string = 'erizon'): Promise<CarouselContent> {
+  async generateCarousel(recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon'): Promise<CarouselContent> {
     try {
       if (!process.env.GROQ_API_KEY) {
         return {
@@ -296,29 +389,35 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
 
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
+      const tabPromptCarousel = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
+
       const systemPrompt = `Você é o estrategista-chefe de social media da ERIZON — expert em criar carrosseis virais que explodem no Instagram e geram centenas de salvamentos.
 
 ${ERIZON_BRAND_CONTEXT}
 
+${INSTAGRAM_2026_INTELLIGENCE}
+
+FOCO EDITORIAL: ${tabPromptCarousel}
+
 HISTÓRICO RECENTE DE POSTS DA ERIZON:
 ${this.buildRecentPostsBlock(recentPosts)}
 
-ESTRUTURA DO CARROSSEL (5 slides obrigatórios):
-- Slide 1 (CAPA/HOOK): Hook DEVASTADOR que force a pessoa a deslizar. Padrão de choque ou curiosidade irresistível. É o mais importante.
-- Slide 2 (PROBLEMA): Aprofunda a dor — gestores perdendo dinheiro sem perceber
-- Slide 3 (REVELAÇÃO): O insight que muda tudo — dado, descoberta, erro que cometem
-- Slide 4 (SOLUÇÃO): Como a Erizon resolve — específico, um produto, um benefício concreto
-- Slide 5 (CTA): Call-to-action poderoso — salva, compartilha, comenta "quero saber mais", ou testa
+ESTRUTURA DO CARROSSEL (5 slides obrigatórios — narrativa episódica que vicia):
+- Slide 1 (CAPA/HOOK): Hook DEVASTADOR nos primeiros 3 segundos. O título deve fazer a pessoa parar o scroll e sentir: "preciso ver isso". Choque ou curiosidade irresistível.
+- Slide 2 (PROBLEMA): Aprofunda a dor com dado real e específico — frequência, ROAS, budget desperdiçado. Gestor deve pensar "isso acontece comigo".
+- Slide 3 (REVELAÇÃO): O insight contraintuitivo que muda tudo. Dado ou descoberta que ninguém fala abertamente. Cria o momento "caramba".
+- Slide 4 (SOLUÇÃO): Como a Erizon resolve — específico, um produto, um benefício concreto com resultado mensurável.
+- Slide 5 (CTA): Salvar o carrossel é a ação principal. Depois: compartilhar no direct para outro gestor, comentar ou testar.
 
 REGRAS POR SLIDE:
 - eyebrow: categoria do slide (ex: // O Problema | // A Revelação | // A Solução)
 - h1: MÁXIMO 5 PALAVRAS com <br> na metade e <span class='grad'> na palavra de impacto
-- sub: até 12 palavras com <strong> no trecho mais forte
-- A narrativa deve fluir — quem desliza deve sentir progressão e curiosidade crescente
+- sub: até 12 palavras com <strong> no trecho mais forte — linguagem humana, não corporativa
+- A narrativa deve fluir com progressão e curiosidade crescente — cada slide abre gancho pro próximo
 - Nunca repita hook, dor principal, promessa ou CTA dominante do histórico recente
-- A solução precisa aumentar o desejo de conhecer a plataforma ERIZON
+- Use vocabulário que gestores de tráfego pesquisam (SEO interno): CPL, ROAS, frequência, fadiga, budget, escala
 
-CAPTION: conta a história toda, inclui todos os insights dos slides, termina com CTA forte e hashtags.
+CAPTION: conta a história toda com palavras-chave reais de busca, inclui insight de cada slide, termina com CTA de salvamento e hashtags.
 
 RETORNE JSON VÁLIDO:
 {
@@ -402,8 +501,11 @@ RETORNE JSON VÁLIDO:
 
 ${ERIZON_BRAND_CONTEXT}
 
-Monte um plano prático para acelerar reconhecimento, seguidores e aquisição no Instagram e no LinkedIn.
-O foco é gerar autoridade rápida, clareza de posicionamento e conteúdo que converta curiosidade em interesse comercial.
+CONTEXTO ALGORITMO 2026: O Instagram distribui interpretação semântica, não só conteúdo. Métricas prioritárias: salvamentos > compartilhamentos por DM > tempo de permanência > comentários. Perfis com território temático claro ganham mais distribuição. SEO interno (palavras-chave em captions) é crítico. Conteúdo que gera decisão ou mudança de comportamento supera conteúdo apenas informativo. Narrativa episódica (séries de posts) cria audiência recorrente.
+
+Monte um plano prático para 2026 levando em conta essas mudanças do algoritmo.
+Foque em: posicionamento semântico (território claro), retenção invisível (salvamentos, DMs), narrativa contínua (séries), autoridade por posição forte, SEO interno e cadência consistente.
+O objetivo é crescimento orgânico consistente, não virais pontuais.
 
 Retorne JSON válido neste formato:
 {
@@ -496,7 +598,7 @@ Retorne JSON válido neste formato:
   private async waitForInstagramMediaReady(creationId: string, token: string): Promise<void> {
     for (let i = 0; i < 15; i++) {
       await new Promise(r => setTimeout(r, 3000)); // Espera 3 segundos
-      const res = await fetch(`https://graph.facebook.com/v18.0/${creationId}?fields=status_code&access_token=${token}`);
+      const res = await fetch(`https://graph.facebook.com/v21.0/${creationId}?fields=status_code&access_token=${token}`);
       if (res.ok) {
         const data = await res.json() as any;
         if (data.status_code === 'FINISHED' || data.status_code === 'PUBLISHED') return;
@@ -522,7 +624,7 @@ Retorne JSON válido neste formato:
     // 1. Cria containers para cada slide
     const childIds: string[] = [];
     for (const imageUrl of imageUrls) {
-      const res = await fetch(`https://graph.facebook.com/v18.0/${accountId}/media`, {
+      const res = await fetch(`https://graph.facebook.com/v21.0/${accountId}/media`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image_url: imageUrl, is_carousel_item: true, access_token: token })
@@ -534,7 +636,7 @@ Retorne JSON válido neste formato:
     }
 
     // 2. Cria container do carrossel
-    const carouselRes = await fetch(`https://graph.facebook.com/v18.0/${accountId}/media`, {
+    const carouselRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/media`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -550,7 +652,7 @@ Retorne JSON válido neste formato:
     await this.waitForInstagramMediaReady(carouselData.id, token);
 
     // 3. Publica
-    const publishRes = await fetch(`https://graph.facebook.com/v18.0/${accountId}/media_publish`, {
+    const publishRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/media_publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ creation_id: carouselData.id, access_token: token })
@@ -625,7 +727,7 @@ Retorne JSON válido neste formato:
       throw new Error('Credenciais Instagram não configuradas.');
     }
 
-    const res = await fetch(`https://graph.facebook.com/v18.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media`, {
+    const res = await fetch(`https://graph.facebook.com/v21.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_url: imageUrl, caption: content, access_token: process.env.INSTAGRAM_ACCESS_TOKEN })
@@ -635,7 +737,7 @@ Retorne JSON válido neste formato:
 
     await this.waitForInstagramMediaReady(data.id, process.env.INSTAGRAM_ACCESS_TOKEN);
 
-    const pub = await fetch(`https://graph.facebook.com/v18.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media_publish`, {
+    const pub = await fetch(`https://graph.facebook.com/v21.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media_publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ creation_id: data.id, access_token: process.env.INSTAGRAM_ACCESS_TOKEN })
@@ -653,7 +755,7 @@ Retorne JSON válido neste formato:
       throw new Error('Credenciais Instagram não configuradas.');
     }
 
-    const res = await fetch(`https://graph.facebook.com/v18.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media`, {
+    const res = await fetch(`https://graph.facebook.com/v21.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image_url: imageUrl, media_type: 'STORIES', access_token: process.env.INSTAGRAM_ACCESS_TOKEN })
@@ -663,7 +765,7 @@ Retorne JSON válido neste formato:
 
     await this.waitForInstagramMediaReady(data.id, process.env.INSTAGRAM_ACCESS_TOKEN);
 
-    const pub = await fetch(`https://graph.facebook.com/v18.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media_publish`, {
+    const pub = await fetch(`https://graph.facebook.com/v21.0/${process.env.INSTAGRAM_ACCOUNT_ID}/media_publish`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ creation_id: data.id, access_token: process.env.INSTAGRAM_ACCESS_TOKEN })
@@ -800,6 +902,10 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           <button class="tab-btn" data-tab="social-proof">Prova Social</button>
           <button class="tab-btn" data-tab="anti-myth">Anti-Mitos</button>
           <button class="tab-btn" data-tab="series">Séries Fixas</button>
+          <button class="tab-btn" data-tab="seo-search">🔍 SEO Busca</button>
+          <button class="tab-btn" data-tab="retention">⏱ Retenção</button>
+          <button class="tab-btn" data-tab="authority">🎯 Autoridade</button>
+          <button class="tab-btn" data-tab="episodic">📺 Episódico</button>
           <button class="tab-btn upload-tab" data-tab="uploads">⇧ Uploads / Feedbacks</button>
         </div>
       </div>
@@ -974,6 +1080,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         h1: entry.h1 || '',
         caption: entry.caption || '',
         angle: entry.angle || stripHtml(entry.h1 || '').slice(0, 80),
+        tab: currentEditorialTab,
         createdAt: new Date().toISOString()
       });
       savePostHistory(history);
