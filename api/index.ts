@@ -358,12 +358,18 @@ REGRAS ABSOLUTAS DE COPYWRITING VIRAL (2026):
 12. A caption deve conter palavras-chave reais que gestores pesquisam no Instagram (SEO interno)
 13. Conteúdo deve gerar DECISÃO ou MUDANÇA DE COMPORTAMENTO, não apenas informar
 
+REGRAS DE DENSIDADE VISUAL — O card tem 1080x1080px. Use TODO o espaço disponível:
+- sub: MÍNIMO 38 palavras, máximo 55 palavras. Desenvolva a ideia completamente com <strong> nas frases mais fortes
+- supporting: SEMPRE preencha os 3 blocos — nunca retorne array vazio. Cada item deve ter 12-18 palavras com dado ou insight real
+- stats: quando relevante (diagnóstico, prova social, deep-dive), use números reais e específicos do mercado de tráfego
+- formatHint: "checklist" para posts utilitários/ferramentas, "stats" para diagnósticos/provas, "fact" para opinião/autoridade
+
 RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
 {
   "eyebrow": "// Categoria (ex: // Risk Radar | // Decision Feed | // Anti-Vaidade | // Copiloto IA)",
   "h1": "Máx 6 palavras com <br> e <span class='grad'>palavra</span>",
-  "sub": "Subtítulo até 26 palavras com <strong> na parte que mais convence",
-  "supporting": ["bloco curto 1", "bloco curto 2", "bloco curto 3"],
+  "sub": "Subtítulo MÍNIMO 38 palavras desenvolvendo o ponto central com <strong> no argumento mais forte",
+  "supporting": ["insight ou checklist item 1 com 12-18 palavras e dado real", "insight ou checklist item 2 com 12-18 palavras", "insight ou checklist item 3 com 12-18 palavras"],
   "stats": [{"value":"3x","label":"mais rápido"},{"value":"24h","label":"monitoramento"},{"value":"-28%","label":"desperdício"}],
   "formatHint": "fact ou checklist ou stats",
   "caption": "Caption viral completa com emojis, dados, CTA e hashtags estratégicas."
@@ -901,6 +907,31 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
     .pulsing { animation:pulse 1.5s ease-in-out infinite; }
     input[type="checkbox"] { accent-color:#BC13FE; width:14px; height:14px; }
+
+    /* ====== GEOMETRIC DECORATIVES ====== */
+    .geo-tl { position:absolute; top:0; left:0; width:360px; height:360px; clip-path:polygon(0 0,100% 0,0 100%); pointer-events:none; }
+    .geo-br { position:absolute; bottom:0; right:0; width:360px; height:360px; clip-path:polygon(100% 0,100% 100%,0 100%); pointer-events:none; }
+    .geo-tr { position:absolute; top:0; right:0; width:260px; height:260px; clip-path:polygon(0 0,100% 0,100% 100%); pointer-events:none; }
+    .slash-lines { position:absolute; inset:0; pointer-events:none; }
+    .chart-sil { position:absolute; bottom:0; left:0; right:0; pointer-events:none; }
+    .hrule-t { position:absolute; left:56px; right:56px; height:1px; pointer-events:none; }
+    .hrule-b { position:absolute; left:56px; right:56px; height:1px; pointer-events:none; }
+    .ghost-num { position:absolute; font-family:'JetBrains Mono',monospace; font-weight:700; user-select:none; pointer-events:none; overflow:hidden; white-space:nowrap; }
+    .v-accent { position:absolute; top:80px; bottom:80px; width:3px; border-radius:2px; pointer-events:none; }
+    .dot-field { position:absolute; inset:0; pointer-events:none; }
+    /* ====== ENLARGED SUB & H1 SIZING ====== */
+    .sub { font-family:'Plus Jakarta Sans',sans-serif; font-size:22px; color:rgba(255,255,255,.75); line-height:1.62; max-width:820px; }
+    .sub strong { color:#fff; font-weight:600; }
+    .h1 { font-family:'Montserrat',sans-serif; font-weight:900; line-height:1.05; color:#fff; text-shadow:0 0 40px rgba(188,19,254,.3); font-size:68px; word-wrap:break-word; max-width:100%; }
+    /* tweet-style override: massive centered text */
+    .card.tweet-mode .h1 { font-size:82px; line-height:1.08; }
+    .card.tweet-mode .sub { font-size:26px; }
+    .card.tweet-mode .support-wrap { display:none !important; }
+    .tweet-bar { position:absolute; left:0; right:0; height:8px; pointer-events:none; }
+    /* toolbox override: checklist prominent */
+    .card.toolbox-mode .support-list { gap:18px; }
+    .card.toolbox-mode .support-item { padding:18px 20px; }
+    .card.toolbox-mode .support-copy { font-size:17px; }
   </style>
 </head>
 <body class="p-4 md:p-8">
@@ -999,6 +1030,18 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
               <div class="light-t"></div><div class="light-b"></div>
               <div class="orb orb-center"></div><div class="orb orb-glow"></div>
               <div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
+              <div id="card-geo-tl" class="geo-tl" style="display:none"></div>
+              <div id="card-geo-br" class="geo-br" style="display:none"></div>
+              <div id="card-geo-tr" class="geo-tr" style="display:none"></div>
+              <div id="card-slash" class="slash-lines" style="display:none"></div>
+              <div id="card-chart" class="chart-sil" style="display:none"></div>
+              <div id="card-hrule-t" class="hrule-t" style="display:none"></div>
+              <div id="card-hrule-b" class="hrule-b" style="display:none"></div>
+              <div id="card-ghost" class="ghost-num" style="display:none"></div>
+              <div id="card-v-accent" class="v-accent" style="display:none"></div>
+              <div id="card-dot" class="dot-field" style="display:none"></div>
+              <div id="card-tweet-bar-t" class="tweet-bar" style="top:0;display:none"></div>
+              <div id="card-tweet-bar-b" class="tweet-bar" style="bottom:0;display:none"></div>
               <div class="corner tl"></div><div class="corner tr"></div><div class="corner bl"></div><div class="corner br"></div>
               <div id="card-accent-v" class="accent-bar"></div>
               <div id="card-accent-h" class="accent-bar-top"></div>
@@ -1331,6 +1374,15 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // ============================================================
     // VISUAL RANDOMIZATION
     // ============================================================
+    function hideGeoExtras() {
+      ['card-geo-tl','card-geo-br','card-geo-tr','card-slash','card-chart',
+       'card-hrule-t','card-hrule-b','card-ghost','card-v-accent','card-dot',
+       'card-tweet-bar-t','card-tweet-bar-b'
+      ].forEach(id => { const el = document.getElementById(id); if (el) el.style.display = 'none'; });
+      const card = document.getElementById('capture-area');
+      card.classList.remove('tweet-mode','toolbox-mode');
+    }
+
     function applyDomVisualState(state, h1Text) {
       const lightT = document.querySelector('.light-t');
       const lightB = document.querySelector('.light-b');
@@ -1343,6 +1395,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const av = document.getElementById('card-accent-v');
       const ah = document.getElementById('card-accent-h');
       const dl = document.getElementById('card-div-line');
+
+      hideGeoExtras();
 
       lightT.style.display = 'block';
       lightB.style.display = 'block';
@@ -1370,7 +1424,85 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       const rx = (Math.floor(Math.random()*80)+10) + '% ';
       const ry = (Math.floor(Math.random()*80)+10) + '%';
 
-      if (state.bgVariant === 'orbital') {
+      // ── geo helpers ──────────────────────────────────────────
+      function showGeoTL(bg) { const el = document.getElementById('card-geo-tl'); el.style.display='block'; el.style.background=bg; }
+      function showGeoBR(bg) { const el = document.getElementById('card-geo-br'); el.style.display='block'; el.style.background=bg; }
+      function showGeoTR(bg) { const el = document.getElementById('card-geo-tr'); el.style.display='block'; el.style.background=bg; }
+      function showSlash(bg) { const el = document.getElementById('card-slash'); el.style.display='block'; el.style.background=bg; }
+      function showChart(ht, bg, cp) { const el = document.getElementById('card-chart'); el.style.display='block'; el.style.height=ht; el.style.background=bg; if(cp) el.style.clipPath=cp; }
+      function showHrules(top, bot, col) { const ht=document.getElementById('card-hrule-t'); const hb=document.getElementById('card-hrule-b'); ht.style.display='block'; ht.style.top=top; ht.style.background=col; hb.style.display='block'; hb.style.bottom=bot; hb.style.background=col; }
+      function showGhost(txt, sz, col, pos) { const el=document.getElementById('card-ghost'); el.style.display='block'; el.textContent=txt; el.style.fontSize=sz; el.style.color=col; Object.assign(el.style,pos); }
+      function showVAccent(left, bg) { const el=document.getElementById('card-v-accent'); el.style.display='block'; el.style.left=left; el.style.background=bg; }
+      function showTweetBars(bg) { const t=document.getElementById('card-tweet-bar-t'); const b=document.getElementById('card-tweet-bar-b'); t.style.display='block'; b.style.display='block'; t.style.background=bg; b.style.background=bg; }
+      function showDotField(bg) { const el=document.getElementById('card-dot'); el.style.display='block'; el.style.background=bg; el.style.backgroundSize='28px 28px'; }
+      // ────────────────────────────────────────────────────────
+
+      // tweet-style mode
+      if (state.tweetMode) {
+        document.getElementById('capture-area').classList.add('tweet-mode');
+        lightT.style.background = 'radial-gradient(ellipse at 50% 0%,' + p.t + '.30) 0%,transparent 60%)';
+        lightB.style.background = 'radial-gradient(ellipse at 50% 100%,' + p.b + '.18) 0%,transparent 55%)';
+        orbCenter.style.display = 'none'; orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+        showTweetBars('linear-gradient(90deg,' + p.t + '.8),' + p.b + '.8),' + p.t + '.8))');
+        showHrules('100px','100px','linear-gradient(90deg,transparent,' + p.t + '.4) 30%,' + p.b + '.3) 70%,transparent)');
+        showGhost('ERIZON','260px','rgba(188,19,254,.03)',{bottom:'-20px',left:'30px'});
+      } else if (state.bgVariant === 'geo-triangle') {
+        showGeoTL('linear-gradient(135deg,' + p.t + '.14),transparent)');
+        showGeoBR('linear-gradient(315deg,' + p.b + '.12),transparent)');
+        showVAccent('56px','linear-gradient(to bottom,transparent,' + p.t + '.5),' + p.b + '.5),transparent)');
+        lightT.style.background = 'linear-gradient(135deg,' + p.t + '.20) 0%,transparent 50%)';
+        lightB.style.background = 'linear-gradient(315deg,' + p.b + '.15) 0%,transparent 50%)';
+        orbCenter.style.display = 'none'; orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+      } else if (state.bgVariant === 'geo-full-corner') {
+        showGeoTL('linear-gradient(135deg,' + p.t + '.18),transparent)');
+        showGeoBR('linear-gradient(315deg,' + p.b + '.14),transparent)');
+        showGeoTR('linear-gradient(45deg,' + p.t + '.10),transparent)');
+        lightT.style.background = 'none'; lightB.style.background = 'none';
+        orbCenter.style.display = 'none'; orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+        showHrules('88px','88px','linear-gradient(90deg,transparent,' + p.t + '.35) 25%,' + p.b + '.25) 75%,transparent)');
+      } else if (state.bgVariant === 'chart-base') {
+        showChart('220px',
+          'linear-gradient(to top,' + p.t + '.12),transparent)',
+          'polygon(0 100%,0 55%,80px 38%,160px 62%,240px 30%,320px 52%,400px 22%,480px 44%,560px 18%,640px 38%,720px 50%,800px 28%,880px 48%,960px 32%,1080px 42%,1080px 100%)'
+        );
+        lightT.style.background = 'radial-gradient(ellipse at 50% 0%,' + p.t + '.22) 0%,transparent 54%)';
+        lightB.style.background = 'none';
+        orbCenter.style.display = 'none'; orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+        showHrules('96px','190px','linear-gradient(90deg,transparent,' + p.t + '.3) 20%,' + p.b + '.2) 80%,transparent)');
+        showGhost('DATA','380px','rgba(188,19,254,.025)',{right:'-20px',top:'50%',transform:'translateY(-50%)'});
+      } else if (state.bgVariant === 'slash-field') {
+        showSlash('repeating-linear-gradient(62deg,transparent 0px,transparent 58px,' + p.t + '.05) 58px,' + p.t + '.05) 60px)');
+        lightT.style.background = 'linear-gradient(120deg,' + p.t + '.25) 0%,transparent 48%)';
+        lightB.style.background = 'linear-gradient(300deg,' + p.b + '.18) 0%,transparent 52%)';
+        orbCenter.style.display = 'none'; orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+        showVAccent('56px','linear-gradient(to bottom,transparent,' + p.t + '.6),' + p.b + '.5),transparent)');
+      } else if (state.bgVariant === 'dot-matrix') {
+        showDotField('radial-gradient(' + p.t + '.12) 1px,transparent 1px)');
+        lightT.style.background = 'radial-gradient(ellipse at 30% 30%,' + p.t + '.22) 0%,transparent 52%)';
+        lightB.style.background = 'radial-gradient(ellipse at 70% 70%,' + p.b + '.15) 0%,transparent 50%)';
+        orbCenter.style.display = 'none'; orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+        showHrules('90px','90px','linear-gradient(90deg,transparent,' + p.t + '.25) 20%,' + p.b + '.2) 80%,transparent)');
+      } else if (state.bgVariant === 'split-block') {
+        lightT.style.background = 'linear-gradient(90deg,' + p.t + '.18) 0%,' + p.t + '.06) 48%,transparent 50%)';
+        lightB.style.background = 'linear-gradient(90deg,transparent 50%,' + p.b + '.08) 52%,' + p.b + '.15) 100%)';
+        orbCenter.style.display = 'none'; orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+        showVAccent('50%','linear-gradient(to bottom,' + p.t + '.0),' + p.t + '.45),' + p.b + '.45),' + p.t + '.0))');
+        document.getElementById('card-v-accent').style.transform = 'translateX(-50%)';
+      } else if (state.bgVariant === 'ghost-type') {
+        lightT.style.background = 'radial-gradient(ellipse at 50% 20%,' + p.t + '.20) 0%,transparent 58%)';
+        lightB.style.background = 'radial-gradient(ellipse at 50% 80%,' + p.b + '.12) 0%,transparent 52%)';
+        orbCenter.style.display = 'none'; orbGlow.style.display = 'none';
+        rings.forEach(r => r.style.display = 'none');
+        showGhost('IA','680px','rgba(188,19,254,.04)',{bottom:'-60px',right:'-40px',lineHeight:'1'});
+        showHrules('110px','110px','linear-gradient(90deg,transparent,' + p.t + '.3) 15%,' + p.b + '.2) 85%,transparent)');
+      } else if (state.bgVariant === 'orbital') {
         lightT.style.background = 'radial-gradient(ellipse,' + p.t + '.35) 0%,transparent 70%)';
         lightB.style.background = 'radial-gradient(ellipse,' + p.b + '.2) 0%,transparent 70%)';
         orbCenter.style.background = 'radial-gradient(circle at ' + rx + ry + ',' + p.o + '.28) 0%,' + p.b + '.12) 45%,transparent 70%)';
@@ -1496,33 +1628,74 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         { t:'rgba(255,0,100,',  b:'rgba(255,68,136,', o:'rgba(255,0,100,' },
         { t:'rgba(54,209,220,', b:'rgba(91,134,229,', o:'rgba(0,242,255,' },
         { t:'rgba(132,94,247,', b:'rgba(255,0,229,', o:'rgba(132,94,247,' },
-        { t:'rgba(0,255,163,',  b:'rgba(0,242,255,', o:'rgba(0,255,163,' }
+        { t:'rgba(0,255,163,',  b:'rgba(0,242,255,', o:'rgba(0,255,163,' },
+        { t:'rgba(255,180,0,',  b:'rgba(255,100,0,', o:'rgba(255,150,0,' },
+        { t:'rgba(0,200,255,',  b:'rgba(0,120,255,', o:'rgba(0,160,255,' }
       ];
-      const layouts = ['center', 'left-v', 'left-h', 'right-v', 'right-h'];
       const grads = ['grad','grad2','grad3'];
-      const scenes = [
-        { bgVariant: 'data-stream', layout: 'left-v', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'signal-columns', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
-        { bgVariant: 'neon-wedge', layout: 'left-h', showGrid: false, showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'horizon', layout: 'center', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'frame-shift', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: true },
-        { bgVariant: 'bands', layout: 'left-v', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'crosslight', layout: 'right-h', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
-        { bgVariant: 'diagonal', layout: 'left-h', showGrid: true, showCorners: false, showOrbs: false, showRings: false },
-        { bgVariant: 'split', layout: 'center', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
-        { bgVariant: 'corner-burst', layout: 'right-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
-        { bgVariant: 'orbital', layout: 'center', showGrid: true, showCorners: true, showOrbs: true, showRings: true },
-        { bgVariant: 'tunnel', layout: 'center', showGrid: false, showCorners: true, showOrbs: true, showRings: true },
-        { bgVariant: 'halo', layout: 'center', showGrid: false, showCorners: true, showOrbs: true, showRings: true }
+
+      // Tab-specific scene pools
+      const tweetScenes = [
+        { bgVariant: 'tweet', tweetMode: true, layout: 'center', showGrid: false, showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'tweet', tweetMode: true, layout: 'center', showGrid: false, showCorners: true,  showOrbs: false, showRings: false }
       ];
-      const scene = scenes[Math.floor(Math.random() * scenes.length)];
+      const toolboxScenes = [
+        { bgVariant: 'dot-matrix', layout: 'left-v',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'chart-base', layout: 'center',  showGrid: true,  showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'signal-columns', layout: 'left-v', showGrid: false, showCorners: true, showOrbs: false, showRings: false },
+        { bgVariant: 'slash-field', layout: 'left-h', showGrid: true,  showCorners: false, showOrbs: false, showRings: false }
+      ];
+      const deepDiveScenes = [
+        { bgVariant: 'chart-base',    layout: 'left-v',  showGrid: true,  showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'geo-triangle',  layout: 'left-v',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'ghost-type',    layout: 'center',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'neon-wedge',    layout: 'left-h',  showGrid: false, showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'frame-shift',   layout: 'right-v', showGrid: false, showCorners: true,  showOrbs: false, showRings: true  }
+      ];
+      const proofScenes = [
+        { bgVariant: 'split-block',     layout: 'left-h',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'geo-full-corner', layout: 'center',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'corner-burst',    layout: 'right-v', showGrid: false, showCorners: true,  showOrbs: false, showRings: false }
+      ];
+      const allScenes = [
+        { bgVariant: 'data-stream',     layout: 'left-v',  showGrid: true,  showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'signal-columns',  layout: 'right-h', showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'neon-wedge',      layout: 'left-h',  showGrid: false, showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'horizon',         layout: 'center',  showGrid: true,  showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'frame-shift',     layout: 'right-v', showGrid: false, showCorners: true,  showOrbs: false, showRings: true  },
+        { bgVariant: 'bands',           layout: 'left-v',  showGrid: true,  showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'crosslight',      layout: 'right-h', showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'diagonal',        layout: 'left-h',  showGrid: true,  showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'split',           layout: 'center',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'corner-burst',    layout: 'right-v', showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'geo-triangle',    layout: 'left-v',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'geo-full-corner', layout: 'center',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'chart-base',      layout: 'center',  showGrid: true,  showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'slash-field',     layout: 'left-h',  showGrid: true,  showCorners: false, showOrbs: false, showRings: false },
+        { bgVariant: 'dot-matrix',      layout: 'right-v', showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'split-block',     layout: 'left-h',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'ghost-type',      layout: 'center',  showGrid: false, showCorners: true,  showOrbs: false, showRings: false },
+        { bgVariant: 'orbital',         layout: 'center',  showGrid: true,  showCorners: true,  showOrbs: true,  showRings: true  },
+        { bgVariant: 'tunnel',          layout: 'center',  showGrid: false, showCorners: true,  showOrbs: true,  showRings: true  },
+        { bgVariant: 'halo',            layout: 'center',  showGrid: false, showCorners: true,  showOrbs: true,  showRings: true  }
+      ];
+
+      // Select scene pool based on current editorial tab
+      let pool;
+      if (currentEditorialTab === 'tweet-style') pool = tweetScenes;
+      else if (currentEditorialTab === 'toolbox') pool = toolboxScenes;
+      else if (currentEditorialTab === 'deep-dive') pool = deepDiveScenes;
+      else if (currentEditorialTab === 'social-proof') pool = proofScenes;
+      else pool = allScenes;
+
+      const scene = pool[Math.floor(Math.random() * pool.length)];
       const palette = schemes[Math.floor(Math.random() * schemes.length)];
-      const layout = scene.layout || layouts[Math.floor(Math.random() * layouts.length)];
       currentVisualState = {
         palette,
-        layout,
+        layout: scene.layout || 'center',
         gradClass: grads[Math.floor(Math.random() * grads.length)],
         bgVariant: scene.bgVariant,
+        tweetMode: scene.tweetMode || false,
         showGrid: scene.showGrid,
         showCorners: scene.showCorners,
         showOrbs: scene.showOrbs,
