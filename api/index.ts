@@ -514,6 +514,29 @@ function buildIntentPrompt(intent: CorePostIntent, postType: PostType): string {
   return `TIPO DE POST DE CONSCIENCIA (educacao): o objetivo e mudar percepcao e quebrar uma crenca perigosa do mercado, como confundir ROAS com lucro. ${formatNote} Ensine de forma simples, humana e provocativa, sem jargao excessivo.`;
 }
 
+function buildTabLockPrompt(editorialTab: EditorialTab): string {
+  const rules: Record<EditorialTab, string> = {
+    'erizon': 'Gere SOMENTE como aba ERIZON: foco em produto, posicionamento e clareza sobre por que a Erizon existe. Nao transforme em especialistas, mercado, anti-mito ou stories.',
+    'specialists': 'Gere SOMENTE como aba Especialistas: leitura de gestor experiente, diagnostico e analise de campanha. Nao transforme em pitch de produto, prova social ou noticia de mercado.',
+    'market': 'Gere SOMENTE como aba Mercado: interpretacao de movimento do mercado e seus impactos. Nao transforme em tutorial de especialistas, pitch da Erizon ou post de stories.',
+    'diagnostics': 'Gere SOMENTE como aba Diagnosticos: problema real, causa e consequencia. Nao transforme em noticia, tweet style ou prova social.',
+    'stories': 'Gere SOMENTE como aba Stories Interativos: linguagem de interacao, enquete, pergunta, provocacao ou resposta da audiencia. Nao transforme em deep dive, noticia ou pitch.',
+    'social-proof': 'Gere SOMENTE como aba Prova Social: caso, evidência, antes/depois, resultado ou ganho percebido. Nao transforme em anti-mito ou conteudo de mercado.',
+    'anti-myth': 'Gere SOMENTE como aba Anti-Mitos: quebrar uma crença errada do mercado. Nao transforme em noticia, prova social ou story interativo.',
+    'series': 'Gere SOMENTE como aba Series Fixas: formato serial reconhecivel e recorrente. Nao transforme em post solto sem continuidade.',
+    'uploads': 'Gere SOMENTE como aba Uploads/Feedbacks: usar o material enviado como centro do post. Nao ignore o contexto do upload.',
+    'seo-search': 'Gere SOMENTE como aba SEO Busca: responder buscas reais do Instagram com clareza semantica. Nao transforme em tweet style ou prova social.',
+    'retention': 'Gere SOMENTE como aba Retencao: foco em pausa, salvamento e continuidade. Nao transforme em conteudo raso ou institucional.',
+    'authority': 'Gere SOMENTE como aba Autoridade: posicao forte, opiniao clara e tese de mercado. Nao transforme em tutorial neutro ou prova social.',
+    'episodic': 'Gere SOMENTE como aba Episodico: parecer episodio de uma sequencia. Nao transforme em post isolado.',
+    'deep-dive': 'Gere SOMENTE como aba Deep Dive: aprofundamento real e explicacao detalhada. Nao transforme em frase curta ou post superficial.',
+    'toolbox': 'Gere SOMENTE como aba Ferramentas: checklist, framework, guia pratico ou tabela util. Nao transforme em opiniao vaga.',
+    'tweet-style': 'Gere SOMENTE como aba Tweet Style: frase curta, forte e compartilhavel. Nao transforme em carrossel disfarçado ou explicacao longa demais.'
+  };
+
+  return rules[editorialTab] || rules.erizon;
+}
+
 // ============================================================
 // AGENT CLASS
 // ============================================================
@@ -693,6 +716,7 @@ H1 e sub no CARD devem refletir o posicionamento de autoridade — H1 como manch
       };
 
       const tabPrompt = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
+      const tabLockPrompt = buildTabLockPrompt(editorialTab);
       const intent = resolveCorePostIntent(editorialTab);
       const intentPrompt = buildIntentPrompt(intent, postType);
       const freshErizonAnglesBlock = this.buildFreshErizonAnglesBlock(recentPosts, editorialTab);
@@ -724,6 +748,7 @@ ${ERIZON_DESIGN_CHIEF_CONTEXT}
 
 TIPO DE POST: ${platformHints[postType]}
 FOCO EDITORIAL: ${tabPrompt}
+TRAVA DA ABA: ${tabLockPrompt}
 INTENCAO CENTRAL: ${intentPrompt}
 ${freshErizonAnglesBlock}
 ${tabContextBlock ? `\n${tabContextBlock}\n` : ''}
@@ -756,6 +781,7 @@ REGRAS ESPECÍFICAS LINKEDIN — FORMATO EDITORIAL PREMIUM:
 11. CTA DE COMENTÁRIO: quando o post for de alta curiosidade, use "Comente IA aqui embaixo para receber [benefício] no Direct"`}
 12. A caption deve conter palavras-chave reais que gestores pesquisam no Instagram (SEO interno)
 13. Conteúdo deve gerar DECISÃO ou MUDANÇA DE COMPORTAMENTO, não apenas informar
+14. A aba selecionada é uma restrição dura. Se a aba for "${editorialTab}", o conteúdo inteiro deve parecer claramente dessa aba e não de outra
 
 REGRAS DE DENSIDADE VISUAL — O card tem 1080x1080px. Use TODO o espaço disponível:
 - sub: MÍNIMO 38 palavras, máximo 55 palavras. Desenvolva a ideia completamente com <strong> nas frases mais fortes
@@ -804,6 +830,7 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
       const tabPromptCarousel = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
+      const tabLockPrompt = buildTabLockPrompt(editorialTab);
       const intent = resolveCorePostIntent(editorialTab);
       const intentPrompt = buildIntentPrompt(intent, 'instagram-carousel');
       const freshErizonAnglesBlock = this.buildFreshErizonAnglesBlock(recentPosts, editorialTab);
@@ -821,6 +848,7 @@ ${ERIZON_INSTAGRAM_GROWTH_SYSTEM}
 ${ERIZON_DESIGN_CHIEF_CONTEXT}
 
 FOCO EDITORIAL: ${tabPromptCarousel}
+TRAVA DA ABA: ${tabLockPrompt}
 INTENCAO CENTRAL: ${intentPrompt}
 
 ${freshErizonAnglesBlock}
@@ -849,6 +877,7 @@ REGRAS POR SLIDE:
 - Use vocabulário que gestores pesquisam (SEO): CPL, ROAS, frequência, fadiga, budget, escala, margem
 - NÃO entregue texto curto demais, limpo demais ou bonito demais. Cada slide precisa ter substância suficiente para segurar leitura
 - O objetivo principal do carrossel é ganhar seguidores e salvamentos. O leitor precisa sentir "esse perfil fala o que eu estou vivendo"
+- A aba selecionada é uma restrição dura. Se a aba for "${editorialTab}", o carrossel inteiro deve parecer claramente dessa aba e não de outra
 
 RETORNE EXATAMENTE 7 SLIDES no JSON (pode ser mais, nunca menos de 7).
 CAPTION: conta a história completa com mais densidade, abre com frase de tensão, aprofunda a dor, muda percepção e termina com CTA de seguir, comentar ERIZON, comentar ANALISE ou chamar no direct. Evite CTA genérico.
@@ -1800,6 +1829,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // ============================================================
     let currentPostType = 'instagram-feed';
     let currentEditorialTab = 'erizon';
+    let lastGeneratedEditorialTab = 'erizon';
+    let lastGeneratedPostType = 'instagram-feed';
     let uploadedImageBase64 = null;
     let processedLogoUrl = null; // dataURL do logo sem fundo branco
     let currentVisualState = {
@@ -1846,7 +1877,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         h1: entry.h1 || '',
         caption: entry.caption || '',
         angle: entry.angle || stripHtml(entry.h1 || '').slice(0, 80),
-        tab: currentEditorialTab,
+        tab: entry.tab || currentEditorialTab,
         createdAt: new Date().toISOString()
       });
       savePostHistory(history);
@@ -2657,7 +2688,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         ]
       };
 
-      const profile = designChiefProfiles[currentEditorialTab] || fallbackProfile;
+      const profile = designChiefProfiles[lastGeneratedEditorialTab] || designChiefProfiles[currentEditorialTab] || fallbackProfile;
       const scene = profile.scenes[Math.floor(Math.random() * profile.scenes.length)];
       const palette = profile.palettes[Math.floor(Math.random() * profile.palettes.length)];
       currentVisualState = {
@@ -2706,18 +2737,22 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       btnGenerate.disabled = true;
 
       try {
-        const isCarousel = currentPostType === 'instagram-carousel';
+        const requestedEditorialTab = currentEditorialTab;
+        const requestedPostType = currentPostType;
+        const isCarousel = requestedPostType === 'instagram-carousel';
         const url = isCarousel ? '/api/generate-carousel' : '/api/generate';
         const data = await fetchJson(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            type: currentPostType,
+            type: requestedPostType,
             recentPosts: getPostHistory(),
-            editorialTab: currentEditorialTab,
+            editorialTab: requestedEditorialTab,
             uploadContext: document.getElementById('upload-context') ? document.getElementById('upload-context').value : ''
           })
         });
+        lastGeneratedEditorialTab = requestedEditorialTab;
+        lastGeneratedPostType = requestedPostType;
 
         if (isCarousel) {
           carouselSlides = data.slides || [];
@@ -2727,11 +2762,12 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           slideBadge.classList.remove('hidden');
           showSlide(0);
           rememberPost({
-            platform: currentPostType,
+            platform: requestedPostType,
             eyebrow: carouselSlides[0]?.eyebrow || '',
             h1: carouselSlides[0]?.h1 || '',
             caption: data.caption || '',
-            angle: stripHtml(carouselSlides[0]?.h1 || '')
+            angle: stripHtml(carouselSlides[0]?.h1 || ''),
+            tab: requestedEditorialTab
           });
         } else {
           carouselSlides = [];
@@ -2747,11 +2783,12 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           randomizeVisuals(data.h1 || '');
           applySupportModules();
           rememberPost({
-            platform: currentPostType,
+            platform: requestedPostType,
             eyebrow: data.eyebrow || '',
             h1: data.h1 || '',
             caption: data.caption || '',
-            angle: stripHtml(data.h1 || '')
+            angle: stripHtml(data.h1 || ''),
+            tab: requestedEditorialTab
           });
         }
 
