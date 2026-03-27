@@ -645,15 +645,15 @@ PROIBIDO cair em frase vaga tipo "a plataforma que sua agência precisava" sem a
     const angle = this.pickFallbackAngle(recentPosts, editorialTab);
     return {
       slides: [
-        { eyebrow: '// ERIZON', h1: 'O problema<br><span class="grad">é operativo.</span>', sub: 'Planilhas e prints <strong>travam a escala</strong> da agência.' },
-        { eyebrow: '// Fato', h1: angle.title.split(' ').slice(0, 2).join(' ') + '<br><span class="grad2">real.</span>', sub: `<strong>${angle.title}</strong> é um dos diferenciais concretos da plataforma.` },
-        { eyebrow: '// Dor', h1: 'Menos tarefas<br><span class="grad3">manuais.</span>', sub: 'O time para de montar entrega <strong>no braço</strong>.' },
-        { eyebrow: '// Plataforma', h1: 'Tudo mais<br><span class="grad">organizado.</span>', sub: 'Clientes, métricas e operação <strong>no mesmo fluxo</strong>.' },
-        { eyebrow: '// Valor', h1: 'Cliente vê<br><span class="grad2">valor.</span>', sub: 'A entrega melhora e a percepção <strong>sobe rápido</strong>.' },
-        { eyebrow: '// Escala', h1: 'Cresça sem<br><span class="grad3">caos.</span>', sub: 'A agência escala com mais previsibilidade <strong>e controle</strong>.' },
-        { eyebrow: '// CTA', h1: 'Salve esse<br><span class="grad">ângulo.</span>', sub: 'Use esse diferencial da ERIZON <strong>na próxima reunião</strong>.' }
+        { eyebrow: '// Capa', h1: 'Você escala<br><span class="grad">no escuro.</span>', sub: 'Quando a operação depende de planilhas, prints e feeling, o prejuízo cresce antes da clareza. <strong>O problema não é falta de esforço. É falta de visão.</strong>' },
+        { eyebrow: '// Problema', h1: 'O erro parece<br><span class="grad2">normal.</span>', sub: 'Campanha segue ativa, ROAS ainda respira e ninguém mexe. Enquanto isso, frequência sobe, margem aperta e o caixa sente primeiro. <strong>É assim que o prejuízo passa despercebido.</strong>' },
+        { eyebrow: '// Dor', h1: 'Seu time vira<br><span class="grad3">apagador.</span>', sub: 'Em vez de decidir com calma, a equipe corre atrás de relatório, confere número manualmente e reage tarde. <strong>Quem vive apagando incêndio não consegue crescer com consistência.</strong>' },
+        { eyebrow: '// Fato', h1: angle.title.split(' ').slice(0, 2).join(' ') + '<br><span class="grad">real.</span>', sub: `<strong>${angle.title}</strong> não é detalhe bonito de produto. É a camada que devolve contexto, velocidade e segurança para decisões que hoje custam dinheiro quando são tomadas no escuro.` },
+        { eyebrow: '// Insight', h1: 'Clareza muda<br><span class="grad2">lucro.</span>', sub: 'Quando clientes, métricas e operação ficam no mesmo fluxo, os sinais ruins aparecem antes e o time deixa de confundir movimento com resultado. <strong>Lucro melhora quando o erro aparece cedo.</strong>' },
+        { eyebrow: '// Virada', h1: 'Escalar sem<br><span class="grad3">caos.</span>', sub: 'A agência não precisa crescer carregando retrabalho junto. Precisa de estrutura para enxergar risco, agir rápido e sustentar entrega boa. <strong>Sem isso, todo crescimento vira pressão.</strong>' },
+        { eyebrow: '// CTA', h1: 'Segue a<br><span class="grad">Erizon.</span>', sub: 'Se você quer parar de perder dinheiro no escuro e começar a decidir com clareza real, <strong>segue a Erizon ou comenta ANALISE</strong> que a conversa continua no direct.' }
       ],
-      caption: `Carrossel fallback baseado em ${angle.title.toLowerCase()}.\n\n${angle.description.charAt(0).toUpperCase() + angle.description.slice(1)}.\n\nSalve para usar esse argumento na sua comunicação da ERIZON.\n\n#Erizon #AgenciaDigital #MarketingDigital`
+      caption: `Se o seu processo ainda depende de feeling, planilha e leitura superficial de ROAS, o prejuízo pode estar crescendo antes da sua percepção.\n\nEsse carrossel nasce de um ponto simples: ${angle.title.toLowerCase()} não é detalhe operacional. É o tipo de clareza que impede decisão errada, reduz desperdício e melhora lucro real.\n\nA maioria dos gestores não perde dinheiro de uma vez.\nPerde aos poucos.\nNo detalhe que passou.\nNa campanha que parecia boa.\nNa leitura incompleta que atrasou a reação.\n\nSe você quer parar de perder dinheiro no escuro, segue a Erizon.\nSe quiser entender isso no seu caso, comenta ANALISE.\n\n#Erizon #GestorDeTrafego #TrafegoPago #MetaAds #ROAS #MarketingDigital`
     };
   }
 
@@ -828,24 +828,30 @@ ${freshErizonAnglesBlock}
 HISTÓRICO RECENTE DE POSTS DA ERIZON:
 ${this.buildRecentPostsBlock(recentPosts)}
 
-ESTRUTURA DO CARROSSEL (7 a 10 slides — narrativa progressiva que prende até o fim):
+ESTRUTURA DO CARROSSEL (7 slides obrigatórios — narrativa progressiva que prende até o fim):
 - Slide 1 (CAPA/HOOK): Hook DEVASTADOR usando um dos 4 ganchos: MEDO (erro que custa dinheiro), CURIOSIDADE (o que o mercado não mostra), AUTORIDADE (o que as top agências já fazem) ou IDENTIFICAÇÃO (o que o gestor sente mas não expressa). Deve fazer parar o scroll e sentir "preciso ver isso".
-- Slides 2-3 (PROBLEMA): Aprofunda a dor com dados reais e específicos — frequência acima do limite, ROAS caindo, budget desperdiçado. Cada slide adiciona uma camada do problema. Gestor pensa "isso acontece comigo".
-- Slides 4-6 (COMO A IA RESOLVE): Passo a passo de como a Erizon detecta e resolve o problema — específico, um produto por slide (Pulse, Decision Feed, Risk Radar, Copiloto IA). Mostre a lógica por trás, não só o resultado.
-- Slide 7-8 (RESULTADO/COMPARATIVO): Antes vs Depois. Gestão manual vs Erizon AI. Use números reais ou plausíveis. Tabela comparativa se possível.
-- Slide 9-10 (CTA): Slide final com CTA claro. Prioridade: "Comente IA para receber [benefício] no Direct" OU "Salve esse carrossel — você vai precisar amanhã". Nunca termine sem uma ação específica.
+- Slide 2 (PROBLEMA): escancara o erro de leitura ou decisão que está causando prejuízo. O leitor precisa pensar "eu também faço isso".
+- Slide 3 (DOR): mostra a consequência financeira, operacional ou emocional de continuar assim. A tensão precisa subir.
+- Slide 4 (EXPLICAÇÃO): explica por que isso acontece de forma simples, humana e concreta, sem jargão exagerado.
+- Slide 5 (INSIGHT): entrega a virada de percepção. Aqui o leitor precisa sentir que aprendeu algo que muda decisão.
+- Slide 6 (SOLUÇÃO/CLAREZA): contextualiza a Erizon ou a mudança de processo como ponte entre dado e lucro real, sem pitch direto.
+- Slide 7 (CTA): conclui com próximo passo claro. Prioridade: "Segue a Erizon", "Comenta ERIZON", "Comenta ANALISE" ou "Me chama no direct".
 
 REGRAS POR SLIDE:
 - eyebrow: categoria do slide (ex: // O Problema | // A Revelação | // Como a IA Resolve | // O Comparativo | // Próximo Passo)
 - h1: MÁXIMO 5 PALAVRAS com <br> na metade e <span class='grad'> na palavra de impacto
-- sub: até 14 palavras com <strong> no trecho mais forte — linguagem humana, não corporativa
+- sub: entre 22 e 34 palavras, com pelo menos 1 frase de tensão ou identificação e <strong> no trecho mais forte — linguagem humana, não corporativa
+- cada slide deve terminar deixando um micro-loop aberto para o próximo, nunca parecer conclusão precoce
+- escreva como quem já viu gestor perder dinheiro por analisar errado, não como social media genérico
 - Narrativa progressiva com curiosidade crescente — cada slide é gancho para o próximo
 - Nunca repita hook, dor principal, promessa ou CTA dominante do histórico recente
 - Quando falar da ERIZON, escolha um fato concreto novo: gestão centralizada, relatórios Instagram, Meta Graph API, billing, dashboard da agência, economia de tempo, profissionalismo, escala sem caos, tudo em um lugar, custo-benefício, realidade brasileira, UX ou infraestrutura
 - Use vocabulário que gestores pesquisam (SEO): CPL, ROAS, frequência, fadiga, budget, escala, margem
+- NÃO entregue texto curto demais, limpo demais ou bonito demais. Cada slide precisa ter substância suficiente para segurar leitura
+- O objetivo principal do carrossel é ganhar seguidores e salvamentos. O leitor precisa sentir "esse perfil fala o que eu estou vivendo"
 
 RETORNE EXATAMENTE 7 SLIDES no JSON (pode ser mais, nunca menos de 7).
-CAPTION: conta a história completa, keywords reais de busca, CTA "Comente IA" ou "Salve para não esquecer" e hashtags.
+CAPTION: conta a história completa com mais densidade, abre com frase de tensão, aprofunda a dor, muda percepção e termina com CTA de seguir, comentar ERIZON, comentar ANALISE ou chamar no direct. Evite CTA genérico.
 
 RETORNE JSON VÁLIDO com exatamente 7 slides:
 {
