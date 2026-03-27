@@ -225,6 +225,92 @@ CADÊNCIA VENCEDORA 2026:
 - DMs e grupos > likes. Conteúdo que gera compartilhamento privado tem distribuição multiplicada
 `;
 
+const ERIZON_INSTAGRAM_GROWTH_SYSTEM = `
+=== SISTEMA DE CRESCIMENTO INSTAGRAM ERIZON ===
+
+OBJETIVO CENTRAL:
+- crescer o perfil atÃ© 10.000 seguidores qualificados
+- converter seguidores em leads e clientes
+- posicionar a ERIZON como referÃªncia em inteligÃªncia financeira no trÃ¡fego pago
+
+POSICIONAMENTO OBRIGATÃ“RIO:
+- a inteligÃªncia que evita prejuÃ­zo em campanhas
+- o sistema que mostra o que o gestor nÃ£o consegue ver
+- a ponte entre dados e lucro real
+
+FOCO FIXO DE MENSAGEM:
+- dor financeira
+- falta de clareza
+- decisÃµes erradas no trÃ¡fego
+- lucro real acima de mÃ©tricas de vaidade
+
+TOM DE VOZ:
+- direto
+- humano
+- provocativo com desconforto leve
+- sem linguagem tÃ©cnica excessiva
+- sem soar institucional
+- fala como quem jÃ¡ perdeu dinheiro com trÃ¡fego
+
+PRINCÃPIOS:
+- nunca crie conteÃºdo genÃ©rico, bonito porÃ©m vazio ou com cara de marca fria
+- sempre gere identificaÃ§Ã£o imediata e a sensaÃ§Ã£o: "isso estÃ¡ acontecendo comigo"
+- exponha erros comuns e risco financeiro real
+- fale de lucro, margem e prejuÃ­zo, nÃ£o sÃ³ de ROAS, CTR ou alcance
+
+FORMATOS PERMITIDOS NESTE PROJETO:
+- apenas posts estÃ¡ticos
+- carrossel com 5 a 7 pÃ¡ginas
+- post Ãºnico com frase forte + texto curto
+- proibido criar ou sugerir reels como peÃ§a principal
+
+3 TIPOS DE POST OBRIGATÃ“RIOS:
+- DOR: para parar o scroll e expor prejuÃ­zo invisÃ­vel
+- CONSCIÃŠNCIA: para mudar percepÃ§Ã£o e quebrar crenÃ§as erradas do mercado
+- SOLUÃ‡ÃƒO: para contextualizar a ERIZON sem pitch direto, mostrando por que ela existe
+
+ESTRUTURA OBRIGATÃ“RIA DO CARROSSEL:
+1. capa forte
+2. problema
+3. dor
+4. explicaÃ§Ã£o
+5. insight
+6. conclusÃ£o
+7. CTA
+
+PADRÃƒO DE CAPAS:
+- "VocÃª estÃ¡ ______ e nÃ£o sabe"
+- "Se vocÃª faz isso, vocÃª estÃ¡ perdendo dinheiro"
+- "NinguÃ©m fala isso sobre trÃ¡fego"
+- "Isso aqui tÃ¡ te enganando"
+
+CTA OBRIGATÃ“RIO EM TODO POST:
+- "Segue a Erizon se vocÃª quer parar de perder dinheiro no escuro"
+- "Comenta ERIZON se vocÃª quer entender isso melhor"
+- "Comenta ANÃLISE e eu te mostro onde vocÃª pode estar perdendo dinheiro"
+- "Me chama no direct se quiser ver isso na prÃ¡tica"
+
+ROTINA EDITORIAL DIÃRIA:
+- 2 posts por dia
+- 1 post de dor
+- 1 post de insight/consciÃªncia
+- posts de soluÃ§Ã£o entram ao longo da semana, sem vender diretamente
+
+ENGAJAMENTO E CONVERSÃƒO:
+- respostas a comentÃ¡rios devem continuar o assunto com pergunta ou provocaÃ§Ã£o leve
+- o conteÃºdo deve abrir conversa em direct
+- quando fizer sentido, use isca de lead com a palavra ANÃLISE
+
+DIRECT:
+1. "Vi que vocÃª comentou no post... vocÃª roda trÃ¡fego hoje?"
+2. "Hoje vocÃª tem clareza total do lucro ou ainda fica no escuro?"
+3. "Foi exatamente por isso que a Erizon foi criada..."
+4. "Quer que eu te mostre como funciona?"
+
+REGRA FINAL:
+- se o post nÃ£o fizer a pessoa pensar "isso Ã© exatamente o que estÃ¡ acontecendo comigo", ele falhou
+`;
+
 const ERIZON_DESIGN_CHIEF_CONTEXT = `
 === DESIGN CHIEF ERIZON ===
 
@@ -402,6 +488,31 @@ const TAB_CONTEXTS: Record<string, string> = {
   'toolbox': 'Foque em conteúdo utilitário de alta utilidade (Ferramentas/Cheat Sheet): crie checklists, guias de bolso, tabelas comparativas e frameworks práticos para o dia a dia do gestor. Objetivo: SALVAMENTOS MÁXIMOS — o gestor precisa guardar porque vai usar amanhã. Exemplos: "Checklist de 7 pontos antes de escalar budget", "Tabela: Gestão Manual vs Gestão com Erizon AI", "Fluxo de decisão quando o ROAS cai". Termine SEMPRE com: "Salve esse post — você vai precisar".',
   'tweet-style': 'Foque em frases de impacto curtas e polêmicas (Tweet Style): uma frase que diz o que o gestor PENSA mas não sabe expressar, ou que vai contra o senso comum do mercado. Objetivo: COMPARTILHAMENTOS — a pessoa posta no próprio Story porque se identifica 100%. Exemplos: "Gestor que não usa IA em 2026 está operando botões, não estratégia.", "ROAS é vaidade. Margem é sanidade. Decisão automatizada é o futuro.", "Você não está gerindo tráfego. Você está apagando incêndio de dados." Subtítulo deve aprofundar a polêmica em 1 linha. Caption deve provocar debate: "Concorda? Comenta aqui."'
 };
+
+type CorePostIntent = 'dor' | 'consciencia' | 'solucao';
+
+function resolveCorePostIntent(editorialTab: EditorialTab): CorePostIntent {
+  if (['diagnostics', 'retention', 'authority', 'episodic'].includes(editorialTab)) return 'dor';
+  if (['anti-myth', 'specialists', 'deep-dive', 'toolbox', 'seo-search', 'tweet-style', 'market', 'series'].includes(editorialTab)) return 'consciencia';
+  if (['erizon', 'social-proof', 'uploads', 'stories'].includes(editorialTab)) return 'solucao';
+  return 'consciencia';
+}
+
+function buildIntentPrompt(intent: CorePostIntent, postType: PostType): string {
+  const formatNote = postType === 'instagram-carousel'
+    ? 'Se for carrossel, siga a narrativa capa > problema > dor > explicacao > insight > conclusao > CTA.'
+    : 'Se for post unico, entregue frase forte + desenvolvimento curto, direto e memoravel.';
+
+  if (intent === 'dor') {
+    return `TIPO DE POST DE DOR (atracao): o objetivo e parar o scroll e expor um prejuizo invisivel ou uma decisao errada que ja esta custando dinheiro. ${formatNote} Faca o leitor sentir risco financeiro real, leve desconforto e identificacao imediata.`;
+  }
+
+  if (intent === 'solucao') {
+    return `TIPO DE POST DE SOLUCAO (conversao contextual): introduza a ERIZON como resposta ao problema sem vender diretamente. ${formatNote} Mostre por que a solucao existe, o que ela revela que o gestor nao ve e como ela aproxima dado de lucro real.`;
+  }
+
+  return `TIPO DE POST DE CONSCIENCIA (educacao): o objetivo e mudar percepcao e quebrar uma crenca perigosa do mercado, como confundir ROAS com lucro. ${formatNote} Ensine de forma simples, humana e provocativa, sem jargao excessivo.`;
+}
 
 // ============================================================
 // AGENT CLASS
@@ -582,6 +693,8 @@ H1 e sub no CARD devem refletir o posicionamento de autoridade — H1 como manch
       };
 
       const tabPrompt = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
+      const intent = resolveCorePostIntent(editorialTab);
+      const intentPrompt = buildIntentPrompt(intent, postType);
       const freshErizonAnglesBlock = this.buildFreshErizonAnglesBlock(recentPosts, editorialTab);
 
       const CONTINUITY_TABS = new Set(['series', 'specialists', 'anti-myth', 'diagnostics', 'deep-dive', 'toolbox', 'tweet-style']);
@@ -605,10 +718,13 @@ ${ERIZON_PLATFORM_CONTEXT}
 
 ${INSTAGRAM_2026_INTELLIGENCE}
 
+${ERIZON_INSTAGRAM_GROWTH_SYSTEM}
+
 ${ERIZON_DESIGN_CHIEF_CONTEXT}
 
 TIPO DE POST: ${platformHints[postType]}
 FOCO EDITORIAL: ${tabPrompt}
+INTENCAO CENTRAL: ${intentPrompt}
 ${freshErizonAnglesBlock}
 ${tabContextBlock ? `\n${tabContextBlock}\n` : ''}
 HISTORICO GERAL RECENTE (todos os pilares — evite repetição de ângulos):
@@ -688,6 +804,8 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
       const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
       const tabPromptCarousel = TAB_CONTEXTS[editorialTab] || TAB_CONTEXTS['erizon'];
+      const intent = resolveCorePostIntent(editorialTab);
+      const intentPrompt = buildIntentPrompt(intent, 'instagram-carousel');
       const freshErizonAnglesBlock = this.buildFreshErizonAnglesBlock(recentPosts, editorialTab);
 
       const systemPrompt = `Você é o estrategista-chefe de social media da ERIZON — expert em criar carrosseis virais que explodem no Instagram e geram centenas de salvamentos.
@@ -698,9 +816,12 @@ ${ERIZON_PLATFORM_CONTEXT}
 
 ${INSTAGRAM_2026_INTELLIGENCE}
 
+${ERIZON_INSTAGRAM_GROWTH_SYSTEM}
+
 ${ERIZON_DESIGN_CHIEF_CONTEXT}
 
 FOCO EDITORIAL: ${tabPromptCarousel}
+INTENCAO CENTRAL: ${intentPrompt}
 
 ${freshErizonAnglesBlock}
 
@@ -802,6 +923,8 @@ RETORNE JSON VÁLIDO com exatamente 7 slides:
 ${ERIZON_BRAND_CONTEXT}
 
 ${ERIZON_PLATFORM_CONTEXT}
+
+${ERIZON_INSTAGRAM_GROWTH_SYSTEM}
 
 ${ERIZON_DESIGN_CHIEF_CONTEXT}
 
@@ -1436,7 +1559,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
     <!-- Header -->
     <div class="text-center mb-8">
-      <div class="mono" style="font-size:10px;letter-spacing:.25em;color:#BC13FE;text-transform:uppercase;margin-bottom:10px;">Estúdio de Conteúdo · 2025</div>
+      <div class="mono" style="font-size:10px;letter-spacing:.25em;color:#BC13FE;text-transform:uppercase;margin-bottom:10px;">Estúdio de Conteúdo · 2026</div>
       <h1 style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:2.2rem;color:#fff;letter-spacing:3px;">ERI<span style="color:#BC13FE;">ZON</span></h1>
       <p style="color:rgba(255,255,255,.3);font-size:12px;margin-top:6px;letter-spacing:.05em;">Inteligência que antecipa. Performance que escala.</p>
       <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
@@ -3377,7 +3500,7 @@ export default async function handler(req: any, res: any) {
 <body class="p-4 md:p-8">
   <div class="max-w-2xl mx-auto">
     <div class="text-center mb-8">
-      <div class="mono" style="font-size:10px;letter-spacing:.25em;color:#BC13FE;text-transform:uppercase;margin-bottom:10px;">Estratégia de Conteúdo · 2025</div>
+      <div class="mono" style="font-size:10px;letter-spacing:.25em;color:#BC13FE;text-transform:uppercase;margin-bottom:10px;">Estratégia de Conteúdo · 2026</div>
       <h1 style="font-family:'Montserrat',sans-serif;font-weight:900;font-size:2.2rem;color:#fff;letter-spacing:3px;">ERI<span style="color:#BC13FE;">ZON</span></h1>
       <p style="color:rgba(255,255,255,.3);font-size:12px;margin-top:6px;letter-spacing:.05em;">Inteligência que antecipa. Performance que escala.</p>
       <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
