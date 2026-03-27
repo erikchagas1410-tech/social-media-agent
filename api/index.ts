@@ -377,6 +377,15 @@ interface CarouselContent {
   caption: string;
 }
 
+interface DirectedCreativeBrief {
+  strategicAngle: string;
+  audienceTension: string;
+  hookDirection: string;
+  visualDirection: string;
+  copyDirection: string;
+  ctaDirection: string;
+}
+
 interface PostMemoryEntry {
   platform: PostType | 'strategy';
   eyebrow: string;
@@ -680,7 +689,7 @@ PROIBIDO cair em frase vaga tipo "a plataforma que sua agência precisava" sem a
     };
   }
 
-  async generatePost(postType: PostType = 'instagram-feed', recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon', uploadContext: string = ''): Promise<PostContent> {
+  async generatePost(postType: PostType = 'instagram-feed', recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon', uploadContext: string = '', customRequest: string = '', brandBrief: DirectedCreativeBrief | null = null): Promise<PostContent> {
     try {
       if (!process.env.GROQ_API_KEY) {
         return {
@@ -730,6 +739,8 @@ H1 e sub no CARD devem refletir o posicionamento de autoridade — H1 como manch
 
       if (editorialTab === 'uploads' && uploadContext) {
         userContext = `Gere um conteúdo VIRAL baseado neste feedback/print enviado pelo usuário: "${uploadContext}". Destaque o resultado, crie um hook forte e uma prova social inquestionável. Tipo: ${postType}`;
+      } else if (customRequest.trim()) {
+        userContext = `Atenda este pedido específico do usuário sem desviar do objetivo de crescimento da ERIZON. Pedido: "${customRequest}". Tipo: ${postType}`;
       } else if (CONTINUITY_TABS.has(editorialTab) && tabContextBlock) {
         userContext = `Continue a narrativa deste pilar. Leia o histórico da série acima e crie o PRÓXIMO post — avance o raciocínio, aprofunde ou abra um novo ângulo que flua naturalmente do que já foi dito. Nunca repita títulos ou argumentos anteriores. Tipo: ${postType}`;
       }
@@ -745,6 +756,15 @@ ${INSTAGRAM_2026_INTELLIGENCE}
 ${ERIZON_INSTAGRAM_GROWTH_SYSTEM}
 
 ${ERIZON_DESIGN_CHIEF_CONTEXT}
+
+${brandBrief ? `BRIEF DO BRAND SQUAD:
+- Ângulo estratégico: ${brandBrief.strategicAngle}
+- Tensão da audiência: ${brandBrief.audienceTension}
+- Direção do hook: ${brandBrief.hookDirection}
+- Direção visual: ${brandBrief.visualDirection}
+- Direção de copy: ${brandBrief.copyDirection}
+- Direção de CTA: ${brandBrief.ctaDirection}
+` : ''}
 
 TIPO DE POST: ${platformHints[postType]}
 FOCO EDITORIAL: ${tabPrompt}
@@ -818,7 +838,7 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
     }
   }
 
-  async generateCarousel(recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon'): Promise<CarouselContent> {
+  async generateCarousel(recentPosts: PostMemoryEntry[] = [], editorialTab: EditorialTab = 'erizon', customRequest: string = '', brandBrief: DirectedCreativeBrief | null = null): Promise<CarouselContent> {
     try {
       if (!process.env.GROQ_API_KEY) {
         return {
@@ -846,6 +866,15 @@ ${INSTAGRAM_2026_INTELLIGENCE}
 ${ERIZON_INSTAGRAM_GROWTH_SYSTEM}
 
 ${ERIZON_DESIGN_CHIEF_CONTEXT}
+
+${brandBrief ? `BRIEF DO BRAND SQUAD:
+- Ângulo estratégico: ${brandBrief.strategicAngle}
+- Tensão da audiência: ${brandBrief.audienceTension}
+- Direção do hook: ${brandBrief.hookDirection}
+- Direção visual: ${brandBrief.visualDirection}
+- Direção de copy: ${brandBrief.copyDirection}
+- Direção de CTA: ${brandBrief.ctaDirection}
+` : ''}
 
 FOCO EDITORIAL: ${tabPromptCarousel}
 TRAVA DA ABA: ${tabLockPrompt}
@@ -899,7 +928,7 @@ RETORNE JSON VÁLIDO com exatamente 7 slides:
       const response = await groq.chat.completions.create({
         messages: [
           { role: 'system', content: systemPrompt },
-          { role: 'user', content: 'Crie um carrossel VIRAL e inédito para a ERIZON. Escolha um ângulo que ninguém viu. Narrativa progressiva que vicia quem desliza e aumenta a percepção de valor da plataforma.' }
+          { role: 'user', content: customRequest.trim() ? `Atenda este pedido específico do usuário sem perder a ambição de crescimento da ERIZON: "${customRequest}"` : 'Crie um carrossel VIRAL e inédito para a ERIZON. Escolha um ângulo que ninguém viu. Narrativa progressiva que vicia quem desliza e aumenta a percepção de valor da plataforma.' }
         ],
         model: 'llama-3.3-70b-versatile',
         temperature: 0.9,
@@ -1448,6 +1477,83 @@ RETORNE JSON VÁLIDO:
 // ============================================================
 // HTML TEMPLATE — ERIZON Studio UI
 // ============================================================
+async function generateBrandCreativeBrief(params: {
+  editorialTab: EditorialTab;
+  postType: PostType;
+  customRequest: string;
+}): Promise<DirectedCreativeBrief | null> {
+  try {
+    const squad = await getSquadById('brand-squad');
+    if (!squad || !process.env.GROQ_API_KEY || !params.customRequest.trim()) {
+      return null;
+    }
+
+    const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+    const response = await groq.chat.completions.create({
+      model: process.env.GROQ_SQUAD_CHAT_MODEL || 'llama-3.1-8b-instant',
+      temperature: 0.45,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content: `Você está operando como o chief do squad "${squad.shortTitle}" para orientar uma criação de conteúdo da ERIZON.
+
+DESCRIÇÃO:
+${squad.description}
+
+README:
+${(squad.readme || '').slice(0, 1200)}
+
+CHIEF:
+${(squad.chiefPrompt || '').slice(0, 1600)}
+
+MISSÃO:
+- interpretar o pedido do usuário
+- alinhar o post ao posicionamento da ERIZON
+- devolver uma direção criativa objetiva para copy e imagem
+- priorizar diferenciação, tensão, clareza e memorabilidade
+
+REGRAS:
+- foco em Instagram estático
+- pensar em crescimento orgânico, engajamento e seguidores qualificados
+- nada genérico
+- devolver somente JSON válido
+
+FORMATO:
+{
+  "strategicAngle": "tese central do post",
+  "audienceTension": "dor, fricção ou desconforto que precisa aparecer",
+  "hookDirection": "como a capa e a abertura devem prender",
+  "visualDirection": "direção visual objetiva para a imagem",
+  "copyDirection": "como a copy precisa soar e se organizar",
+  "ctaDirection": "qual CTA faz mais sentido"
+}`
+        },
+        {
+          role: 'user',
+          content: `Aba selecionada: ${params.editorialTab}
+Tipo de post: ${params.postType}
+Pedido do usuário: ${params.customRequest}`
+        }
+      ]
+    });
+
+    const raw = response.choices[0]?.message?.content || '{}';
+    const parsed = JSON.parse(raw);
+    return {
+      strategicAngle: parsed?.strategicAngle || '',
+      audienceTension: parsed?.audienceTension || '',
+      hookDirection: parsed?.hookDirection || '',
+      visualDirection: parsed?.visualDirection || '',
+      copyDirection: parsed?.copyDirection || '',
+      ctaDirection: parsed?.ctaDirection || ''
+    };
+  } catch (error) {
+    logger.warn('Falha ao gerar brief com brand-squad:', error);
+    return null;
+  }
+}
+
 const HTML_TEMPLATE = `<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -1605,27 +1711,35 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 
     <div class="panel">
 
+      <!-- Creation Mode -->
+      <div class="mb-6">
+        <span class="field-label">Modo de Criação</span>
+        <div class="flex flex-wrap gap-2" id="creation-mode-tabs">
+          <button class="tab-btn active" data-mode="automatic">Automático</button>
+          <button class="tab-btn" data-mode="directed">Pedido Específico</button>
+        </div>
+      </div>
+
       <!-- Editorial Tabs -->
       <div class="mb-6">
-        <span class="field-label">Pilar Editorial</span>
+        <span class="field-label">Direção Principal</span>
         <div class="flex flex-wrap gap-2" id="editorial-tabs">
-          <button class="tab-btn active" data-tab="erizon">ERIZON</button>
-          <button class="tab-btn" data-tab="specialists">Especialistas</button>
-          <button class="tab-btn" data-tab="market">Mercado</button>
-          <button class="tab-btn" data-tab="diagnostics">Diagnósticos</button>
-          <button class="tab-btn" data-tab="stories">Stories Interativos</button>
-          <button class="tab-btn" data-tab="social-proof">Prova Social</button>
-          <button class="tab-btn" data-tab="anti-myth">Anti-Mitos</button>
-          <button class="tab-btn" data-tab="series">Séries Fixas</button>
-          <button class="tab-btn" data-tab="seo-search">🔍 SEO Busca</button>
-          <button class="tab-btn" data-tab="retention">⏱ Retenção</button>
-          <button class="tab-btn" data-tab="authority">🎯 Autoridade</button>
-          <button class="tab-btn" data-tab="episodic">📺 Episódico</button>
-          <button class="tab-btn" data-tab="deep-dive">🧠 Deep Dive</button>
-          <button class="tab-btn" data-tab="toolbox">🛠 Ferramentas</button>
-          <button class="tab-btn" data-tab="tweet-style">💬 Tweet Style</button>
-          <button class="tab-btn upload-tab" data-tab="uploads">⇧ Uploads / Feedbacks</button>
+          <button class="tab-btn active" data-tab="erizon">Produto</button>
+          <button class="tab-btn" data-tab="retention">Seguidores</button>
+          <button class="tab-btn" data-tab="authority">Autoridade</button>
+          <button class="tab-btn" data-tab="social-proof">Conversão</button>
+          <button class="tab-btn" data-tab="stories">Relacionamento</button>
+          <button class="tab-btn upload-tab" data-tab="uploads">Uploads / Feedbacks</button>
         </div>
+      </div>
+
+      <!-- Directed Request -->
+      <div id="directed-section" class="mb-6 hidden" style="background:rgba(188,19,254,.05); border:1px dashed rgba(188,19,254,.28); border-radius:12px; padding:16px;">
+        <span class="field-label" style="color:#BC13FE;">Pedido Específico</span>
+        <textarea id="custom-request" rows="4" class="field mb-3" placeholder="Ex: quero um carrossel mostrando que ROAS alto não significa lucro, com tom provocativo para ganhar seguidores de gestores de tráfego."></textarea>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:rgba(255,255,255,.72);font-size:13px;">
+          <input type="checkbox" id="use-brand-squad" checked> Usar direção do Brand Squad para refinar copy e imagem
+        </label>
       </div>
 
       <!-- Upload Section -->
@@ -1829,6 +1943,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // ============================================================
     let currentPostType = 'instagram-feed';
     let currentEditorialTab = 'erizon';
+    let currentCreationMode = 'automatic';
     let lastGeneratedEditorialTab = 'erizon';
     let lastGeneratedPostType = 'instagram-feed';
     let uploadedImageBase64 = null;
@@ -2009,6 +2124,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     const scheduleInput = document.getElementById('schedule-datetime');
     const scheduleFeedback = document.getElementById('schedule-feedback');
     const scheduleList = document.getElementById('schedule-list');
+    const directedSection = document.getElementById('directed-section');
+    const customRequestInput = document.getElementById('custom-request');
+    const useBrandSquadCheckbox = document.getElementById('use-brand-squad');
     const btnAutomationToggle = document.getElementById('btn-automation-toggle');
     const automationStateLabel = document.getElementById('automation-state-label');
     const squadList = document.getElementById('squad-list');
@@ -2026,8 +2144,24 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     const btnDownloadArtifact = document.getElementById('btn-download-artifact');
 
     // ============================================================
-    // EDITORIAL TABS & UPLOAD
+    // CREATION MODE / EDITORIAL TABS / UPLOAD
     // ============================================================
+    function applyCreationMode(mode) {
+      currentCreationMode = mode;
+      directedSection.classList.toggle('hidden', mode !== 'directed');
+      if (mode !== 'directed') {
+        customRequestInput.value = '';
+      }
+    }
+
+    document.getElementById('creation-mode-tabs').addEventListener('click', e => {
+      const btn = e.target.closest('[data-mode]');
+      if (!btn) return;
+      document.querySelectorAll('#creation-mode-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      applyCreationMode(btn.dataset.mode);
+    });
+
     document.getElementById('editorial-tabs').addEventListener('click', e => {
       const btn = e.target.closest('.tab-btn');
       if (!btn) return;
@@ -2225,7 +2359,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     async function loadSquads() {
       const data = await fetchJson('/api/squads');
       squadCatalog = data.items || [];
-      activeSquadId = activeSquadId || squadCatalog[0]?.id || '';
+      activeSquadId = activeSquadId || (squadCatalog.find(squad => squad.id === 'brand-squad') || squadCatalog[0] || {}).id || '';
       renderSquadList();
       renderSquadChat();
     }
@@ -2739,6 +2873,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       try {
         const requestedEditorialTab = currentEditorialTab;
         const requestedPostType = currentPostType;
+        const requestedCustomRequest = currentCreationMode === 'directed' ? (customRequestInput.value || '').trim() : '';
+        const requestedUseBrandSquad = currentCreationMode === 'directed' && !!useBrandSquadCheckbox.checked && !!requestedCustomRequest;
         const isCarousel = requestedPostType === 'instagram-carousel';
         const url = isCarousel ? '/api/generate-carousel' : '/api/generate';
         const data = await fetchJson(url, {
@@ -2748,7 +2884,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
             type: requestedPostType,
             recentPosts: getPostHistory(),
             editorialTab: requestedEditorialTab,
-            uploadContext: document.getElementById('upload-context') ? document.getElementById('upload-context').value : ''
+            uploadContext: document.getElementById('upload-context') ? document.getElementById('upload-context').value : '',
+            customRequest: requestedCustomRequest,
+            useBrandSquad: requestedUseBrandSquad
           })
         });
         lastGeneratedEditorialTab = requestedEditorialTab;
@@ -3639,12 +3777,14 @@ export default async function handler(req: any, res: any) {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
       if (url.pathname === '/api/generate') {
-        const { type, recentPosts, editorialTab, uploadContext } = body;
-        const content = await agent.generatePost(type, recentPosts, editorialTab, uploadContext);
+        const { type, recentPosts, editorialTab, uploadContext, customRequest, useBrandSquad } = body;
+        const brandBrief = useBrandSquad ? await generateBrandCreativeBrief({ editorialTab, postType: type, customRequest: customRequest || '' }) : null;
+        const content = await agent.generatePost(type, recentPosts, editorialTab, uploadContext, customRequest || '', brandBrief);
         res.status(200).json(content);
       } else if (url.pathname === '/api/generate-carousel') {
-        const { recentPosts, editorialTab } = body;
-        const content = await agent.generateCarousel(recentPosts, editorialTab);
+        const { recentPosts, editorialTab, customRequest, useBrandSquad } = body;
+        const brandBrief = useBrandSquad ? await generateBrandCreativeBrief({ editorialTab, postType: 'instagram-carousel', customRequest: customRequest || '' }) : null;
+        const content = await agent.generateCarousel(recentPosts, editorialTab, customRequest || '', brandBrief);
         res.status(200).json(content);
       } else if (url.pathname === '/api/publish') {
         const { content, imageBase64, platforms } = body;
