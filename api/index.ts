@@ -900,9 +900,9 @@ Retorne JSON válido neste formato:
     return results;
   }
 
-  private async waitForInstagramMediaReady(creationId: string, token: string): Promise<void> {
-    for (let i = 0; i < 15; i++) {
-      await new Promise(r => setTimeout(r, 3000)); // Espera 3 segundos
+  private async waitForInstagramMediaReady(creationId: string, token: string, maxAttempts = 15, intervalMs = 3000): Promise<void> {
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(r => setTimeout(r, intervalMs));
       const res = await fetch(`https://graph.facebook.com/v21.0/${creationId}?fields=status_code&access_token=${token}`);
       if (res.ok) {
         const data = await res.json() as any;
@@ -931,9 +931,8 @@ Retorne JSON válido neste formato:
     const token = process.env.INSTAGRAM_ACCESS_TOKEN;
     const accountId = process.env.INSTAGRAM_ACCOUNT_ID;
 
-    // 1. Cria containers para cada slide
-    const childIds: string[] = [];
-    for (const imageUrl of imageUrls) {
+    // 1. Cria todos os containers de slides em paralelo e aguarda todos prontos simultaneamente
+    const slideContainerIds = await Promise.all(imageUrls.map(async (imageUrl) => {
       const res = await fetch(`https://graph.facebook.com/v21.0/${accountId}/media`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -941,9 +940,10 @@ Retorne JSON válido neste formato:
       });
       if (!res.ok) throw new Error(`Erro ao criar slide: ${await res.text()}`);
       const data = await res.json() as any;
-      await this.waitForInstagramMediaReady(data.id, token);
-      childIds.push(data.id);
-    }
+      await this.waitForInstagramMediaReady(data.id, token, 6, 2000); // max 12s por slide, em paralelo
+      return data.id as string;
+    }));
+    const childIds = slideContainerIds;
 
     // 2. Cria container do carrossel
     const carouselRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/media`, {
@@ -959,7 +959,7 @@ Retorne JSON válido neste formato:
     if (!carouselRes.ok) throw new Error(`Erro ao criar carrossel: ${await carouselRes.text()}`);
     const carouselData = await carouselRes.json() as any;
 
-    await this.waitForInstagramMediaReady(carouselData.id, token);
+    await this.waitForInstagramMediaReady(carouselData.id, token, 8, 3000); // container: max 24s
 
     // 3. Publica
     const publishRes = await fetch(`https://graph.facebook.com/v21.0/${accountId}/media_publish`, {
@@ -3584,9 +3584,6 @@ export default async function handler(req: any, res: any) {
   }
 }
 
-async function uploadImageToCloud(base64Data: string): Promise<string> {
-  return uploadImageToCloudForPlatform(base64Data, 'generic');
-}
 
 const SCHEDULE_STORE_PATH = path.resolve(__dirname, '../data/scheduled-posts.json');
 const SCHEDULE_BLOB_PATHNAME = 'erizon-scheduled-posts.json';
