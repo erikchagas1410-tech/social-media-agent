@@ -4228,7 +4228,7 @@ export default async function handler(req: any, res: any) {
   const agent = new SocialMediaAgent();
   const url = new URL(req.url, `http://${req.headers.host}`);
 
-  if (req.method === 'GET' && url.pathname === '/api/strategy') {
+  if (req.method === 'GET' && (url.pathname === '/api/strategy' || url.pathname === '/strategy')) {
     try {
       const strategy = await agent.generateStrategy();
       const html = `<!DOCTYPE html>
@@ -4300,7 +4300,7 @@ export default async function handler(req: any, res: any) {
   }
 
   // ---- GROWTH OS ROUTES ----
-  if (req.method === 'GET' && url.pathname === '/api/growth-metrics') {
+  if (req.method === 'GET' && (url.pathname === '/api/growth-metrics' || url.pathname === '/growth-metrics')) {
     try {
       const [igData, snapshots, scheduled] = await Promise.all([
         fetchInstagramAccountMetrics(),
@@ -4323,7 +4323,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  if (req.method === 'GET' && url.pathname === '/api/growth') {
+  if (req.method === 'GET' && (url.pathname === '/api/growth' || url.pathname === '/growth')) {
     try {
       const [igData, snapshots, scheduled] = await Promise.all([
         fetchInstagramAccountMetrics().catch(() => ({
@@ -4350,7 +4350,7 @@ export default async function handler(req: any, res: any) {
     return;
   }
 
-  if (req.method === 'POST' && url.pathname === '/api/growth-ideas') {
+  if (req.method === 'POST' && (url.pathname === '/api/growth-ideas' || url.pathname === '/growth-ideas')) {
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
       const count = Math.min(12, Math.max(1, Number(body?.count) || 6));
