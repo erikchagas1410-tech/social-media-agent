@@ -1706,6 +1706,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
         <a href="/" class="btn-nav" style="text-decoration:none;">Estúdio</a>
         <a href="/strategy" class="btn-nav" style="text-decoration:none;">Estratégia</a>
+        <a href="/growth" class="btn-nav" style="text-decoration:none;background:rgba(0,242,255,.08);border-color:rgba(0,242,255,.3);color:#00F2FF;">Growth OS</a>
       </div>
     </div>
 
@@ -3652,6 +3653,577 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
 // ============================================================
 // VERCEL HANDLER
 // ============================================================
+// ============================================================
+// GROWTH OS — tipos, funções e helpers
+// ============================================================
+interface GrowthSnapshot {
+  date: string;        // ISO date string YYYY-MM-DD
+  followers: number;
+}
+
+interface InstagramMediaItem {
+  id: string;
+  timestamp: string;
+  media_type: string;
+  like_count: number;
+  comments_count: number;
+  permalink: string;
+}
+
+const GROWTH_SNAPSHOTS_BLOB = 'erizon-growth-snapshots.json';
+const GROWTH_TARGET = 10000;
+
+async function readGrowthSnapshots(): Promise<GrowthSnapshot[]> {
+  const blobToken = getBlobToken();
+  if (blobToken) {
+    try {
+      const data = await readJsonBlobByPathname(GROWTH_SNAPSHOTS_BLOB, blobToken);
+      if (Array.isArray(data)) return data;
+    } catch { /* fallback */ }
+  }
+  const localPath = path.resolve(__dirname, '../data/growth-snapshots.json');
+  if (fs.existsSync(localPath)) {
+    try { return JSON.parse(fs.readFileSync(localPath, 'utf-8')); } catch { /* ignore */ }
+  }
+  return [];
+}
+
+async function saveGrowthSnapshot(followers: number): Promise<void> {
+  const snapshots = await readGrowthSnapshots();
+  const today = new Date().toISOString().slice(0, 10);
+  const exists = snapshots.find(s => s.date === today);
+  if (!exists) {
+    snapshots.push({ date: today, followers });
+    const blobToken = getBlobToken();
+    if (blobToken) {
+      await writeJsonBlob(GROWTH_SNAPSHOTS_BLOB, snapshots, blobToken);
+    } else {
+      const localPath = path.resolve(__dirname, '../data/growth-snapshots.json');
+      fs.writeFileSync(localPath, JSON.stringify(snapshots, null, 2));
+    }
+  }
+}
+
+async function fetchInstagramAccountMetrics(): Promise<{
+  account: { username: string; followers_count: number; media_count: number };
+  media: InstagramMediaItem[];
+}> {
+  const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+  const accountId = process.env.INSTAGRAM_ACCOUNT_ID;
+  if (!token || !accountId) throw new Error('INSTAGRAM_ACCESS_TOKEN ou INSTAGRAM_ACCOUNT_ID não configurado.');
+
+  const accountRes = await fetch(
+    `https://graph.facebook.com/v21.0/${accountId}?fields=followers_count,media_count,username&access_token=${token}`
+  );
+  if (!accountRes.ok) throw new Error(`Meta API erro: ${accountRes.status}`);
+  const account = await accountRes.json() as any;
+
+  const mediaRes = await fetch(
+    `https://graph.facebook.com/v21.0/${accountId}/media?fields=id,timestamp,media_type,like_count,comments_count,permalink&limit=12&access_token=${token}`
+  );
+  const mediaData = mediaRes.ok ? await mediaRes.json() as any : { data: [] };
+
+  return { account, media: mediaData.data || [] };
+}
+
+async function generateGrowthIdeas(count: number = 6): Promise<any[]> {
+  if (!process.env.GROQ_API_KEY) return [];
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const squadIds = ['copy-squad', 'hormozi-squad', 'storytelling'];
+  const squadData: string[] = [];
+  for (const id of squadIds) {
+    const s = await getSquadById(id);
+    if (s) squadData.push(`${s.shortTitle}: ${s.description}\n${(s.chiefPrompt || '').slice(0, 600)}`);
+  }
+  const systemPrompt = `Você é um conselho de especialistas em crescimento no Instagram 2026, composto por:
+${squadData.join('\n\n---\n\n')}
+
+Seu único objetivo é ajudar a ERIZON AI a crescer de 7 para 10.000 seguidores em 3 meses.
+ERIZON = plataforma SaaS de inteligência para Meta Ads — gestores de tráfego, agências de performance.
+Tom: técnico, direto, confiante. Paleta: roxo elétrico, preto profundo, teal.`;
+
+  const userPrompt = `Gere exatamente ${count} ideias de conteúdo para Instagram. Varie entre: Reel, Carousel, Feed.
+Pilares: Case Study (40%), Dica Técnica (25%), Problema/Solução (20%), Bastidores (15%).
+Priorize hooks de 3 segundos que param o scroll. Foco em saves e compartilhamentos.
+
+Responda APENAS com JSON válido (sem markdown):
+[
+  {
+    "id": 1,
+    "title": "Título curto",
+    "type": "reel|carousel|feed",
+    "pillar": "case_study|dica|problema_solucao|bastidores",
+    "hook": "Primeira frase que prende em 3 segundos",
+    "description": "O que mostrar/falar no conteúdo (2-3 linhas)",
+    "cta": "Call to action final",
+    "squad": "qual squad gerou essa ideia",
+    "score": 8.5
+  }
+]`;
+
+  const res = await groq.chat.completions.create({
+    model: process.env.GROQ_SQUAD_CHAT_MODEL || 'llama-3.1-8b-instant',
+    temperature: 0.7,
+    messages: [{ role: 'system', content: systemPrompt }, { role: 'user', content: userPrompt }]
+  });
+  const raw = res.choices[0]?.message?.content || '[]';
+  try {
+    const start = raw.indexOf('[');
+    const end = raw.lastIndexOf(']');
+    return start !== -1 && end !== -1 ? JSON.parse(raw.slice(start, end + 1)) : [];
+  } catch { return []; }
+}
+
+function buildGrowthDashboardHtml(metrics: {
+  followers: number;
+  mediaCount: number;
+  username: string;
+  media: InstagramMediaItem[];
+  snapshots: GrowthSnapshot[];
+  scheduled: any[];
+}): string {
+  const { followers, mediaCount, username, media, snapshots, scheduled } = metrics;
+  const progress = Math.min(100, Math.round((followers / GROWTH_TARGET) * 100));
+  const remaining = Math.max(0, GROWTH_TARGET - followers);
+
+  // Calcular engagement rate médio dos últimos posts
+  const totalEngagement = media.reduce((sum, m) => sum + (m.like_count || 0) + (m.comments_count || 0), 0);
+  const avgEngagement = media.length > 0 ? (totalEngagement / media.length).toFixed(1) : '0';
+
+  // Snapshots para o chart (últimos 30 dias + projeção)
+  const last30 = snapshots.slice(-30);
+  const snapshotLabels = JSON.stringify(last30.map(s => s.date.slice(5)));
+  const snapshotValues = JSON.stringify(last30.map(s => s.followers));
+
+  // Projeção simples: crescimento necessário diário para bater 10k em 90 dias a partir do hoje
+  const startDate = new Date();
+  const endDate = new Date();
+  endDate.setDate(endDate.getDate() + 90);
+  const startFollowers = last30.length > 0 ? last30[0].followers : followers;
+  const projectionLabels: string[] = [];
+  const projectionValues: number[] = [];
+  const dailyNeeded = (GROWTH_TARGET - startFollowers) / 90;
+  for (let i = 0; i <= 30; i += 5) {
+    const d = new Date(startDate);
+    d.setDate(d.getDate() + i);
+    projectionLabels.push(d.toISOString().slice(5, 10));
+    projectionValues.push(Math.round(Math.min(GROWTH_TARGET, followers + dailyNeeded * i)));
+  }
+
+  // Post type distribution
+  const reels = media.filter(m => m.media_type === 'VIDEO').length;
+  const carousels = media.filter(m => m.media_type === 'CAROUSEL_ALBUM').length;
+  const images = media.filter(m => m.media_type === 'IMAGE').length;
+
+  const typeDistJson = JSON.stringify([reels, carousels, images]);
+
+  // Próximos agendamentos
+  const upcomingScheduled = scheduled
+    .filter(s => s.status === 'scheduled' && new Date(s.scheduledAt) > new Date())
+    .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+    .slice(0, 5);
+
+  return `<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ERIZON · Growth OS · 10k</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    *{box-sizing:border-box;}
+    body{background:#080010;font-family:'Plus Jakarta Sans',sans-serif;color:#fff;min-height:100vh;}
+    .mono{font-family:'JetBrains Mono',monospace;}
+    .syne{font-family:'Syne',sans-serif;}
+    .grad{background:linear-gradient(135deg,#BC13FE,#FF00E5);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;}
+    .panel{background:rgba(255,255,255,.025);border:0.5px solid rgba(188,19,254,.2);border-radius:16px;padding:20px;}
+    .panel-cyan{border-color:rgba(0,242,255,.25);}
+    .btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;font-weight:600;transition:all .2s;border:none;letter-spacing:.04em;}
+    .btn-primary{background:linear-gradient(135deg,#BC13FE,#FF00E5);color:#fff;}
+    .btn-primary:hover{opacity:.85;transform:translateY(-1px);}
+    .btn-nav{background:rgba(188,19,254,.1);border:0.5px solid rgba(188,19,254,.3);color:#BC13FE;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:'JetBrains Mono',monospace;font-size:12px;transition:all .2s;text-decoration:none;display:inline-block;}
+    .btn-nav:hover{background:rgba(188,19,254,.22);}
+    .btn-nav.active{background:rgba(188,19,254,.25);border-color:#BC13FE;}
+    .btn-outline{background:transparent;border:0.5px solid rgba(188,19,254,.4);color:#BC13FE;}
+    .btn-outline:hover{background:rgba(188,19,254,.1);}
+    .chip{display:inline-block;padding:2px 8px;border-radius:20px;font-size:10px;font-family:'JetBrains Mono',monospace;font-weight:600;letter-spacing:.05em;}
+    .chip-purple{background:rgba(188,19,254,.2);color:#BC13FE;border:0.5px solid rgba(188,19,254,.4);}
+    .chip-cyan{background:rgba(0,242,255,.15);color:#00F2FF;border:0.5px solid rgba(0,242,255,.35);}
+    .chip-green{background:rgba(0,255,136,.15);color:#00ff88;border:0.5px solid rgba(0,255,136,.35);}
+    .chip-pink{background:rgba(255,0,229,.15);color:#FF00E5;border:0.5px solid rgba(255,0,229,.35);}
+    .metric-card{background:rgba(255,255,255,.025);border:0.5px solid rgba(255,255,255,.08);border-radius:12px;padding:16px 20px;display:flex;flex-direction:column;gap:4px;}
+    .label{font-family:'JetBrains Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:rgba(255,255,255,.35);}
+    .value{font-family:'Syne',sans-serif;font-size:2rem;font-weight:800;line-height:1;}
+    .sub{font-size:11px;color:rgba(255,255,255,.35);}
+    .progress-track{background:rgba(255,255,255,.07);border-radius:999px;height:10px;overflow:hidden;}
+    .progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#BC13FE,#FF00E5);transition:width 1s ease;}
+    .idea-card{background:rgba(255,255,255,.03);border:0.5px solid rgba(188,19,254,.15);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .2s;}
+    .idea-card:hover{border-color:rgba(188,19,254,.45);background:rgba(188,19,254,.06);}
+    .squad-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:11px;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5);}
+    .squad-pill:hover,.squad-pill.active{background:rgba(188,19,254,.12);border-color:rgba(188,19,254,.4);color:#BC13FE;}
+    .sched-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.025);border:0.5px solid rgba(255,255,255,.07);}
+    .spinner{display:inline-block;width:16px;height:16px;border:2px solid rgba(188,19,254,.3);border-top-color:#BC13FE;border-radius:50%;animation:spin .7s linear infinite;}
+    @keyframes spin{to{transform:rotate(360deg);}}
+    .fade-in{animation:fadeIn .4s ease;}
+    @keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:none;}}
+    ::-webkit-scrollbar{width:4px;} ::-webkit-scrollbar-track{background:transparent;} ::-webkit-scrollbar-thumb{background:rgba(188,19,254,.3);border-radius:2px;}
+  </style>
+</head>
+<body>
+
+<div style="max-width:1100px;margin:0 auto;padding:24px 16px;">
+
+  <!-- HEADER -->
+  <div style="text-align:center;margin-bottom:28px;">
+    <div class="mono" style="font-size:9px;letter-spacing:.3em;color:#BC13FE;text-transform:uppercase;margin-bottom:8px;">Growth OS · Missão 10k</div>
+    <h1 class="syne" style="font-size:2.4rem;font-weight:900;letter-spacing:3px;margin:0;">ERI<span class="grad">ZON</span></h1>
+    <p style="color:rgba(255,255,255,.3);font-size:11px;margin:6px 0 16px;letter-spacing:.05em;">@${username || 'erizon.ai'} · Inteligência que antecipa. Performance que escala.</p>
+    <div style="display:flex;justify-content:center;gap:8px;flex-wrap:wrap;">
+      <a href="/" class="btn-nav">Estúdio</a>
+      <a href="/strategy" class="btn-nav">Estratégia</a>
+      <a href="/growth" class="btn-nav active">Growth OS</a>
+    </div>
+  </div>
+
+  <!-- 10K TRACKER -->
+  <div class="panel" style="margin-bottom:16px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+      <div>
+        <div class="label">Missão</div>
+        <div class="syne" style="font-size:1.4rem;font-weight:800;">0 → 10.000 seguidores <span style="color:#00F2FF">em 90 dias</span></div>
+      </div>
+      <div style="text-align:right;">
+        <div class="label">Progresso atual</div>
+        <div class="syne grad" style="font-size:2rem;font-weight:900;">${progress}%</div>
+      </div>
+    </div>
+    <div class="progress-track" style="margin-bottom:10px;">
+      <div class="progress-fill" style="width:${progress}%"></div>
+    </div>
+    <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,.3);">
+      <span class="mono">${followers.toLocaleString('pt-BR')} seguidores atuais</span>
+      <span class="mono">${remaining.toLocaleString('pt-BR')} para a meta</span>
+      <span class="mono">10.000 🎯</span>
+    </div>
+  </div>
+
+  <!-- MÉTRICAS GRID -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:16px;">
+    <div class="metric-card">
+      <div class="label">Seguidores</div>
+      <div class="value grad">${followers.toLocaleString('pt-BR')}</div>
+      <div class="sub">Meta: 10.000</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Posts publicados</div>
+      <div class="value" style="color:#00F2FF;">${mediaCount}</div>
+      <div class="sub">conta total</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Eng. médio / post</div>
+      <div class="value" style="color:#FF00E5;">${avgEngagement}</div>
+      <div class="sub">likes + comentários</div>
+    </div>
+    <div class="metric-card">
+      <div class="label">Precisam/dia</div>
+      <div class="value" style="color:#00ff88;">${Math.ceil(dailyNeeded)}</div>
+      <div class="sub">novos seguidores</div>
+    </div>
+  </div>
+
+  <!-- CHARTS ROW -->
+  <div style="display:grid;grid-template-columns:2fr 1fr;gap:12px;margin-bottom:16px;">
+    <!-- Crescimento chart -->
+    <div class="panel panel-cyan">
+      <div class="label" style="margin-bottom:12px;">Crescimento de Seguidores + Projeção 10k</div>
+      <canvas id="growthChart" height="140"></canvas>
+    </div>
+    <!-- Post types -->
+    <div class="panel">
+      <div class="label" style="margin-bottom:12px;">Tipos de post (últimos 12)</div>
+      <canvas id="typeChart" height="140"></canvas>
+      <div style="display:flex;flex-direction:column;gap:6px;margin-top:14px;">
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#BC13FE;">● Reels/Vídeo</span><span class="mono">${reels}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#00F2FF;">● Carousel</span><span class="mono">${carousels}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#FF00E5;">● Imagem</span><span class="mono">${images}</span></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- POSTS RECENTES -->
+  <div class="panel" style="margin-bottom:16px;">
+    <div class="label" style="margin-bottom:14px;">Últimos Posts · Performance</div>
+    ${media.length === 0 ? '<p style="color:rgba(255,255,255,.3);font-size:13px;">Nenhum post encontrado. Publique o primeiro post pelo Estúdio!</p>' :
+      `<div style="display:flex;flex-direction:column;gap:6px;">
+        ${media.map(m => {
+          const eng = (m.like_count || 0) + (m.comments_count || 0);
+          const date = new Date(m.timestamp).toLocaleDateString('pt-BR', { day:'2-digit', month:'short' });
+          const typeLabel = m.media_type === 'VIDEO' ? 'Reel' : m.media_type === 'CAROUSEL_ALBUM' ? 'Carousel' : 'Feed';
+          const typeChip = m.media_type === 'VIDEO' ? 'chip-purple' : m.media_type === 'CAROUSEL_ALBUM' ? 'chip-cyan' : 'chip-pink';
+          return `<div style="display:flex;align-items:center;gap:12px;padding:10px 14px;background:rgba(255,255,255,.025);border-radius:8px;border:0.5px solid rgba(255,255,255,.07);">
+            <span class="chip ${typeChip}">${typeLabel}</span>
+            <span class="mono" style="font-size:11px;color:rgba(255,255,255,.35);min-width:52px;">${date}</span>
+            <a href="${m.permalink}" target="_blank" style="font-size:12px;color:rgba(255,255,255,.6);flex:1;text-decoration:none;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${m.permalink.replace('https://www.instagram.com/p/', 'post/')}</a>
+            <span style="font-size:12px;color:rgba(255,255,255,.4);">❤️ ${m.like_count || 0}</span>
+            <span style="font-size:12px;color:rgba(255,255,255,.4);">💬 ${m.comments_count || 0}</span>
+            <span class="mono chip ${eng >= 10 ? 'chip-green' : 'chip-purple'}">${eng} eng</span>
+          </div>`;
+        }).join('')}
+      </div>`
+    }
+  </div>
+
+  <!-- IDEAS + SQUAD ROW -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+
+    <!-- GERADOR DE IDEIAS -->
+    <div class="panel">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+        <div class="label">Ideias de Conteúdo · IA + Squads</div>
+        <button class="btn btn-primary" onclick="generateIdeas()" id="ideaBtn">
+          <span id="ideaBtnTxt">✦ Gerar Ideias</span>
+        </button>
+      </div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+        <span class="chip chip-purple">copy-squad</span>
+        <span class="chip chip-cyan">hormozi</span>
+        <span class="chip chip-pink">storytelling</span>
+        <span class="chip" style="background:rgba(0,255,136,.1);color:#00ff88;border:0.5px solid rgba(0,255,136,.3);">traffic-masters</span>
+      </div>
+      <div id="ideasList" style="display:flex;flex-direction:column;gap:8px;">
+        <p style="color:rgba(255,255,255,.25);font-size:12px;font-style:italic;">Clique em "Gerar Ideias" para o conselho de especialistas criar conteúdos para você.</p>
+      </div>
+    </div>
+
+    <!-- SQUAD ADVISOR -->
+    <div class="panel">
+      <div class="label" style="margin-bottom:12px;">Squad Advisor · Estratégia de Crescimento</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:12px;" id="squadPills">
+        <span class="squad-pill active" data-id="copy-squad" onclick="selectSquad(this,'copy-squad')">✍️ Copy Squad</span>
+        <span class="squad-pill" data-id="hormozi-squad" onclick="selectSquad(this,'hormozi-squad')">💰 Hormozi</span>
+        <span class="squad-pill" data-id="storytelling" onclick="selectSquad(this,'storytelling')">📖 Storytelling</span>
+        <span class="squad-pill" data-id="traffic-masters" onclick="selectSquad(this,'traffic-masters')">🎯 Traffic Masters</span>
+        <span class="squad-pill" data-id="brand-squad" onclick="selectSquad(this,'brand-squad')">🔮 Brand Squad</span>
+        <span class="squad-pill" data-id="advisory-board" onclick="selectSquad(this,'advisory-board')">🧠 Advisory Board</span>
+      </div>
+      <div id="advisorChat" style="height:180px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;margin-bottom:10px;padding-right:4px;"></div>
+      <div style="display:flex;gap:8px;">
+        <input id="advisorInput" type="text" placeholder="Pergunte ao squad sobre crescimento no Instagram..."
+          style="flex:1;background:rgba(255,255,255,.05);border:0.5px solid rgba(188,19,254,.25);border-radius:8px;padding:8px 12px;color:#fff;font-size:12px;outline:none;font-family:'Plus Jakarta Sans',sans-serif;"
+          onkeydown="if(event.key==='Enter')sendAdvisor()">
+        <button class="btn btn-primary" onclick="sendAdvisor()" style="white-space:nowrap;">Enviar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CALENDÁRIO DE AGENDAMENTOS -->
+  <div class="panel" style="margin-bottom:24px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+      <div class="label">Próximas Publicações Agendadas</div>
+      <a href="/" class="btn btn-outline" style="font-size:11px;text-decoration:none;">+ Agendar Post</a>
+    </div>
+    ${upcomingScheduled.length === 0 ? '<p style="color:rgba(255,255,255,.25);font-size:12px;">Nenhum post agendado. Vá ao Estúdio e agende seus próximos posts!</p>' :
+      `<div style="display:flex;flex-direction:column;gap:6px;">
+        ${upcomingScheduled.map(s => {
+          const d = new Date(s.scheduledAt);
+          const label = d.toLocaleDateString('pt-BR', { weekday: 'short', day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' });
+          const platforms = (s.platforms || []).join(', ');
+          return `<div class="sched-item">
+            <span class="mono" style="font-size:10px;color:#00F2FF;min-width:140px;">${label}</span>
+            <span class="chip chip-purple">${s.postType || 'post'}</span>
+            <span style="font-size:12px;color:rgba(255,255,255,.5);flex:1;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">${(s.caption || '').slice(0, 60)}...</span>
+            <span style="font-size:11px;color:rgba(255,255,255,.3);">${platforms}</span>
+          </div>`;
+        }).join('')}
+      </div>`
+    }
+  </div>
+
+  <!-- PLANO 90 DIAS -->
+  <div class="panel" style="margin-bottom:24px;border-color:rgba(0,242,255,.2);">
+    <div class="label" style="margin-bottom:14px;color:#00F2FF;">Plano de 90 Dias · Roadmap para 10k</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;">
+      <div>
+        <div class="mono" style="font-size:10px;color:#BC13FE;margin-bottom:8px;">// MÊS 1 — Fundação</div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px;">
+          ${['Definir calendário editorial (4x/semana)', 'Ativar agendamento automático', 'Publicar primeiros Reels com hook forte', 'Responder TODOS comentários em &lt;1h', 'Engajar 10 contas/dia no nicho', 'Meta: +200 seguidores'].map(t => `<li style="font-size:11px;color:rgba(255,255,255,.55);display:flex;gap:6px;"><span style="color:#BC13FE;">›</span>${t}</li>`).join('')}
+        </ul>
+      </div>
+      <div>
+        <div class="mono" style="font-size:10px;color:#00F2FF;margin-bottom:8px;">// MÊS 2 — Aceleração</div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px;">
+          ${['Series de conteúdo (7-part topics)', 'Testar colaborações no nicho', 'A/B em hooks (2 versões/semana)', 'Aumentar para 5 posts/semana', 'Live ou Q&amp;A Instagram', 'Meta: +500 seguidores'].map(t => `<li style="font-size:11px;color:rgba(255,255,255,.55);display:flex;gap:6px;"><span style="color:#00F2FF;">›</span>${t}</li>`).join('')}
+        </ul>
+      </div>
+      <div>
+        <div class="mono" style="font-size:10px;color:#00ff88;margin-bottom:8px;">// MÊS 3 — Explosão</div>
+        <ul style="list-style:none;padding:0;margin:0;display:flex;flex-direction:column;gap:5px;">
+          ${['Pico de frequência: 6-7x/semana', 'Reel viral focado em saves', 'UGC e repostes de seguidores', 'Link tree com CTA claro', 'Email/WhatsApp list building', 'Meta: 10.000 seguidores 🎉'].map(t => `<li style="font-size:11px;color:rgba(255,255,255,.55);display:flex;gap:6px;"><span style="color:#00ff88;">›</span>${t}</li>`).join('')}
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // ---- CHARTS ----
+  const growthCtx = document.getElementById('growthChart').getContext('2d');
+  const snapshotLabels = ${snapshotLabels};
+  const snapshotValues = ${snapshotValues};
+  const projLabels = ${JSON.stringify(projectionLabels)};
+  const projValues = ${JSON.stringify(projectionValues)};
+
+  // Combinar dados reais + projeção
+  const allLabels = [...snapshotLabels, ...projLabels.filter(l => !snapshotLabels.includes(l))];
+  const realData = allLabels.map(l => {
+    const idx = snapshotLabels.indexOf(l);
+    return idx !== -1 ? snapshotValues[idx] : null;
+  });
+  const projData = allLabels.map(l => {
+    const idx = projLabels.indexOf(l);
+    return idx !== -1 ? projValues[idx] : null;
+  });
+
+  new Chart(growthCtx, {
+    type: 'line',
+    data: {
+      labels: allLabels.length > 0 ? allLabels : projLabels,
+      datasets: [
+        { label: 'Seguidores', data: realData.length > 0 ? realData : [${followers}], borderColor: '#BC13FE', backgroundColor: 'rgba(188,19,254,.08)', pointBackgroundColor: '#BC13FE', pointRadius: 3, tension: 0.4, fill: true },
+        { label: 'Projeção 10k', data: projData.length > 0 ? projData : projValues, borderColor: '#00F2FF', borderDash: [4,4], pointRadius: 0, tension: 0.4, fill: false }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { labels: { color: 'rgba(255,255,255,.5)', font: { size: 10 } } } },
+      scales: {
+        x: { ticks: { color: 'rgba(255,255,255,.3)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' } },
+        y: { ticks: { color: 'rgba(255,255,255,.3)', font: { size: 9 } }, grid: { color: 'rgba(255,255,255,.04)' }, min: 0 }
+      }
+    }
+  });
+
+  const typeCtx = document.getElementById('typeChart').getContext('2d');
+  new Chart(typeCtx, {
+    type: 'doughnut',
+    data: {
+      labels: ['Reel', 'Carousel', 'Feed'],
+      datasets: [{ data: ${typeDistJson}, backgroundColor: ['#BC13FE','#00F2FF','#FF00E5'], borderWidth: 0 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      cutout: '72%'
+    }
+  });
+
+  // ---- IDEAS ----
+  async function generateIdeas() {
+    const btn = document.getElementById('ideaBtn');
+    const txt = document.getElementById('ideaBtnTxt');
+    const list = document.getElementById('ideasList');
+    btn.disabled = true;
+    txt.innerHTML = '<span class="spinner"></span> Gerando...';
+    list.innerHTML = '<p style="color:rgba(255,255,255,.3);font-size:12px;">Consultando squads — copy-squad, hormozi, storytelling...</p>';
+    try {
+      const res = await fetch('/api/growth-ideas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ count: 6 }) });
+      const data = await res.json();
+      if (data.ideas && data.ideas.length > 0) {
+        list.innerHTML = data.ideas.map(idea => {
+          const pillarColors = { case_study: 'chip-purple', dica: 'chip-cyan', problema_solucao: 'chip-green', bastidores: 'chip-pink' };
+          const typeIcons = { reel: '🎬', carousel: '🎠', feed: '🖼️' };
+          return \`<div class="idea-card fade-in" onclick="copyIdea(this,\${JSON.stringify(idea.hook).replace(/'/g,"\\\\'")})" title="Clique para copiar o hook">
+            <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;flex-wrap:wrap;">
+              <span class="chip \${pillarColors[idea.pillar] || 'chip-purple'}">\${idea.pillar?.replace('_',' ')}</span>
+              <span class="chip" style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">\${typeIcons[idea.type] || '📝'} \${idea.type}</span>
+              <span style="margin-left:auto;font-size:10px;color:#00ff88;font-family:'JetBrains Mono',monospace;">\${idea.score?.toFixed(1)}/10</span>
+            </div>
+            <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;">\${idea.title}</div>
+            <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;">\${idea.description}</div>
+            <div style="font-size:11px;color:#BC13FE;font-style:italic;">"<em>\${idea.hook}</em>"</div>
+          </div>\`;
+        }).join('');
+      } else {
+        list.innerHTML = '<p style="color:rgba(255,100,100,.6);font-size:12px;">Erro ao gerar ideias. Verifique GROQ_API_KEY.</p>';
+      }
+    } catch(e) {
+      list.innerHTML = '<p style="color:rgba(255,100,100,.6);font-size:12px;">Erro: ' + e.message + '</p>';
+    }
+    btn.disabled = false;
+    txt.innerHTML = '✦ Gerar Ideias';
+  }
+
+  function copyIdea(el, hook) {
+    navigator.clipboard?.writeText(hook).then(() => {
+      el.style.borderColor = '#00ff88';
+      setTimeout(() => { el.style.borderColor = ''; }, 1200);
+    });
+  }
+
+  // ---- SQUAD ADVISOR ----
+  let activeSquadId = 'copy-squad';
+  let advisorHistory = [];
+
+  function selectSquad(el, id) {
+    document.querySelectorAll('.squad-pill').forEach(p => p.classList.remove('active'));
+    el.classList.add('active');
+    activeSquadId = id;
+    advisorHistory = [];
+    document.getElementById('advisorChat').innerHTML = '';
+  }
+
+  function appendAdvisorMsg(role, text) {
+    const chat = document.getElementById('advisorChat');
+    const div = document.createElement('div');
+    div.className = 'fade-in';
+    div.style.cssText = \`padding:8px 12px;border-radius:8px;font-size:12px;line-height:1.5;max-width:90%;align-self:\${role==='user'?'flex-end':'flex-start'};\`;
+    div.style.background = role === 'user' ? 'rgba(188,19,254,.15)' : 'rgba(255,255,255,.04)';
+    div.style.border = role === 'user' ? '0.5px solid rgba(188,19,254,.3)' : '0.5px solid rgba(255,255,255,.08)';
+    div.style.color = role === 'user' ? '#fff' : 'rgba(255,255,255,.75)';
+    div.textContent = text;
+    chat.appendChild(div);
+    chat.scrollTop = chat.scrollHeight;
+  }
+
+  async function sendAdvisor() {
+    const input = document.getElementById('advisorInput');
+    const msg = input.value.trim();
+    if (!msg) return;
+    input.value = '';
+    appendAdvisorMsg('user', msg);
+    advisorHistory.push({ role: 'user', content: msg });
+    const thinking = document.createElement('div');
+    thinking.className = 'fade-in';
+    thinking.style.cssText = 'padding:8px 12px;border-radius:8px;font-size:12px;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.08);';
+    thinking.innerHTML = '<span class="spinner"></span>';
+    document.getElementById('advisorChat').appendChild(thinking);
+    try {
+      const res = await fetch('/api/squad-chat', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ squadId: activeSquadId, message: msg, history: advisorHistory.slice(-6) })
+      });
+      const data = await res.json();
+      thinking.remove();
+      const reply = data.reply || 'Sem resposta.';
+      appendAdvisorMsg('assistant', reply);
+      advisorHistory.push({ role: 'assistant', content: reply });
+    } catch(e) {
+      thinking.remove();
+      appendAdvisorMsg('assistant', 'Erro: ' + e.message);
+    }
+  }
+
+  document.getElementById('advisorInput').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendAdvisor();
+  });
+</script>
+</body>
+</html>`;
+}
+
 export default async function handler(req: any, res: any) {
   const agent = new SocialMediaAgent();
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -3687,6 +4259,7 @@ export default async function handler(req: any, res: any) {
       <div style="margin-top:14px;display:flex;justify-content:center;gap:10px;flex-wrap:wrap;">
         <a href="/" class="btn-nav" style="text-decoration:none;">Estúdio</a>
         <a href="/strategy" class="btn-nav" style="text-decoration:none;">Estratégia</a>
+        <a href="/growth" class="btn-nav" style="text-decoration:none;background:rgba(0,242,255,.08);border-color:rgba(0,242,255,.3);color:#00F2FF;">Growth OS</a>
       </div>
     </div>
     <div class="panel">
@@ -3725,6 +4298,70 @@ export default async function handler(req: any, res: any) {
     }
     return;
   }
+
+  // ---- GROWTH OS ROUTES ----
+  if (req.method === 'GET' && url.pathname === '/api/growth-metrics') {
+    try {
+      const [igData, snapshots, scheduled] = await Promise.all([
+        fetchInstagramAccountMetrics(),
+        readGrowthSnapshots(),
+        readScheduledPosts()
+      ]);
+      // Salva snapshot do dia com o count atual
+      await saveGrowthSnapshot(igData.account.followers_count || 0);
+      res.status(200).json({
+        followers: igData.account.followers_count || 0,
+        mediaCount: igData.account.media_count || 0,
+        username: igData.account.username || '',
+        media: igData.media,
+        snapshots,
+        scheduled
+      });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/growth') {
+    try {
+      const [igData, snapshots, scheduled] = await Promise.all([
+        fetchInstagramAccountMetrics().catch(() => ({
+          account: { followers_count: 0, media_count: 0, username: 'erizon.ai' },
+          media: []
+        })),
+        readGrowthSnapshots(),
+        readScheduledPosts()
+      ]);
+      await saveGrowthSnapshot(igData.account.followers_count || 0).catch(() => {});
+      const html = buildGrowthDashboardHtml({
+        followers: igData.account.followers_count || 0,
+        mediaCount: igData.account.media_count || 0,
+        username: igData.account.username || 'erizon.ai',
+        media: igData.media || [],
+        snapshots,
+        scheduled
+      });
+      res.setHeader('Content-Type', 'text/html');
+      res.status(200).send(html);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/growth-ideas') {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      const count = Math.min(12, Math.max(1, Number(body?.count) || 6));
+      const ideas = await generateGrowthIdeas(count);
+      res.status(200).json({ ideas });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+    return;
+  }
+  // ---- END GROWTH OS ROUTES ----
 
   if (req.method === 'GET' && url.pathname === '/api/squads') {
     try {

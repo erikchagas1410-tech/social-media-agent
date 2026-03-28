@@ -13,6 +13,7 @@
   "rewrites": [
     { "source": "/", "destination": "/api" },
     { "source": "/strategy", "destination": "/api" },
+    { "source": "/growth", "destination": "/api" },
     { "source": "/api/:path*", "destination": "/api" }
   ]
 }
