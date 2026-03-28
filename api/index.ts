@@ -3774,6 +3774,234 @@ Responda APENAS com JSON válido (sem markdown):
   } catch { return []; }
 }
 
+// ============================================================
+// AUTO-POST ENGINE — PNG gerado server-side + orquestração de squads
+// ============================================================
+import zlib from 'zlib';
+
+const _CRC_TABLE = (() => {
+  const t = new Int32Array(256);
+  for (let i = 0; i < 256; i++) {
+    let c = i;
+    for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
+    t[i] = c;
+  }
+  return t;
+})();
+
+function _crc32(buf: Buffer): number {
+  let crc = -1;
+  for (let i = 0; i < buf.length; i++) crc = _CRC_TABLE[(crc ^ buf[i]) & 0xff] ^ (crc >>> 8);
+  return (crc ^ -1) >>> 0;
+}
+
+function _pngChunk(type: string, data: Buffer): Buffer {
+  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+  const typ = Buffer.from(type);
+  const crcBuf = Buffer.alloc(4); crcBuf.writeUInt32BE(_crc32(Buffer.concat([typ, data])));
+  return Buffer.concat([len, typ, data, crcBuf]);
+}
+
+function makeBrandedCardPng(): Buffer {
+  const W = 1080, H = 1080;
+  const rowLen = W * 3;
+  const raw = Buffer.alloc(H * (rowLen + 1));
+  for (let y = 0; y < H; y++) {
+    const t = y / H;
+    // Gradient: Deep Space #0B0112 → dark purple #1C0035
+    const r = Math.round(11 + 17 * t);
+    const g = Math.round(1);
+    const b = Math.round(18 + 35 * t);
+    // Electric purple stripe at top ~14-15%
+    const stripe1 = y >= Math.floor(H * 0.140) && y <= Math.floor(H * 0.144);
+    // Cyber pink accent stripe at 85%
+    const stripe2 = y >= Math.floor(H * 0.848) && y <= Math.floor(H * 0.852);
+    const pr = stripe1 ? 188 : stripe2 ? 255 : r;
+    const pg = stripe1 ? 19  : stripe2 ? 0   : g;
+    const pb = stripe1 ? 254 : stripe2 ? 229 : b;
+    raw[y * (rowLen + 1)] = 0;
+    for (let x = 0; x < W; x++) {
+      raw[y * (rowLen + 1) + 1 + x * 3]     = pr;
+      raw[y * (rowLen + 1) + 1 + x * 3 + 1] = pg;
+      raw[y * (rowLen + 1) + 1 + x * 3 + 2] = pb;
+    }
+  }
+  const sig = Buffer.from([137,80,78,71,13,10,26,10]);
+  const ihdrData = Buffer.alloc(13);
+  ihdrData.writeUInt32BE(W, 0); ihdrData.writeUInt32BE(H, 4);
+  ihdrData[8] = 8; ihdrData[9] = 2;
+  const compressed = zlib.deflateSync(raw, { level: 6 });
+  return Buffer.concat([sig, _pngChunk('IHDR', ihdrData), _pngChunk('IDAT', compressed), _pngChunk('IEND', Buffer.alloc(0))]);
+}
+
+interface AutoPostEntry {
+  id: string;
+  timestamp: string;
+  squad: string;
+  pillar: string;
+  hook: string;
+  caption: string;
+  imageUrl: string;
+  instagramPostId?: string;
+  status: 'success' | 'failed';
+  error?: string;
+}
+
+const AUTOPOST_LOG_BLOB = 'erizon-autopost-log.json';
+
+async function readAutoPostLog(): Promise<AutoPostEntry[]> {
+  const blobToken = getBlobToken();
+  if (blobToken) {
+    try {
+      const data = await readJsonBlobByPathname(AUTOPOST_LOG_BLOB, blobToken);
+      if (Array.isArray(data)) return data;
+    } catch { /* fallback */ }
+  }
+  return [];
+}
+
+async function appendAutoPostLog(entry: AutoPostEntry): Promise<void> {
+  const blobToken = getBlobToken();
+  if (!blobToken) return;
+  const log = await readAutoPostLog();
+  log.unshift(entry); // newest first
+  await writeJsonBlob(AUTOPOST_LOG_BLOB, log.slice(0, 50), blobToken); // keep last 50
+}
+
+async function runAutoPost(host: string): Promise<AutoPostEntry> {
+  const entryId = `ap_${Date.now()}`;
+  const token = process.env.INSTAGRAM_ACCESS_TOKEN;
+  const accountId = process.env.INSTAGRAM_ACCOUNT_ID;
+  if (!token || !accountId) throw new Error('Instagram não configurado (INSTAGRAM_ACCESS_TOKEN / INSTAGRAM_ACCOUNT_ID).');
+  if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY não configurada.');
+
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const model = process.env.GROQ_SQUAD_CHAT_MODEL || 'llama-3.1-8b-instant';
+
+  // ── FASE 1: hormozi-squad escolhe o ângulo de crescimento ──
+  const hormoziSquad = await getSquadById('hormozi-squad');
+  const hormoziCtx = hormoziSquad ? `${hormoziSquad.description}\n${(hormoziSquad.chiefPrompt||'').slice(0,800)}` : '';
+  const phase1 = await groq.chat.completions.create({
+    model, temperature: 0.6,
+    messages: [
+      { role: 'system', content: `Você é o chief do Hormozi Squad. Contexto:\n${hormoziCtx}\nResponda em JSON.` },
+      { role: 'user', content: `Escolha 1 ângulo de conteúdo para o Instagram da ERIZON AI (SaaS Meta Ads) que maximize crescimento hoje.
+Responda JSON: {"pillar":"case_study|dica|problema_solucao|bastidores","angle":"descrição de 1 linha","why":"por que agora"}` }
+    ]
+  });
+  let angle: any = {};
+  try {
+    const raw1 = phase1.choices[0]?.message?.content || '{}';
+    const s1 = raw1.indexOf('{'), e1 = raw1.lastIndexOf('}');
+    angle = s1 !== -1 ? JSON.parse(raw1.slice(s1, e1+1)) : {};
+  } catch { angle = { pillar: 'problema_solucao', angle: 'ROAS caindo silenciosamente', why: 'fadiga de criativo é invisível' }; }
+
+  // ── FASE 2: storytelling gera o hook de 3 segundos ──
+  const storySquad = await getSquadById('storytelling');
+  const storyCtx = storySquad ? `${storySquad.description}\n${(storySquad.chiefPrompt||'').slice(0,800)}` : '';
+  const phase2 = await groq.chat.completions.create({
+    model, temperature: 0.8,
+    messages: [
+      { role: 'system', content: `Você é o chief do Storytelling Squad. Contexto:\n${storyCtx}\nResponda em JSON.` },
+      { role: 'user', content: `Ângulo: "${angle.angle}" (${angle.pillar}).
+Crie 3 hooks diferentes de 3 segundos para um Reel da ERIZON AI no Instagram 2026.
+Hooks devem parar o scroll, ser ousados e diretos. Sem clichês.
+JSON: {"hooks":["hook1","hook2","hook3"],"best":0}` }
+    ]
+  });
+  let hook = angle.angle || 'O seu ROAS está caindo e você nem percebeu';
+  try {
+    const raw2 = phase2.choices[0]?.message?.content || '{}';
+    const s2 = raw2.indexOf('{'), e2 = raw2.lastIndexOf('}');
+    const h2 = JSON.parse(raw2.slice(s2, e2+1));
+    hook = h2.hooks?.[h2.best ?? 0] || hook;
+  } catch { /* keep default */ }
+
+  // ── FASE 3: copy-squad escreve a legenda completa ──
+  const copySquad = await getSquadById('copy-squad');
+  const copyCtx = copySquad ? `${copySquad.description}\n${(copySquad.chiefPrompt||'').slice(0,1000)}` : '';
+  const phase3 = await groq.chat.completions.create({
+    model, temperature: 0.65,
+    messages: [
+      { role: 'system', content: `Você é o chief do Copy Squad, escrevendo para ERIZON AI — SaaS de inteligência para Meta Ads.
+Tom: técnico, direto, confiante. Sem emoji excessivo. Público: gestores de tráfego, agências.
+Contexto do squad:\n${copyCtx}` },
+      { role: 'user', content: `Pilar: ${angle.pillar}. Hook: "${hook}"
+Escreva uma legenda COMPLETA para Instagram (250-350 chars sem hashtags):
+- Começa com o hook
+- Problema específico (1-2 linhas)
+- Insight/virada (1 linha)
+- Solução Erizon (1-2 linhas)
+- CTA específico (comenta X / salva / link bio)
+Depois adicione 8-12 hashtags relevantes separadas por vírgula.
+Formato de resposta — apenas texto puro:
+[LEGENDA]
+---
+[HASHTAGS separadas por vírgula]` }
+    ]
+  });
+  const copyRaw = phase3.choices[0]?.message?.content || '';
+  const [captionPart, hashtagPart] = copyRaw.split('---');
+  const hashtags = (hashtagPart || '#MetaAds #ROAS #PerformanceMarketing #GestorDeTrafego #ErizonAI #Instagram2026 #MarketingDigital #AutomacaoDeAnuncios')
+    .split(',').map((h: string) => h.trim()).filter(Boolean).join(' ');
+  const caption = `${(captionPart || hook).trim()}\n\n${hashtags}`;
+
+  // ── FASE 4: gera a imagem (PNG branded server-side → ImgBB) ──
+  let imageUrl = '';
+  try {
+    const pngBuffer = makeBrandedCardPng();
+    const base64 = pngBuffer.toString('base64');
+    const imgbbKey = process.env.IMGBB_API_KEY;
+    if (imgbbKey) {
+      const formData = new URLSearchParams();
+      formData.append('key', imgbbKey);
+      formData.append('image', base64);
+      formData.append('name', `erizon-autopost-${entryId}`);
+      const imgRes = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: formData });
+      if (imgRes.ok) {
+        const imgData = await imgRes.json() as any;
+        imageUrl = imgData?.data?.url || '';
+      }
+    }
+    // fallback: usa nosso próprio endpoint como URL pública
+    if (!imageUrl) imageUrl = `https://${host}/api/growth-card`;
+  } catch { imageUrl = `https://${host}/api/growth-card`; }
+
+  // ── FASE 5: posta no Instagram ──
+  const createRes = await fetch(
+    `https://graph.facebook.com/v21.0/${accountId}/media`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image_url: imageUrl, caption, access_token: token }) }
+  );
+  const createData = await createRes.json() as any;
+  if (!createData.id) throw new Error(`Instagram media create falhou: ${JSON.stringify(createData)}`);
+
+  // Aguarda 3 segundos (Instagram precisa processar a imagem)
+  await new Promise(r => setTimeout(r, 3000));
+
+  const publishRes = await fetch(
+    `https://graph.facebook.com/v21.0/${accountId}/media_publish`,
+    { method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ creation_id: createData.id, access_token: token }) }
+  );
+  const publishData = await publishRes.json() as any;
+  if (!publishData.id) throw new Error(`Instagram publish falhou: ${JSON.stringify(publishData)}`);
+
+  const entry: AutoPostEntry = {
+    id: entryId,
+    timestamp: new Date().toISOString(),
+    squad: 'hormozi→storytelling→copy-squad',
+    pillar: angle.pillar || 'auto',
+    hook,
+    caption,
+    imageUrl,
+    instagramPostId: publishData.id,
+    status: 'success'
+  };
+  await appendAutoPostLog(entry).catch(() => {});
+  return entry;
+}
+
 function buildGrowthDashboardHtml(metrics: {
   followers: number;
   mediaCount: number;
@@ -4041,6 +4269,30 @@ function buildGrowthDashboardHtml(metrics: {
     }
   </div>
 
+  <!-- AUTO-POST ENGINE -->
+  <div class="panel" style="margin-bottom:16px;border-color:rgba(0,255,136,.25);">
+    <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+      <div>
+        <div class="label" style="color:#00ff88;">Modo Autônomo · 4 Squads em Pipeline</div>
+        <div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:3px;">hormozi → storytelling → copy-squad → instagram</div>
+      </div>
+      <button class="btn btn-primary" onclick="runAutoPost()" id="autoBtn" style="background:linear-gradient(135deg,#00C853,#00ff88);gap:8px;">
+        <span id="autoBtnTxt">🤖 Auto-Post Agora</span>
+      </button>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;">
+      <span class="chip" style="background:rgba(255,165,0,.12);color:#ffaa00;border:0.5px solid rgba(255,165,0,.3);">⚡ hormozi-squad</span>
+      <span style="color:rgba(255,255,255,.2);font-size:12px;align-self:center;">→</span>
+      <span class="chip chip-pink">📖 storytelling</span>
+      <span style="color:rgba(255,255,255,.2);font-size:12px;align-self:center;">→</span>
+      <span class="chip chip-cyan">✍️ copy-squad</span>
+      <span style="color:rgba(255,255,255,.2);font-size:12px;align-self:center;">→</span>
+      <span class="chip chip-purple">📸 instagram</span>
+    </div>
+    <div id="autoPostStatus" style="display:none;padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:12px;"></div>
+    <div id="autoPostLog" style="display:flex;flex-direction:column;gap:6px;"></div>
+  </div>
+
   <!-- PLANO 90 DIAS -->
   <div class="panel" style="margin-bottom:24px;border-color:rgba(0,242,255,.2);">
     <div class="label" style="margin-bottom:14px;color:#00F2FF;">Plano de 90 Dias · Roadmap para 10k</div>
@@ -4219,6 +4471,80 @@ function buildGrowthDashboardHtml(metrics: {
   document.getElementById('advisorInput').addEventListener('keydown', e => {
     if (e.key === 'Enter') sendAdvisor();
   });
+
+  // ---- AUTO-POST ENGINE ----
+  const PILLAR_LABELS = { case_study:'Case Study', dica:'Dica Técnica', problema_solucao:'Problema/Solução', bastidores:'Bastidores', auto:'Automático' };
+
+  async function loadAutoPostLog() {
+    try {
+      const res = await fetch('/api/growth-autopost-log');
+      const data = await res.json();
+      renderAutoPostLog(data.log || []);
+    } catch { /* silent */ }
+  }
+
+  function renderAutoPostLog(log) {
+    const el = document.getElementById('autoPostLog');
+    if (!log.length) { el.innerHTML = '<p style="font-size:12px;color:rgba(255,255,255,.25);">Nenhum auto-post ainda. Clique em "Auto-Post Agora" para começar.</p>'; return; }
+    el.innerHTML = log.slice(0, 8).map(e => {
+      const d = new Date(e.timestamp).toLocaleString('pt-BR', { day:'2-digit', month:'short', hour:'2-digit', minute:'2-digit' });
+      const pillarLabel = PILLAR_LABELS[e.pillar] || e.pillar;
+      const statusChip = e.status === 'success'
+        ? '<span class="chip chip-green">✓ publicado</span>'
+        : '<span class="chip" style="background:rgba(255,80,80,.15);color:#ff6060;border:0.5px solid rgba(255,80,80,.3);">✗ erro</span>';
+      return \`<div style="background:rgba(255,255,255,.025);border:0.5px solid rgba(255,255,255,.07);border-radius:8px;padding:10px 14px;display:flex;flex-direction:column;gap:5px;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          \${statusChip}
+          <span class="chip chip-purple">\${pillarLabel}</span>
+          <span class="mono" style="font-size:10px;color:rgba(255,255,255,.3);">\${d}</span>
+          \${e.instagramPostId ? '<a href="https://www.instagram.com/p/'+e.instagramPostId+'" target="_blank" style="font-size:10px;color:#BC13FE;font-family:monospace;margin-left:auto;">ver post →</a>' : ''}
+        </div>
+        <div style="font-size:12px;color:#BC13FE;font-style:italic;">"<em>\${e.hook}</em>"</div>
+        \${e.error ? '<div style="font-size:11px;color:#ff6060;">'+e.error+'</div>' : ''}
+      </div>\`;
+    }).join('');
+  }
+
+  async function runAutoPost() {
+    const btn = document.getElementById('autoBtn');
+    const txt = document.getElementById('autoBtnTxt');
+    const status = document.getElementById('autoPostStatus');
+    btn.disabled = true;
+    txt.innerHTML = '<span class="spinner"></span> Consultando squads...';
+    status.style.display = 'block';
+    status.style.background = 'rgba(255,255,255,.04)';
+    status.style.border = '0.5px solid rgba(255,255,255,.1)';
+    status.style.color = 'rgba(255,255,255,.6)';
+    status.innerHTML = '⚡ hormozi-squad escolhendo ângulo...';
+
+    const stages = [
+      [1200, '📖 storytelling criando hooks de 3 segundos...'],
+      [2400, '✍️ copy-squad escrevendo a legenda...'],
+      [3600, '🎨 gerando card visual Erizon...'],
+      [4800, '📤 postando no Instagram...'],
+    ];
+    stages.forEach(([delay, msg]) => setTimeout(() => { if (!btn.disabled) return; status.innerHTML = msg; }, delay));
+
+    try {
+      const res = await fetch('/api/growth-autopost', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+      const data = await res.json();
+      if (data.error) throw new Error(data.error);
+      status.style.background = 'rgba(0,255,136,.08)';
+      status.style.border = '0.5px solid rgba(0,255,136,.3)';
+      status.style.color = '#00ff88';
+      status.innerHTML = '✅ Post publicado com sucesso no Instagram!<br><span style="font-size:12px;color:rgba(255,255,255,.5);font-style:italic;">"' + (data.hook||'') + '"</span>';
+      loadAutoPostLog();
+    } catch(e) {
+      status.style.background = 'rgba(255,80,80,.08)';
+      status.style.border = '0.5px solid rgba(255,80,80,.3)';
+      status.style.color = '#ff6060';
+      status.innerHTML = '❌ Erro: ' + e.message;
+    }
+    btn.disabled = false;
+    txt.innerHTML = '🤖 Auto-Post Agora';
+  }
+
+  loadAutoPostLog();
 </script>
 </body>
 </html>`;
@@ -4361,6 +4687,62 @@ export default async function handler(req: any, res: any) {
     }
     return;
   }
+  if (req.method === 'GET' && (url.pathname === '/api/growth-card' || url.pathname === '/growth-card')) {
+    try {
+      const png = makeBrandedCardPng();
+      res.setHeader('Content-Type', 'image/png');
+      res.setHeader('Cache-Control', 'public, max-age=3600');
+      res.status(200).send(png);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === 'GET' && (url.pathname === '/api/growth-autopost-log' || url.pathname === '/growth-autopost-log')) {
+    try {
+      const log = await readAutoPostLog();
+      res.status(200).json({ log });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+    return;
+  }
+
+  if (req.method === 'POST' && (url.pathname === '/api/growth-autopost' || url.pathname === '/growth-autopost')) {
+    try {
+      // Verifica cron secret se vier de cron job
+      const cronSecret = process.env.CRON_SECRET || '';
+      const authHeader = req.headers.authorization || '';
+      const body = typeof req.body === 'string' ? JSON.parse(req.body || '{}') : (req.body || {});
+      const isCron = body?._cron === true;
+      if (isCron && cronSecret && authHeader !== `Bearer ${cronSecret}`) {
+        res.status(401).json({ error: 'Unauthorized' });
+        return;
+      }
+      const host = req.headers.host || 'localhost:3000';
+      const entry = await runAutoPost(host);
+      res.status(200).json(entry);
+    } catch (error: any) {
+      logger.error('Auto-post error:', error);
+      // Loga o erro mesmo assim
+      const failEntry: AutoPostEntry = {
+        id: `ap_${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        squad: 'hormozi→storytelling→copy-squad',
+        pillar: 'auto',
+        hook: '',
+        caption: '',
+        imageUrl: '',
+        status: 'failed',
+        error: error.message
+      };
+      await appendAutoPostLog(failEntry).catch(() => {});
+      res.status(500).json({ error: error.message });
+    }
+    return;
+  }
+
   // ---- END GROWTH OS ROUTES ----
 
   if (req.method === 'GET' && url.pathname === '/api/squads') {
