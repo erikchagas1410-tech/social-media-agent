@@ -1959,8 +1959,11 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           </div>
         </div>
 
-        <!-- Publish -->
-        <button id="btn-publish" class="btn-publish">✦ &nbsp;Aprovar e Publicar nas Redes</button>
+        <!-- Actions -->
+        <div style="display:flex;gap:10px;flex-wrap:wrap;">
+          <button id="btn-download-image" class="btn-nav" style="flex:1 1 220px;height:52px;">Baixar Imagem</button>
+          <button id="btn-publish" class="btn-publish" style="flex:2 1 320px;">✦ &nbsp;Aprovar e Publicar nas Redes</button>
+        </div>
       </div>
 
       <!-- AUTO-POST VIA SQUADS -->
@@ -2216,6 +2219,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // ============================================================
     const btnGenerate   = document.getElementById('btn-generate');
     const btnPublish    = document.getElementById('btn-publish');
+    const btnDownloadImage = document.getElementById('btn-download-image');
     const loading       = document.getElementById('loading');
     const previewSection = document.getElementById('preview-section');
     const postContent   = document.getElementById('post-content');
@@ -2313,6 +2317,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     function updatePlatformToggles() {
       const carouselNote = document.getElementById('li-carousel-note');
       carouselNote.classList.toggle('hidden', currentPostType !== 'instagram-carousel');
+      btnDownloadImage.textContent = currentPostType === 'instagram-carousel' ? 'Baixar Slide' : 'Baixar Imagem';
 
       if (currentPostType === 'linkedin') {
         setSinglePublishTarget('linkedin');
@@ -3662,6 +3667,43 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       return { platforms, caption, images: [imageBase64] };
     }
 
+    function buildImageDownloadName() {
+      const rawTitle = stripHtml(h1Input.value || postContent.value || 'imagem-gerada');
+      const baseName = rawTitle
+        .toLowerCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 60) || 'imagem-gerada';
+
+      if (currentPostType === 'instagram-carousel') {
+        return baseName + '-slide-' + (currentSlideIdx + 1) + '.jpg';
+      }
+
+      return baseName + '.jpg';
+    }
+
+    btnDownloadImage.addEventListener('click', async () => {
+      btnDownloadImage.disabled = true;
+      btnDownloadImage.textContent = 'Preparando...';
+
+      try {
+        const imageBase64 = await renderCard();
+        const a = document.createElement('a');
+        a.href = imageBase64;
+        a.download = buildImageDownloadName();
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+      } catch (e) {
+        alert('Erro ao baixar imagem: ' + e.message);
+      } finally {
+        btnDownloadImage.disabled = false;
+        btnDownloadImage.textContent = currentPostType === 'instagram-carousel' ? 'Baixar Slide' : 'Baixar Imagem';
+      }
+    });
+
     btnPublish.addEventListener('click', async () => {
       btnPublish.disabled = true;
       btnPublish.innerHTML = 'PUBLICANDO...';
@@ -4024,6 +4066,14 @@ Responda APENAS com JSON válido (sem markdown):
   } catch { return []; }
 }
 
+function stripHtmlForImage(value: string): string {
+  return String(value || '')
+    .replace(/<br\s*\/?>/gi, ' ')
+    .replace(/<[^>]+>/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+}
+
 // ============================================================
 // AUTO-POST ENGINE — card visual server-side com satori + resvg
 // ============================================================
@@ -4370,6 +4420,13 @@ function buildGrowthDashboardHtml(metrics: {
     .progress-fill{height:100%;border-radius:999px;background:linear-gradient(90deg,#BC13FE,#FF00E5);transition:width 1s ease;}
     .idea-card{background:rgba(255,255,255,.03);border:0.5px solid rgba(188,19,254,.15);border-radius:10px;padding:14px 16px;cursor:pointer;transition:all .2s;}
     .idea-card:hover{border-color:rgba(188,19,254,.45);background:rgba(188,19,254,.06);}
+    .idea-actions{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:12px;}
+    .idea-generate-btn{background:rgba(0,242,255,.12);border:0.5px solid rgba(0,242,255,.35);color:#00F2FF;}
+    .idea-generate-btn:hover{background:rgba(0,242,255,.2);}
+    .idea-status{margin-top:10px;padding:10px 12px;border-radius:8px;font-size:11px;line-height:1.5;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.08);color:rgba(255,255,255,.65);}
+    .idea-result{margin-top:12px;padding:12px;border-radius:10px;background:rgba(255,255,255,.03);border:0.5px solid rgba(0,242,255,.18);}
+    .idea-preview{width:100%;border-radius:10px;border:0.5px solid rgba(188,19,254,.18);display:block;background:rgba(0,0,0,.2);}
+    .idea-caption{margin-top:10px;font-size:11px;color:rgba(255,255,255,.62);line-height:1.6;white-space:pre-wrap;}
     .squad-pill{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:6px;font-size:11px;background:rgba(255,255,255,.04);border:0.5px solid rgba(255,255,255,.1);cursor:pointer;transition:all .2s;font-family:'JetBrains Mono',monospace;color:rgba(255,255,255,.5);}
     .squad-pill:hover,.squad-pill.active{background:rgba(188,19,254,.12);border-color:rgba(188,19,254,.4);color:#BC13FE;}
     .sched-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:8px;background:rgba(255,255,255,.025);border:0.5px solid rgba(255,255,255,.07);}
@@ -4656,6 +4713,47 @@ function buildGrowthDashboardHtml(metrics: {
   });
 
   // ---- IDEAS ----
+  let growthIdeas = [];
+  const growthIdeaResults = {};
+
+  function escapeHtml(value) {
+    return String(value || '')
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
+  }
+
+  function renderIdeaCards(ideas) {
+    const list = document.getElementById('ideasList');
+    if (!ideas || !ideas.length) {
+      list.innerHTML = '<p style="color:rgba(255,100,100,.6);font-size:12px;">Erro ao gerar ideias. Verifique GROQ_API_KEY.</p>';
+      return;
+    }
+
+    growthIdeas = ideas;
+    list.innerHTML = ideas.map((idea, idx) => {
+      const pillarColors = { case_study: 'chip-purple', dica: 'chip-cyan', problema_solucao: 'chip-green', bastidores: 'chip-pink' };
+      const typeIcons = { reel: 'Reel', carousel: 'Carousel', feed: 'Feed' };
+      return \`<div class="idea-card fade-in" onclick="copyIdea(this,\${JSON.stringify(idea.hook).replace(/'/g,"\\\\'")})" title="Clique para copiar o hook">
+        <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;flex-wrap:wrap;">
+          <span class="chip \${pillarColors[idea.pillar] || 'chip-purple'}">\${escapeHtml((idea.pillar || '').replace('_',' '))}</span>
+          <span class="chip" style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">\${escapeHtml(typeIcons[idea.type] || idea.type || 'Ideia')}</span>
+          <span style="margin-left:auto;font-size:10px;color:#00ff88;font-family:'JetBrains Mono',monospace;">\${Number(idea.score || 0).toFixed(1)}/10</span>
+        </div>
+        <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;">\${escapeHtml(idea.title)}</div>
+        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;">\${escapeHtml(idea.description)}</div>
+        <div style="font-size:11px;color:#BC13FE;font-style:italic;">"<em>\${escapeHtml(idea.hook)}</em>"</div>
+        <div class="idea-actions">
+          <button id="idea-generate-btn-\${idx}" class="btn btn-nav idea-generate-btn" onclick="event.stopPropagation(); generateIdeaImage(\${idx})">Gerar imagem</button>
+        </div>
+        <div id="idea-status-\${idx}" class="idea-status" style="display:none;"></div>
+        <div id="idea-result-\${idx}" class="idea-result" style="display:none;"></div>
+      </div>\`;
+    }).join('');
+  }
+
   async function generateIdeas() {
     const btn = document.getElementById('ideaBtn');
     const txt = document.getElementById('ideaBtnTxt');
@@ -4667,20 +4765,7 @@ function buildGrowthDashboardHtml(metrics: {
       const res = await fetch('/api/growth-ideas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ count: 6 }) });
       const data = await res.json();
       if (data.ideas && data.ideas.length > 0) {
-        list.innerHTML = data.ideas.map(idea => {
-          const pillarColors = { case_study: 'chip-purple', dica: 'chip-cyan', problema_solucao: 'chip-green', bastidores: 'chip-pink' };
-          const typeIcons = { reel: '🎬', carousel: '🎠', feed: '🖼️' };
-          return \`<div class="idea-card fade-in" onclick="copyIdea(this,\${JSON.stringify(idea.hook).replace(/'/g,"\\\\'")})" title="Clique para copiar o hook">
-            <div style="display:flex;gap:6px;margin-bottom:6px;align-items:center;flex-wrap:wrap;">
-              <span class="chip \${pillarColors[idea.pillar] || 'chip-purple'}">\${idea.pillar?.replace('_',' ')}</span>
-              <span class="chip" style="background:rgba(255,255,255,.05);color:rgba(255,255,255,.5);">\${typeIcons[idea.type] || '📝'} \${idea.type}</span>
-              <span style="margin-left:auto;font-size:10px;color:#00ff88;font-family:'JetBrains Mono',monospace;">\${idea.score?.toFixed(1)}/10</span>
-            </div>
-            <div style="font-size:13px;font-weight:600;color:#fff;margin-bottom:4px;">\${idea.title}</div>
-            <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px;">\${idea.description}</div>
-            <div style="font-size:11px;color:#BC13FE;font-style:italic;">"<em>\${idea.hook}</em>"</div>
-          </div>\`;
-        }).join('');
+        renderIdeaCards(data.ideas);
       } else {
         list.innerHTML = '<p style="color:rgba(255,100,100,.6);font-size:12px;">Erro ao gerar ideias. Verifique GROQ_API_KEY.</p>';
       }
@@ -4698,6 +4783,97 @@ function buildGrowthDashboardHtml(metrics: {
     });
   }
 
+  function renderIdeaResult(index) {
+    const result = growthIdeaResults[index];
+    const container = document.getElementById('idea-result-' + index);
+    if (!result || !container) return;
+
+    container.style.display = 'block';
+    container.innerHTML = \`
+      <img class="idea-preview fade-in" src="\${result.imageDataUrl}" alt="Imagem gerada para a ideia">
+      <div class="idea-actions" style="margin-top:10px;">
+        <button class="btn btn-nav" onclick="downloadIdeaImage(\${index}, event)">Baixar imagem</button>
+        <button class="btn btn-nav" onclick="copyIdeaCaption(\${index}, event)">Copiar legenda</button>
+      </div>
+      <div class="idea-caption">\${escapeHtml(result.caption || '')}</div>
+    \`;
+  }
+
+  async function generateIdeaImage(index) {
+    const idea = growthIdeas[index];
+    if (!idea) return;
+
+    const btn = document.getElementById('idea-generate-btn-' + index);
+    const status = document.getElementById('idea-status-' + index);
+    const result = document.getElementById('idea-result-' + index);
+    if (!btn || !status || !result) return;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner"></span> Gerando...';
+    status.style.display = 'block';
+    result.style.display = 'none';
+    status.style.background = 'rgba(255,255,255,.04)';
+    status.style.border = '0.5px solid rgba(255,255,255,.08)';
+    status.style.color = 'rgba(255,255,255,.65)';
+    status.innerHTML = '⚡ hormozi-squad lapidando o ângulo desta ideia...';
+
+    const stageMessages = [
+      [900, '📖 storytelling transformando a ideia em hook visual...'],
+      [1800, '✍️ copy-squad estruturando promessa e legenda...'],
+      [2700, '🎯 traffic-masters ajustando para alcance e saves...'],
+      [3600, '🔮 brand-squad alinhando direção da peça...'],
+      [4500, '🧠 advisory-board refinando o raciocínio...'],
+      [5400, '🎨 design-chief produzindo a arte final...']
+    ];
+    const stageTimers = stageMessages.map(([delay, msg]) => setTimeout(() => {
+      if (btn.disabled) status.innerHTML = msg;
+    }, delay));
+
+    try {
+      const res = await fetch('/api/growth-idea-image', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ idea })
+      });
+      const data = await res.json();
+      if (!res.ok || data.error) throw new Error(data.error || 'Falha ao gerar imagem.');
+
+      growthIdeaResults[index] = data;
+      status.style.background = 'rgba(0,255,136,.08)';
+      status.style.border = '0.5px solid rgba(0,255,136,.3)';
+      status.style.color = '#00ff88';
+      status.innerHTML = '✅ Imagem gerada com sucesso pelo pipeline dos squads.';
+      renderIdeaResult(index);
+    } catch (e) {
+      status.style.background = 'rgba(255,80,80,.08)';
+      status.style.border = '0.5px solid rgba(255,80,80,.3)';
+      status.style.color = '#ff8080';
+      status.innerHTML = '❌ Erro ao gerar imagem: ' + e.message;
+    } finally {
+      stageTimers.forEach(clearTimeout);
+      btn.disabled = false;
+      btn.textContent = 'Gerar imagem';
+    }
+  }
+
+  function downloadIdeaImage(index, event) {
+    event.stopPropagation();
+    const result = growthIdeaResults[index];
+    if (!result || !result.imageDataUrl) return;
+    const a = document.createElement('a');
+    a.href = result.imageDataUrl;
+    a.download = result.filename || 'growth-idea.png';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+  }
+
+  function copyIdeaCaption(index, event) {
+    event.stopPropagation();
+    const result = growthIdeaResults[index];
+    if (!result || !result.caption) return;
+    navigator.clipboard?.writeText(result.caption);
+  }
   // ---- SQUAD ADVISOR ----
   let activeSquadId = 'copy-squad';
   let advisorHistory = [];
@@ -4926,6 +5102,58 @@ ${get(r7)}
 === INSTRUÇÃO: crie o conteúdo mais viral possível para ERIZON AI incorporando TODOS os insights acima, incluindo a direção visual do Design Chief. ===`;
 }
 
+async function generateGrowthIdeaImagePayload(agent: SocialMediaAgent, idea: any): Promise<{
+  imageDataUrl: string;
+  caption: string;
+  filename: string;
+  headline: string;
+}> {
+  const ideaType = String(idea?.type || 'feed').toLowerCase();
+  const postType: PostType = ideaType === 'carousel' ? 'instagram-carousel' : 'instagram-feed';
+  const customRequest = [
+    'Transforme a ideia abaixo em uma arte pronta para a ERIZON.',
+    'Mantenha a promessa central da ideia, respeite o hook e deixe a peca com cara de post final.',
+    `Titulo: ${idea?.title || ''}`,
+    `Tipo: ${ideaType}`,
+    `Pilar: ${idea?.pillar || 'auto'}`,
+    `Hook: ${idea?.hook || ''}`,
+    `Descricao: ${idea?.description || ''}`,
+    `CTA: ${idea?.cta || ''}`,
+    'Essa geracao veio do card de Ideias de Conteudo do Growth OS, entao a arte precisa ser fiel ao conceito escolhido.'
+  ].join('\n');
+
+  const squadBrief = await generateViralBriefFromSquads(postType, 'erizon', customRequest);
+  const combinedRequest = squadBrief ? `${customRequest}\n\nBRIEF DOS SQUADS:\n${squadBrief}` : customRequest;
+
+  let caption = idea?.description || '';
+  let headline = stripHtmlForImage(idea?.hook || idea?.title || 'ERIZON AI');
+
+  if (postType === 'instagram-carousel') {
+    const carousel = await agent.generateCarousel([], 'erizon', combinedRequest, null);
+    caption = carousel.caption || caption;
+    headline = stripHtmlForImage(carousel.slides?.[0]?.h1 || idea?.hook || idea?.title || 'ERIZON AI');
+  } else {
+    const post = await agent.generatePost(postType, [], 'erizon', '', combinedRequest, null);
+    caption = post.caption || caption;
+    headline = stripHtmlForImage(post.h1 || idea?.hook || idea?.title || 'ERIZON AI');
+  }
+
+  const png = await makeBrandedCardPng(headline, String(idea?.pillar || 'auto'));
+  const baseName = stripHtmlForImage(idea?.title || headline || 'growth-idea')
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 60) || 'growth-idea';
+
+  return {
+    imageDataUrl: `data:image/png;base64,${png.toString('base64')}`,
+    caption,
+    filename: `${baseName}.png`,
+    headline
+  };
+}
 // ── Gerador de feedback realista ──
 async function generateRealisticFeedback(params: {
   persona: string;
@@ -5156,6 +5384,19 @@ export default async function handler(req: any, res: any) {
     }
     return;
   }
+
+  if (req.method === 'POST' && (url.pathname === '/api/growth-idea-image' || url.pathname === '/growth-idea-image')) {
+    try {
+      const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+      if (!body?.idea) throw new Error('Ideia nao enviada.');
+      const payload = await generateGrowthIdeaImagePayload(agent, body.idea);
+      res.status(200).json(payload);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+    return;
+  }
+
   if (req.method === 'GET' && (url.pathname === '/api/growth-card' || url.pathname === '/growth-card')) {
     try {
       const hook = String(url.searchParams.get('hook') || 'ERIZON AI');

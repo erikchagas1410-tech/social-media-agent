@@ -4,7 +4,19 @@
       "Bash(grep -E \"\\\\.\\(config|yaml|yml|json\\)$\")",
       "Bash(npm run:*)",
       "Bash(node -e \":*)",
-      "Bash(npx tsc:*)"
+      "Bash(npx tsc:*)",
+      "Bash(ls /c/Users/isado/Documents/aios-core/apps/social-media-agent/.env*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(git push:*)",
+      "Read(//c/Users/isado/OneDrive/Documentos/ideia pra social media//**)",
+      "Read(//c/Users/isado/Documents/**)",
+      "Bash(for d:*)",
+      "Bash(do echo:*)",
+      "Read(//c/Users/isado/Documents/aios-core/apps/social-media-agent/squads/$d/**)",
+      "Bash(done)",
+      "Bash(npm install:*)",
+      "Bash(ls \"c:\\\\Users\\\\isado\\\\Documents\\\\aios-core\\\\apps\\\\social-media-agent\\\\squads\\\\design-squad\"\" 2>/dev/null || echo \"NOT FOUND \")"
     ]
   }
 }
