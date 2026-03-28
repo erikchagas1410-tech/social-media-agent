@@ -2892,24 +2892,45 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       statusMsg.classList.add('hidden');
       btnGenerate.disabled = true;
 
+      // Animação de fases dos squads
+      const squadStages = [
+        '⚡ hormozi-squad — ângulo de oferta...',
+        '📖 storytelling — hook de 3 segundos...',
+        '✍️ copy-squad — framework e gatilho...',
+        '🎯 traffic-masters — otimizando algoritmo...',
+        '🔮 brand-squad — tom de voz...',
+        '🧠 advisory-board — insight estratégico...',
+        '✦ gerando conteúdo viral...',
+      ];
+      let stageIdx = 0;
+      loading.innerHTML = squadStages[0];
+      const stageTimer = setInterval(() => {
+        stageIdx = Math.min(stageIdx + 1, squadStages.length - 1);
+        loading.innerHTML = squadStages[stageIdx];
+      }, 1800);
+
       try {
         const requestedEditorialTab = currentEditorialTab;
         const requestedPostType = currentPostType;
         const requestedCustomRequest = currentCreationMode === 'directed' ? (customRequestInput.value || '').trim() : '';
         const requestedUseBrandSquad = currentCreationMode === 'directed' && !!useBrandSquadCheckbox.checked && !!requestedCustomRequest;
         const isCarousel = requestedPostType === 'instagram-carousel';
-        const url = isCarousel ? '/api/generate-carousel' : '/api/generate';
+
+        let url, bodyPayload;
+        if (requestedUseBrandSquad && requestedCustomRequest) {
+          // Modo direcionado: usa brand-squad com customRequest
+          url = isCarousel ? '/api/generate-carousel' : '/api/generate';
+          bodyPayload = { type: requestedPostType, recentPosts: getPostHistory(), editorialTab: requestedEditorialTab, uploadContext: document.getElementById('upload-context') ? document.getElementById('upload-context').value : '', customRequest: requestedCustomRequest, useBrandSquad: true };
+        } else {
+          // Modo automático: pipeline completo de 6 squads
+          url = isCarousel ? '/api/generate-viral-carousel' : '/api/generate-viral';
+          bodyPayload = { type: requestedPostType, recentPosts: getPostHistory(), editorialTab: requestedEditorialTab, uploadContext: document.getElementById('upload-context') ? document.getElementById('upload-context').value : '' };
+        }
+
         const data = await fetchJson(url, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            type: requestedPostType,
-            recentPosts: getPostHistory(),
-            editorialTab: requestedEditorialTab,
-            uploadContext: document.getElementById('upload-context') ? document.getElementById('upload-context').value : '',
-            customRequest: requestedCustomRequest,
-            useBrandSquad: requestedUseBrandSquad
-          })
+          body: JSON.stringify(bodyPayload)
         });
         lastGeneratedEditorialTab = requestedEditorialTab;
         lastGeneratedPostType = requestedPostType;
@@ -2958,6 +2979,8 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       } catch(e) {
         alert('Erro ao gerar: ' + e.message);
       } finally {
+        clearInterval(stageTimer);
+        loading.innerHTML = 'GERANDO CONTEÚDO VIRAL...';
         loading.classList.add('hidden');
         btnGenerate.disabled = false;
       }
@@ -4638,6 +4661,87 @@ function buildGrowthDashboardHtml(metrics: {
 </html>`;
 }
 
+// ── Pipeline viral: todos os squads em paralelo → brief para generatePost ──
+async function generateViralBriefFromSquads(postType: string, editorialTab: string): Promise<string> {
+  if (!process.env.GROQ_API_KEY) return '';
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  const model = process.env.GROQ_SQUAD_CHAT_MODEL || 'llama-3.1-8b-instant';
+
+  const [hormozi, storytelling, copySquad, traffic, brand, advisory] = await Promise.all([
+    getSquadById('hormozi-squad'),
+    getSquadById('storytelling'),
+    getSquadById('copy-squad'),
+    getSquadById('traffic-masters'),
+    getSquadById('brand-squad'),
+    getSquadById('advisory-board'),
+  ]);
+
+  const ctx = (s: any) => `${s?.description || ''}\n${(s?.chiefPrompt || '').slice(0, 500)}`;
+  const base = `ERIZON AI — SaaS de inteligência para Meta Ads. Público: gestores de tráfego e agências. Tipo de post: ${postType}. Aba editorial: ${editorialTab}.`;
+
+  const [r1, r2, r3, r4, r5, r6] = await Promise.all([
+    groq.chat.completions.create({ model, temperature: 0.6, max_tokens: 120,
+      messages: [
+        { role: 'system', content: `Hormozi Squad chief.\n${ctx(hormozi)}\n${base}` },
+        { role: 'user', content: 'Em 2 frases: qual ângulo de oferta/crescimento usar neste post para maximizar conversão? Seja específico e ousado.' }
+      ]
+    }),
+    groq.chat.completions.create({ model, temperature: 0.8, max_tokens: 120,
+      messages: [
+        { role: 'system', content: `Storytelling Squad chief.\n${ctx(storytelling)}\n${base}` },
+        { role: 'user', content: 'Em 2 frases: qual abertura narrativa e conflito usar para parar o scroll em 3 segundos? Dê um hook concreto.' }
+      ]
+    }),
+    groq.chat.completions.create({ model, temperature: 0.65, max_tokens: 120,
+      messages: [
+        { role: 'system', content: `Copy Squad chief.\n${ctx(copySquad)}\n${base}` },
+        { role: 'user', content: 'Em 2 frases: qual framework de copy e qual gatilho mental usar para maximizar saves e comentários? Dê um exemplo de hook.' }
+      ]
+    }),
+    groq.chat.completions.create({ model, temperature: 0.5, max_tokens: 120,
+      messages: [
+        { role: 'system', content: `Traffic Masters chief.\n${ctx(traffic)}\n${base}` },
+        { role: 'user', content: 'Em 2 frases: como otimizar este post para o algoritmo do Instagram 2026? Qual sinal de engajamento priorizar?' }
+      ]
+    }),
+    groq.chat.completions.create({ model, temperature: 0.55, max_tokens: 100,
+      messages: [
+        { role: 'system', content: `Brand Squad chief.\n${ctx(brand)}\n${base}` },
+        { role: 'user', content: 'Em 1-2 frases: qual tom de voz e posicionamento de marca usar para este post da ERIZON AI?' }
+      ]
+    }),
+    groq.chat.completions.create({ model, temperature: 0.5, max_tokens: 100,
+      messages: [
+        { role: 'system', content: `Advisory Board chief.\n${ctx(advisory)}\n${base}` },
+        { role: 'user', content: 'Em 1-2 frases: qual insight estratégico de alto nível tornaria este post memorável e diferenciado?' }
+      ]
+    }),
+  ]);
+
+  const get = (r: any) => r.choices[0]?.message?.content?.trim() || '';
+  return `=== BRIEFING DOS SQUADS — use como direção criativa obrigatória ===
+
+⚡ HORMOZI SQUAD — Ângulo de oferta/crescimento:
+${get(r1)}
+
+📖 STORYTELLING SQUAD — Narrativa e hook de 3 segundos:
+${get(r2)}
+
+✍️ COPY SQUAD — Framework e gatilho mental:
+${get(r3)}
+
+🎯 TRAFFIC MASTERS — Otimização de algoritmo:
+${get(r4)}
+
+🔮 BRAND SQUAD — Tom de voz e posicionamento:
+${get(r5)}
+
+🧠 ADVISORY BOARD — Insight estratégico:
+${get(r6)}
+
+=== INSTRUÇÃO: crie o conteúdo mais viral possível para ERIZON AI incorporando TODOS os insights acima. ===`;
+}
+
 export default async function handler(req: any, res: any) {
   const agent = new SocialMediaAgent();
   const url = new URL(req.url, `http://${req.headers.host}`);
@@ -4885,7 +4989,17 @@ export default async function handler(req: any, res: any) {
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
-      if (url.pathname === '/api/generate') {
+      if (url.pathname === '/api/generate-viral') {
+        const { type, recentPosts, editorialTab, uploadContext } = body;
+        const squadBrief = await generateViralBriefFromSquads(type, editorialTab);
+        const content = await agent.generatePost(type, recentPosts, editorialTab, uploadContext, squadBrief, null);
+        res.status(200).json(content);
+      } else if (url.pathname === '/api/generate-viral-carousel') {
+        const { recentPosts, editorialTab } = body;
+        const squadBrief = await generateViralBriefFromSquads('instagram-carousel', editorialTab);
+        const content = await agent.generateCarousel(recentPosts, editorialTab, squadBrief, null);
+        res.status(200).json(content);
+      } else if (url.pathname === '/api/generate') {
         const { type, recentPosts, editorialTab, uploadContext, customRequest, useBrandSquad } = body;
         const brandBrief = useBrandSquad ? await generateBrandCreativeBrief({ editorialTab, postType: type, customRequest: customRequest || '' }) : null;
         const content = await agent.generatePost(type, recentPosts, editorialTab, uploadContext, customRequest || '', brandBrief);
