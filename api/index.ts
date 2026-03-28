@@ -3832,63 +3832,94 @@ Responda APENAS com JSON válido (sem markdown):
 }
 
 // ============================================================
-// AUTO-POST ENGINE — PNG gerado server-side + orquestração de squads
+// AUTO-POST ENGINE — card visual server-side com satori + resvg
 // ============================================================
-import zlib from 'zlib';
+import satori from 'satori';
+import { Resvg } from '@resvg/resvg-js';
 
-const _CRC_TABLE = (() => {
-  const t = new Int32Array(256);
-  for (let i = 0; i < 256; i++) {
-    let c = i;
-    for (let j = 0; j < 8; j++) c = (c & 1) ? (0xEDB88320 ^ (c >>> 1)) : (c >>> 1);
-    t[i] = c;
+// Fonte Inter carregada do Google Fonts (cacheada em memória por invocação)
+let _fontCache: ArrayBuffer | null = null;
+async function _loadFont(): Promise<ArrayBuffer> {
+  if (_fontCache) return _fontCache;
+  const res = await fetch(
+    'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2'
+  );
+  _fontCache = await res.arrayBuffer();
+  return _fontCache;
+}
+
+async function makeBrandedCardPng(hook: string, pillar: string): Promise<Buffer> {
+  const font = await _loadFont();
+
+  const PILLAR_LABEL: Record<string, string> = {
+    case_study: 'CASE STUDY', dica: 'DICA TÉCNICA',
+    problema_solucao: 'PROBLEMA / SOLUÇÃO', bastidores: 'BASTIDORES', auto: 'GROWTH'
+  };
+  const pillarLabel = PILLAR_LABEL[pillar] || 'GROWTH';
+
+  // Quebra o hook em linhas de ~28 chars para o card
+  const words = hook.split(' ');
+  const lines: string[] = [];
+  let current = '';
+  for (const w of words) {
+    if ((current + ' ' + w).trim().length > 28) { lines.push(current.trim()); current = w; }
+    else current = (current + ' ' + w).trim();
   }
-  return t;
-})();
+  if (current) lines.push(current);
+  const hookLines = lines.slice(0, 4); // max 4 linhas no card
 
-function _crc32(buf: Buffer): number {
-  let crc = -1;
-  for (let i = 0; i < buf.length; i++) crc = _CRC_TABLE[(crc ^ buf[i]) & 0xff] ^ (crc >>> 8);
-  return (crc ^ -1) >>> 0;
-}
-
-function _pngChunk(type: string, data: Buffer): Buffer {
-  const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
-  const typ = Buffer.from(type);
-  const crcBuf = Buffer.alloc(4); crcBuf.writeUInt32BE(_crc32(Buffer.concat([typ, data])));
-  return Buffer.concat([len, typ, data, crcBuf]);
-}
-
-function makeBrandedCardPng(): Buffer {
-  const W = 1080, H = 1080;
-  const rowLen = W * 3;
-  const raw = Buffer.alloc(H * (rowLen + 1));
-  for (let y = 0; y < H; y++) {
-    const t = y / H;
-    // Gradient: Deep Space #0B0112 → dark purple #1C0035
-    const r = Math.round(11 + 17 * t);
-    const g = Math.round(1);
-    const b = Math.round(18 + 35 * t);
-    // Electric purple stripe at top ~14-15%
-    const stripe1 = y >= Math.floor(H * 0.140) && y <= Math.floor(H * 0.144);
-    // Cyber pink accent stripe at 85%
-    const stripe2 = y >= Math.floor(H * 0.848) && y <= Math.floor(H * 0.852);
-    const pr = stripe1 ? 188 : stripe2 ? 255 : r;
-    const pg = stripe1 ? 19  : stripe2 ? 0   : g;
-    const pb = stripe1 ? 254 : stripe2 ? 229 : b;
-    raw[y * (rowLen + 1)] = 0;
-    for (let x = 0; x < W; x++) {
-      raw[y * (rowLen + 1) + 1 + x * 3]     = pr;
-      raw[y * (rowLen + 1) + 1 + x * 3 + 1] = pg;
-      raw[y * (rowLen + 1) + 1 + x * 3 + 2] = pb;
+  const svg = await satori(
+    {
+      type: 'div',
+      props: {
+        style: {
+          width: '1080px', height: '1080px', display: 'flex', flexDirection: 'column',
+          background: 'linear-gradient(160deg, #0B0112 0%, #1C0035 100%)',
+          padding: '80px', fontFamily: 'Inter', position: 'relative', overflow: 'hidden',
+        },
+        children: [
+          // Accent stripe top
+          { type: 'div', props: { style: { position: 'absolute', top: '0', left: '0', right: '0', height: '6px', background: 'linear-gradient(90deg, #BC13FE, #FF00E5)' } } },
+          // Accent stripe bottom
+          { type: 'div', props: { style: { position: 'absolute', bottom: '0', left: '0', right: '0', height: '6px', background: 'linear-gradient(90deg, #FF00E5, #BC13FE)' } } },
+          // Glow orb background
+          { type: 'div', props: { style: { position: 'absolute', top: '-200px', right: '-200px', width: '600px', height: '600px', borderRadius: '50%', background: 'radial-gradient(circle, rgba(188,19,254,0.18) 0%, transparent 70%)' } } },
+          // Pillar tag
+          { type: 'div', props: {
+            style: { display: 'flex', alignItems: 'center', marginBottom: '60px' },
+            children: [
+              { type: 'div', props: { style: { background: 'rgba(188,19,254,0.2)', border: '1px solid rgba(188,19,254,0.5)', borderRadius: '6px', padding: '6px 16px', color: '#BC13FE', fontSize: '22px', fontWeight: '700', letterSpacing: '3px' }, children: pillarLabel } },
+            ]
+          }},
+          // Hook text
+          { type: 'div', props: {
+            style: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '8px' },
+            children: hookLines.map(line => ({
+              type: 'div', props: {
+                style: { color: '#FFFFFF', fontSize: hookLines.length > 2 ? '72px' : '86px', fontWeight: '800', lineHeight: '1.1', letterSpacing: '-1px' },
+                children: line
+              }
+            }))
+          }},
+          // Bottom brand row
+          { type: 'div', props: {
+            style: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '60px' },
+            children: [
+              { type: 'div', props: { style: { color: 'rgba(255,255,255,0.35)', fontSize: '24px', letterSpacing: '4px' }, children: 'erizon.ai' } },
+              { type: 'div', props: { style: { color: '#BC13FE', fontSize: '26px', fontWeight: '700', letterSpacing: '2px' }, children: 'ERIZON AI' } },
+            ]
+          }},
+        ]
+      }
+    },
+    {
+      width: 1080, height: 1080,
+      fonts: [{ name: 'Inter', data: font, weight: 800, style: 'normal' }],
     }
-  }
-  const sig = Buffer.from([137,80,78,71,13,10,26,10]);
-  const ihdrData = Buffer.alloc(13);
-  ihdrData.writeUInt32BE(W, 0); ihdrData.writeUInt32BE(H, 4);
-  ihdrData[8] = 8; ihdrData[9] = 2;
-  const compressed = zlib.deflateSync(raw, { level: 6 });
-  return Buffer.concat([sig, _pngChunk('IHDR', ihdrData), _pngChunk('IDAT', compressed), _pngChunk('IEND', Buffer.alloc(0))]);
+  );
+
+  const resvg = new Resvg(svg, { fitTo: { mode: 'width', value: 1080 } });
+  return Buffer.from(resvg.render().asPng());
 }
 
 interface AutoPostEntry {
@@ -4006,7 +4037,7 @@ Formato de resposta — apenas texto puro:
   // ── FASE 4: gera a imagem (PNG branded server-side → ImgBB) ──
   let imageUrl = '';
   try {
-    const pngBuffer = makeBrandedCardPng();
+    const pngBuffer = await makeBrandedCardPng(hook, angle.pillar || 'auto');
     const base64 = pngBuffer.toString('base64');
     const imgbbKey = process.env.IMGBB_API_KEY;
     if (imgbbKey) {
@@ -4746,7 +4777,9 @@ export default async function handler(req: any, res: any) {
   }
   if (req.method === 'GET' && (url.pathname === '/api/growth-card' || url.pathname === '/growth-card')) {
     try {
-      const png = makeBrandedCardPng();
+      const hook = String(url.searchParams.get('hook') || 'ERIZON AI');
+      const pillar = String(url.searchParams.get('pillar') || 'growth');
+      const png = await makeBrandedCardPng(hook, pillar);
       res.setHeader('Content-Type', 'image/png');
       res.setHeader('Cache-Control', 'public, max-age=3600');
       res.status(200).send(png);
