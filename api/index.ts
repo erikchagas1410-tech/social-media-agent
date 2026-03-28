@@ -1875,6 +1875,27 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         <button id="btn-publish" class="btn-publish">✦ &nbsp;Aprovar e Publicar nas Redes</button>
       </div>
 
+      <!-- AUTO-POST VIA SQUADS -->
+      <div style="margin-top:14px;background:rgba(0,255,136,.04);border:0.5px solid rgba(0,255,136,.2);border-radius:12px;padding:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:10px;">
+          <div>
+            <span class="mono" style="font-size:9px;letter-spacing:.2em;color:#00ff88;text-transform:uppercase;">Modo Autônomo · IA + 4 Squads</span>
+            <div style="font-size:11px;color:rgba(255,255,255,.35);margin-top:2px;">hormozi → storytelling → copy-squad → instagram</div>
+          </div>
+          <button id="btn-autopost" onclick="studioAutoPost()" style="background:linear-gradient(135deg,#00C853,#00ff88);border:none;color:#000;font-family:'JetBrains Mono',monospace;font-weight:700;font-size:11px;padding:8px 14px;border-radius:8px;cursor:pointer;letter-spacing:.04em;transition:all .2s;">🤖 Auto-Post</button>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px;">
+          <span style="font-size:10px;background:rgba(255,165,0,.1);color:#ffaa00;border:0.5px solid rgba(255,165,0,.3);border-radius:20px;padding:2px 8px;font-family:'JetBrains Mono',monospace;">⚡ hormozi</span>
+          <span style="font-size:10px;color:rgba(255,255,255,.2);align-self:center;">→</span>
+          <span style="font-size:10px;background:rgba(255,0,229,.1);color:#FF00E5;border:0.5px solid rgba(255,0,229,.3);border-radius:20px;padding:2px 8px;font-family:'JetBrains Mono',monospace;">📖 story</span>
+          <span style="font-size:10px;color:rgba(255,255,255,.2);align-self:center;">→</span>
+          <span style="font-size:10px;background:rgba(0,242,255,.1);color:#00F2FF;border:0.5px solid rgba(0,242,255,.3);border-radius:20px;padding:2px 8px;font-family:'JetBrains Mono',monospace;">✍️ copy</span>
+          <span style="font-size:10px;color:rgba(255,255,255,.2);align-self:center;">→</span>
+          <span style="font-size:10px;background:rgba(188,19,254,.1);color:#BC13FE;border:0.5px solid rgba(188,19,254,.3);border-radius:20px;padding:2px 8px;font-family:'JetBrains Mono',monospace;">📸 instagram</span>
+        </div>
+        <div id="studio-autopost-status" style="display:none;font-size:12px;padding:10px 12px;border-radius:8px;line-height:1.6;"></div>
+      </div>
+
       <div style="margin-top:14px;background:rgba(255,255,255,.03);border:0.5px solid rgba(0,242,255,.18);border-radius:12px;padding:14px;">
         <span class="field-label" style="margin-bottom:10px;display:block;">AutomaÃ§Ã£o / Agendamento</span>
         <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:12px;flex-wrap:wrap;">
@@ -3645,6 +3666,42 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       squadCount.textContent = 'Erro ao carregar squads';
       squadChatLog.innerHTML = '<div class="chat-bubble assistant">Erro ao carregar squads: ' + escapeHtml(error.message) + '</div>';
     });
+
+    // ---- STUDIO AUTO-POST ----
+    async function studioAutoPost() {
+      const btn = document.getElementById('btn-autopost');
+      const status = document.getElementById('studio-autopost-status');
+      btn.disabled = true;
+      btn.textContent = '⏳ Gerando...';
+      status.style.display = 'block';
+      status.style.background = 'rgba(255,255,255,.04)';
+      status.style.border = '0.5px solid rgba(255,255,255,.1)';
+      status.style.color = 'rgba(255,255,255,.6)';
+      status.innerHTML = '⚡ hormozi-squad escolhendo ângulo...';
+
+      const stages = [
+        [1400, '📖 storytelling criando hook de 3 segundos...'],
+        [2800, '✍️ copy-squad escrevendo legenda...'],
+        [4200, '🎨 gerando card visual Erizon...'],
+        [5600, '📤 postando no Instagram...'],
+      ];
+      stages.forEach(([delay, msg]) => setTimeout(() => { if (!btn.disabled) return; status.innerHTML = msg; }, delay));
+
+      try {
+        const res = await fetchJson('/api/growth-autopost', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{}' });
+        status.style.background = 'rgba(0,255,136,.07)';
+        status.style.border = '0.5px solid rgba(0,255,136,.3)';
+        status.style.color = '#00ff88';
+        status.innerHTML = '✅ Publicado no Instagram!<br><span style="font-size:11px;color:rgba(255,255,255,.45);font-style:italic;">"' + (res.hook || '') + '"</span>';
+      } catch(e) {
+        status.style.background = 'rgba(255,80,80,.07)';
+        status.style.border = '0.5px solid rgba(255,80,80,.3)';
+        status.style.color = '#ff6060';
+        status.innerHTML = '❌ ' + e.message;
+      }
+      btn.disabled = false;
+      btn.textContent = '🤖 Auto-Post';
+    }
 
   </script>
 </body>
