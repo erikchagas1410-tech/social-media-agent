@@ -3697,7 +3697,7 @@ async function saveGrowthSnapshot(followers: number): Promise<void> {
     const blobToken = getBlobToken();
     if (blobToken) {
       await writeJsonBlob(GROWTH_SNAPSHOTS_BLOB, snapshots, blobToken);
-    } else {
+    } else if (!process.env.VERCEL) {
       const localPath = path.resolve(__dirname, '../data/growth-snapshots.json');
       fs.writeFileSync(localPath, JSON.stringify(snapshots, null, 2));
     }
@@ -4541,6 +4541,7 @@ function defaultAutomationSettings(): AutomationSettings {
 }
 
 async function ensureScheduleStore(): Promise<void> {
+  if (process.env.VERCEL) return; // filesystem is read-only on Vercel — use Blob instead
   await fs.promises.mkdir(path.dirname(SCHEDULE_STORE_PATH), { recursive: true });
   if (!fs.existsSync(SCHEDULE_STORE_PATH)) {
     await fs.promises.writeFile(SCHEDULE_STORE_PATH, '[]', 'utf8');
