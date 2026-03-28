@@ -3089,59 +3089,69 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     // WHATSAPP CARD MODE
     // ============================================================
     function applyWhatsappCard(data) {
-      const card = document.getElementById('capture-area');
-      card.classList.add('wa-mode');
+      var card = document.getElementById('capture-area');
+      var overlay = document.getElementById('wa-overlay');
 
-      // Extrai nome e cargo do CTA (ex: "Lucas Ferreira · Head de Mídia · SP")
-      const ctaParts = (data.cta || '').split('·');
-      const clientName = (ctaParts[0] || 'Cliente Erizon').trim();
-      const clientRole = ctaParts.slice(1).join('·').trim() || 'Gestor de Tráfego';
+      // Força background e oculta todos os elementos do card via JS (sem depender de CSS specificity)
+      card.style.background = '#0B141A';
+      card.querySelectorAll('.grid-bg,.light-t,.light-b,.orb,.ring,.corner,.accent-bar,.accent-bar-top,.logo,.slide-badge,.feedback-frame').forEach(function(el) { el.style.display = 'none'; });
+      var cont = document.getElementById('content-container');
+      if (cont) cont.style.display = 'none';
+      var lc = card.querySelector('.lc');
+      if (lc) lc.style.display = 'none';
 
-      // Primeiro caractere do nome como avatar emoji
-      const avatarEmoji = ['👨‍💼','👩‍💼','🧑‍💼','👨‍💻','👩‍💻'][Math.floor(Math.random()*5)];
-      document.getElementById('wa-avatar').textContent = avatarEmoji;
+      // Mostra overlay forçando estilo inline
+      overlay.style.cssText = 'display:flex !important; flex-direction:column; position:absolute; top:0; left:0; width:100%; height:100%; z-index:30;';
+
+      // Extrai nome do CTA
+      var ctaParts = (data.cta || '').split('\u00b7');
+      var clientName = (ctaParts[0] || 'Cliente Erizon').trim();
+
+      document.getElementById('wa-avatar').textContent = '\u{1F9D1}\u200D\u{1F4BC}';
       document.getElementById('wa-contact-name').textContent = clientName;
 
-      // Hora aleatória realista
-      const h = 8 + Math.floor(Math.random() * 13);
-      const m = String(Math.floor(Math.random() * 60)).padStart(2, '0');
-      const time1 = h + ':' + m;
-      const time2 = h + ':' + String(parseInt(m) + Math.floor(Math.random()*4+1)).padStart(2,'0');
+      // Hora realista
+      var h = 8 + Math.floor(Math.random() * 13);
+      var m = String(Math.floor(Math.random() * 60)).padStart(2, '0');
+      var time1 = h + ':' + m;
+      var mNext = String(Math.min(59, parseInt(m) + Math.floor(Math.random()*4+1))).padStart(2,'0');
+      var time2 = h + ':' + mNext;
 
-      // Monta a métrica principal do h1 sem HTML tags
-      const metricText = stripHtml(data.h1 || '');
-      // Sub contém o resultado + a quote
-      const subParts = (data.sub || '').split('"');
-      const resultLine = subParts[0].trim();
-      const quoteText = subParts.length > 1 ? '"' + subParts.slice(1).join('"') : '';
+      // Conteúdo: usa sub (resultado + quote) e h1 como métrica
+      var metricText = stripHtml(data.h1 || '');
+      var sub = data.sub || '';
+      var quoteMatch = sub.match(/\u201c([^"]+)\u201d|\u201c([^"]+)\u201d|"([^"]+)"/);
+      var resultLine = sub.split(/\u201c|"/)[0].trim() || metricText;
+      var quoteText = quoteMatch ? '\u201c' + (quoteMatch[1] || quoteMatch[2] || quoteMatch[3]) + '\u201d' : '';
 
-      // Monta mensagem: quebra o conteúdo em 1-2 bolhas naturais
-      const msgParts = [];
-      if (resultLine) msgParts.push(resultLine);
-      if (quoteText) msgParts.push(quoteText);
-      else if (metricText) msgParts.push(metricText);
+      var bubble1 = resultLine;
+      var bubble2 = quoteText || metricText;
 
-      const bubble1 = msgParts[0] || metricText;
-      const bubble2 = msgParts[1] || null;
-
-      document.getElementById('wa-messages').innerHTML = \`
-        <div class="wa-bubble received wa-tail-l">
-          <div class="wa-name-label">\${clientName}</div>
-          <div class="wa-bubble-text">\${bubble1}</div>
-          <div class="wa-bubble-meta"><span class="wa-time">\${time1}</span></div>
-        </div>
-        \${bubble2 ? \`<div class="wa-bubble received" style="border-top-left-radius:8px;margin-top:-6px;">
-          <div class="wa-bubble-text">\${bubble2}</div>
-          <div class="wa-bubble-meta"><span class="wa-time">\${time2}</span><span class="wa-ticks">✓✓</span></div>
-        </div>\` : ''}
-      \`;
-
-      // Atualiza o chip
+      var msgs = '<div class="wa-bubble received wa-tail-l">'
+        + '<div class="wa-name-label">' + clientName + '</div>'
+        + '<div class="wa-bubble-text">' + bubble1 + '</div>'
+        + '<div class="wa-bubble-meta"><span class="wa-time">' + time1 + '</span></div>'
+        + '</div>';
+      if (bubble2 && bubble2 !== bubble1) {
+        msgs += '<div class="wa-bubble received" style="border-top-left-radius:8px;margin-top:-6px;">'
+          + '<div class="wa-bubble-text">' + bubble2 + '</div>'
+          + '<div class="wa-bubble-meta"><span class="wa-time">' + time2 + '</span><span class="wa-ticks">\u2713\u2713</span></div>'
+          + '</div>';
+      }
+      document.getElementById('wa-messages').innerHTML = msgs;
       updateDesignChiefChip({ recipeLabel: 'WhatsApp Real' });
     }
 
     function exitWhatsappCard() {
-      document.getElementById('capture-area').classList.remove('wa-mode');
+      var card = document.getElementById('capture-area');
+      var overlay = document.getElementById('wa-overlay');
+      card.style.background = '';
+      overlay.style.cssText = 'display:none;';
+      card.querySelectorAll('.grid-bg,.light-t,.light-b,.orb,.ring,.corner,.accent-bar,.accent-bar-top,.logo,.slide-badge').forEach(function(el) { el.style.display = ''; });
+      var cont = document.getElementById('content-container');
+      if (cont) cont.style.display = '';
+      var lc = card.querySelector('.lc');
+      if (lc) lc.style.display = '';
     }
 
     // ============================================================
