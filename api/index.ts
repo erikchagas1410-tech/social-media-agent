@@ -3938,12 +3938,12 @@ function buildGrowthDashboardHtml(metrics: {
     <!-- Crescimento chart -->
     <div class="panel panel-cyan">
       <div class="label" style="margin-bottom:12px;">Crescimento de Seguidores + Projeção 10k</div>
-      <canvas id="growthChart" height="140"></canvas>
+      <div style="position:relative;height:160px;"><canvas id="growthChart"></canvas></div>
     </div>
     <!-- Post types -->
     <div class="panel">
       <div class="label" style="margin-bottom:12px;">Tipos de post (últimos 12)</div>
-      <canvas id="typeChart" height="140"></canvas>
+      <div style="position:relative;height:160px;"><canvas id="typeChart"></canvas></div>
       <div style="display:flex;flex-direction:column;gap:6px;margin-top:14px;">
         <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#BC13FE;">● Reels/Vídeo</span><span class="mono">${reels}</span></div>
         <div style="display:flex;justify-content:space-between;font-size:11px;"><span style="color:#00F2FF;">● Carousel</span><span class="mono">${carousels}</span></div>
