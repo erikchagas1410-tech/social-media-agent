@@ -1623,6 +1623,40 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     .feedback-frame img { width:100%; height:100%; object-fit:contain; backdrop-filter:blur(8px); }
     .feedback-frame.active { display:block; }
 
+    /* WhatsApp Card Mode */
+    .card.wa-mode { background:#0B141A !important; }
+    .card.wa-mode .grid-bg,.card.wa-mode .light-t,.card.wa-mode .light-b,
+    .card.wa-mode .orb,.card.wa-mode .ring,.card.wa-mode .corner,
+    .card.wa-mode .accent-bar,.card.wa-mode .accent-bar-top,
+    .card.wa-mode .cc,.card.wa-mode .lc,.card.wa-mode .slide-badge { display:none !important; }
+    #wa-overlay { display:none; position:absolute; inset:0; z-index:30; flex-direction:column; }
+    .card.wa-mode #wa-overlay { display:flex; }
+    .wa-header { background:#1F2C34; height:88px; display:flex; align-items:center; padding:0 28px; gap:22px; flex-shrink:0; }
+    .wa-avatar { width:52px; height:52px; border-radius:50%; background:#2A3942; display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0; }
+    .wa-contact { flex:1; }
+    .wa-contact-name { font-family:'Helvetica Neue',Arial,sans-serif; font-size:17px; font-weight:600; color:#E9EDEF; letter-spacing:-.2px; }
+    .wa-contact-status { font-size:13px; color:#8696A0; margin-top:2px; }
+    .wa-icons { display:flex; gap:26px; color:#8696A0; font-size:20px; }
+    .wa-bg { flex:1; overflow:hidden; position:relative;
+      background-color:#0B141A;
+      background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='80' height='80'%3E%3Ccircle cx='40' cy='40' r='18' fill='none' stroke='%231F2C34' stroke-width='1'/%3E%3Ccircle cx='0' cy='0' r='10' fill='none' stroke='%231F2C34' stroke-width='1'/%3E%3Ccircle cx='80' cy='0' r='10' fill='none' stroke='%231F2C34' stroke-width='1'/%3E%3Ccircle cx='0' cy='80' r='10' fill='none' stroke='%231F2C34' stroke-width='1'/%3E%3Ccircle cx='80' cy='80' r='10' fill='none' stroke='%231F2C34' stroke-width='1'/%3E%3C/svg%3E");
+    }
+    .wa-messages { position:absolute; inset:0; padding:32px 40px; display:flex; flex-direction:column; justify-content:center; gap:18px; }
+    .wa-bubble { max-width:76%; padding:16px 20px 28px; border-radius:8px; position:relative; font-family:'Helvetica Neue',Arial,sans-serif; line-height:1.5; }
+    .wa-bubble.received { background:#202C33; color:#E9EDEF; border-top-left-radius:0; align-self:flex-start; }
+    .wa-bubble.sent { background:#005C4B; color:#E9EDEF; border-top-right-radius:0; align-self:flex-end; }
+    .wa-bubble-text { font-size:19px; word-break:break-word; white-space:pre-line; }
+    .wa-bubble-text strong { font-weight:700; }
+    .wa-bubble-meta { position:absolute; bottom:8px; right:14px; display:flex; align-items:center; gap:5px; }
+    .wa-time { font-size:12px; color:#8696A0; }
+    .wa-ticks { font-size:14px; color:#53BDEB; }
+    .wa-tail-r::before { content:''; position:absolute; top:0; right:-10px; width:0; height:0; border-left:10px solid #005C4B; border-top:10px solid transparent; }
+    .wa-tail-l::before { content:''; position:absolute; top:0; left:-10px; width:0; height:0; border-right:10px solid #202C33; border-top:10px solid transparent; }
+    .wa-name-label { font-size:13px; font-weight:700; color:#00A884; margin-bottom:6px; }
+    .wa-footer { background:#1F2C34; height:82px; display:flex; align-items:center; padding:0 28px; gap:20px; flex-shrink:0; }
+    .wa-input-bar { flex:1; background:#2A3942; border-radius:28px; height:52px; display:flex; align-items:center; padding:0 22px; color:#8696A0; font-size:16px; font-family:'Helvetica Neue',Arial,sans-serif; }
+    .wa-send-btn { width:52px; height:52px; border-radius:50%; background:#00A884; display:flex; align-items:center; justify-content:center; font-size:22px; flex-shrink:0; }
+
     /* UI Styles */
     body { background:#080010; min-height:100vh; font-family:'Plus Jakarta Sans',sans-serif; }
     .panel { background:rgba(255,255,255,.03); border:0.5px solid rgba(188,19,254,.2); border-radius:16px; padding:24px; }
@@ -1718,6 +1752,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         <div class="flex flex-wrap gap-2" id="creation-mode-tabs">
           <button class="tab-btn active" data-mode="automatic">Automático</button>
           <button class="tab-btn" data-mode="directed">Pedido Específico</button>
+          <button class="tab-btn" data-mode="feedback" style="border-color:rgba(0,255,136,.35);color:#00ff88;">💬 Simular Feedback</button>
         </div>
       </div>
 
@@ -1741,6 +1776,37 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         <label style="display:flex;align-items:center;gap:8px;cursor:pointer;color:rgba(255,255,255,.72);font-size:13px;">
           <input type="checkbox" id="use-brand-squad" checked> Usar direção do Brand Squad para refinar copy e imagem
         </label>
+      </div>
+
+      <!-- Feedback Simulator Section -->
+      <div id="feedback-section" class="mb-6 hidden" style="background:rgba(0,255,136,.04); border:1px dashed rgba(0,255,136,.28); border-radius:12px; padding:16px;">
+        <span class="field-label" style="color:#00ff88;">💬 Simulador de Feedback Real</span>
+        <p style="font-size:12px;color:rgba(255,255,255,.5);margin:6px 0 14px;">Gera um post de prova social com persona, métricas e linguagem 100% reais.</p>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+          <div>
+            <label style="font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Perfil do Cliente</label>
+            <select id="feedback-persona" style="width:100%;background:rgba(255,255,255,.05);border:0.5px solid rgba(0,255,136,.25);border-radius:8px;padding:8px 10px;color:#fff;font-size:13px;outline:none;">
+              <option value="random">Aleatório (surpreenda-me)</option>
+              <option value="gestor-solo">Gestor Solo (freelancer)</option>
+              <option value="agencia-pequena">Agência Pequena (2-5 pessoas)</option>
+              <option value="agencia-media">Agência Média (6-15 pessoas)</option>
+              <option value="head-marketing">Head de Marketing (empresa)</option>
+              <option value="ecommerce">E-commerce (dono de loja)</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:11px;color:rgba(255,255,255,.45);letter-spacing:.1em;text-transform:uppercase;display:block;margin-bottom:6px;">Resultado Foco</label>
+            <select id="feedback-result" style="width:100%;background:rgba(255,255,255,.05);border:0.5px solid rgba(0,255,136,.25);border-radius:8px;padding:8px 10px;color:#fff;font-size:13px;outline:none;">
+              <option value="random">Aleatório</option>
+              <option value="roas">ROAS melhorou</option>
+              <option value="tempo">Tempo economizado</option>
+              <option value="cliente-recuperado">Campanha salva antes da perda</option>
+              <option value="escala">Escala sem contratar</option>
+              <option value="deteccao">Problema detectado antes</option>
+            </select>
+          </div>
+        </div>
+        <input id="feedback-context" type="text" placeholder="Contexto extra (opcional) — ex: black friday, nicho de saúde, verba de R$50k/mês" class="field" style="border-color:rgba(0,255,136,.25);margin-bottom:0;" />
       </div>
 
       <!-- Upload Section -->
@@ -1845,6 +1911,28 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
                 </div>
               </div>
               <div class="logo"><img id="logo-img" src="${LOGO_DATA_URL || '/logo-erizon.png'}" style="height:52px;width:auto;object-fit:contain;"></div>
+            </div>
+            <!-- WhatsApp Overlay -->
+            <div id="wa-overlay">
+              <div class="wa-header">
+                <div class="wa-avatar" id="wa-avatar">👤</div>
+                <div class="wa-contact">
+                  <div class="wa-contact-name" id="wa-contact-name">Contato</div>
+                  <div class="wa-contact-status">online</div>
+                </div>
+                <div class="wa-icons">📹 📞 ⋮</div>
+              </div>
+              <div class="wa-bg">
+                <div class="wa-messages" id="wa-messages">
+                  <!-- preenchido via JS -->
+                </div>
+              </div>
+              <div class="wa-footer">
+                <span style="color:#8696A0;font-size:22px;">😊</span>
+                <div class="wa-input-bar">Mensagem</div>
+                <span style="color:#8696A0;font-size:22px;">📎</span>
+                <div class="wa-send-btn">🎤</div>
+              </div>
             </div>
           </div>
         </div>
@@ -2171,9 +2259,9 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
     function applyCreationMode(mode) {
       currentCreationMode = mode;
       directedSection.classList.toggle('hidden', mode !== 'directed');
-      if (mode !== 'directed') {
-        customRequestInput.value = '';
-      }
+      document.getElementById('feedback-section').classList.toggle('hidden', mode !== 'feedback');
+      if (mode !== 'directed') customRequestInput.value = '';
+      if (mode !== 'feedback') exitWhatsappCard && exitWhatsappCard();
     }
 
     document.getElementById('creation-mode-tabs').addEventListener('click', e => {
@@ -2900,6 +2988,7 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         '🎯 traffic-masters — otimizando algoritmo...',
         '🔮 brand-squad — tom de voz...',
         '🧠 advisory-board — insight estratégico...',
+        '🎨 design-chief — direção visual e composição...',
         '✦ gerando conteúdo viral...',
       ];
       let stageIdx = 0;
@@ -2913,18 +3002,22 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         const requestedEditorialTab = currentEditorialTab;
         const requestedPostType = currentPostType;
         const requestedCustomRequest = currentCreationMode === 'directed' ? (customRequestInput.value || '').trim() : '';
-        const requestedUseBrandSquad = currentCreationMode === 'directed' && !!useBrandSquadCheckbox.checked && !!requestedCustomRequest;
         const isCarousel = requestedPostType === 'instagram-carousel';
 
         let url, bodyPayload;
-        if (requestedUseBrandSquad && requestedCustomRequest) {
-          // Modo direcionado: usa brand-squad com customRequest
-          url = isCarousel ? '/api/generate-carousel' : '/api/generate';
-          bodyPayload = { type: requestedPostType, recentPosts: getPostHistory(), editorialTab: requestedEditorialTab, uploadContext: document.getElementById('upload-context') ? document.getElementById('upload-context').value : '', customRequest: requestedCustomRequest, useBrandSquad: true };
+        if (currentCreationMode === 'feedback') {
+          // Modo Simular Feedback — chama endpoint dedicado
+          url = '/api/generate-feedback';
+          bodyPayload = {
+            persona: document.getElementById('feedback-persona').value,
+            result: document.getElementById('feedback-result').value,
+            context: document.getElementById('feedback-context').value.trim(),
+            postType: requestedPostType,
+          };
         } else {
-          // Modo automático: pipeline completo de 6 squads
+          // Modo automático ou pedido específico — pipeline completo 7 squads
           url = isCarousel ? '/api/generate-viral-carousel' : '/api/generate-viral';
-          bodyPayload = { type: requestedPostType, recentPosts: getPostHistory(), editorialTab: requestedEditorialTab, uploadContext: document.getElementById('upload-context') ? document.getElementById('upload-context').value : '' };
+          bodyPayload = { type: requestedPostType, recentPosts: getPostHistory(), editorialTab: requestedEditorialTab, uploadContext: document.getElementById('upload-context') ? document.getElementById('upload-context').value : '', customRequest: requestedCustomRequest };
         }
 
         const data = await fetchJson(url, {
@@ -2961,7 +3054,13 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
           subInput.value       = data.sub     || '';
           document.getElementById('card-eyebrow').innerHTML = data.eyebrow || '';
           document.getElementById('card-sub').innerHTML     = data.sub     || '';
-          randomizeVisuals(data.h1 || '');
+
+          if (currentCreationMode === 'feedback') {
+            applyWhatsappCard(data);
+          } else {
+            exitWhatsappCard();
+            randomizeVisuals(data.h1 || '');
+          }
           applySupportModules();
           rememberPost({
             platform: requestedPostType,
@@ -2985,6 +3084,65 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
         btnGenerate.disabled = false;
       }
     });
+
+    // ============================================================
+    // WHATSAPP CARD MODE
+    // ============================================================
+    function applyWhatsappCard(data) {
+      const card = document.getElementById('capture-area');
+      card.classList.add('wa-mode');
+
+      // Extrai nome e cargo do CTA (ex: "Lucas Ferreira · Head de Mídia · SP")
+      const ctaParts = (data.cta || '').split('·');
+      const clientName = (ctaParts[0] || 'Cliente Erizon').trim();
+      const clientRole = ctaParts.slice(1).join('·').trim() || 'Gestor de Tráfego';
+
+      // Primeiro caractere do nome como avatar emoji
+      const avatarEmoji = ['👨‍💼','👩‍💼','🧑‍💼','👨‍💻','👩‍💻'][Math.floor(Math.random()*5)];
+      document.getElementById('wa-avatar').textContent = avatarEmoji;
+      document.getElementById('wa-contact-name').textContent = clientName;
+
+      // Hora aleatória realista
+      const h = 8 + Math.floor(Math.random() * 13);
+      const m = String(Math.floor(Math.random() * 60)).padStart(2, '0');
+      const time1 = h + ':' + m;
+      const time2 = h + ':' + String(parseInt(m) + Math.floor(Math.random()*4+1)).padStart(2,'0');
+
+      // Monta a métrica principal do h1 sem HTML tags
+      const metricText = stripHtml(data.h1 || '');
+      // Sub contém o resultado + a quote
+      const subParts = (data.sub || '').split('"');
+      const resultLine = subParts[0].trim();
+      const quoteText = subParts.length > 1 ? '"' + subParts.slice(1).join('"') : '';
+
+      // Monta mensagem: quebra o conteúdo em 1-2 bolhas naturais
+      const msgParts = [];
+      if (resultLine) msgParts.push(resultLine);
+      if (quoteText) msgParts.push(quoteText);
+      else if (metricText) msgParts.push(metricText);
+
+      const bubble1 = msgParts[0] || metricText;
+      const bubble2 = msgParts[1] || null;
+
+      document.getElementById('wa-messages').innerHTML = \`
+        <div class="wa-bubble received wa-tail-l">
+          <div class="wa-name-label">\${clientName}</div>
+          <div class="wa-bubble-text">\${bubble1}</div>
+          <div class="wa-bubble-meta"><span class="wa-time">\${time1}</span></div>
+        </div>
+        \${bubble2 ? \`<div class="wa-bubble received" style="border-top-left-radius:8px;margin-top:-6px;">
+          <div class="wa-bubble-text">\${bubble2}</div>
+          <div class="wa-bubble-meta"><span class="wa-time">\${time2}</span><span class="wa-ticks">✓✓</span></div>
+        </div>\` : ''}
+      \`;
+
+      // Atualiza o chip
+      updateDesignChiefChip({ recipeLabel: 'WhatsApp Real' });
+    }
+
+    function exitWhatsappCard() {
+      document.getElementById('capture-area').classList.remove('wa-mode');
+    }
 
     // ============================================================
     // RENDER CARD → BASE64
@@ -3703,10 +3861,12 @@ const HTML_TEMPLATE = `<!DOCTYPE html>
       status.innerHTML = '⚡ hormozi-squad escolhendo ângulo...';
 
       const stages = [
-        [1400, '📖 storytelling criando hook de 3 segundos...'],
-        [2800, '✍️ copy-squad escrevendo legenda...'],
-        [4200, '🎨 gerando card visual Erizon...'],
-        [5600, '📤 postando no Instagram...'],
+        [1000, '📖 storytelling criando hook de 3 segundos...'],
+        [2000, '✍️ copy-squad escrevendo legenda...'],
+        [3000, '🎯 traffic-masters otimizando algoritmo...'],
+        [4000, '🎨 design-chief definindo direção visual...'],
+        [5000, '🖼️ gerando card visual Erizon...'],
+        [6200, '📤 postando no Instagram...'],
       ];
       stages.forEach(([delay, msg]) => setTimeout(() => { if (!btn.disabled) return; status.innerHTML = msg; }, delay));
 
@@ -4398,6 +4558,8 @@ function buildGrowthDashboardHtml(metrics: {
       <span style="color:rgba(255,255,255,.2);font-size:12px;align-self:center;">→</span>
       <span class="chip chip-cyan">✍️ copy-squad</span>
       <span style="color:rgba(255,255,255,.2);font-size:12px;align-self:center;">→</span>
+      <span class="chip" style="background:rgba(255,0,229,.12);color:#FF00E5;border:0.5px solid rgba(255,0,229,.3);">🎨 design-chief</span>
+      <span style="color:rgba(255,255,255,.2);font-size:12px;align-self:center;">→</span>
       <span class="chip chip-purple">📸 instagram</span>
     </div>
     <div id="autoPostStatus" style="display:none;padding:12px 16px;border-radius:8px;font-size:13px;margin-bottom:12px;"></div>
@@ -4629,10 +4791,12 @@ function buildGrowthDashboardHtml(metrics: {
     status.innerHTML = '⚡ hormozi-squad escolhendo ângulo...';
 
     const stages = [
-      [1200, '📖 storytelling criando hooks de 3 segundos...'],
-      [2400, '✍️ copy-squad escrevendo a legenda...'],
-      [3600, '🎨 gerando card visual Erizon...'],
-      [4800, '📤 postando no Instagram...'],
+      [1000, '📖 storytelling criando hooks de 3 segundos...'],
+      [2000, '✍️ copy-squad escrevendo a legenda...'],
+      [3000, '🎯 traffic-masters otimizando algoritmo...'],
+      [4000, '🎨 design-chief definindo direção visual...'],
+      [5000, '🖼️ gerando card visual Erizon...'],
+      [6200, '📤 postando no Instagram...'],
     ];
     stages.forEach(([delay, msg]) => setTimeout(() => { if (!btn.disabled) return; status.innerHTML = msg; }, delay));
 
@@ -4662,24 +4826,25 @@ function buildGrowthDashboardHtml(metrics: {
 }
 
 // ── Pipeline viral: todos os squads em paralelo → brief para generatePost ──
-async function generateViralBriefFromSquads(postType: string, editorialTab: string): Promise<string> {
+async function generateViralBriefFromSquads(postType: string, editorialTab: string, customRequest: string = ''): Promise<string> {
   if (!process.env.GROQ_API_KEY) return '';
   const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
   const model = process.env.GROQ_SQUAD_CHAT_MODEL || 'llama-3.1-8b-instant';
 
-  const [hormozi, storytelling, copySquad, traffic, brand, advisory] = await Promise.all([
+  const [hormozi, storytelling, copySquad, traffic, brand, advisory, designSquad] = await Promise.all([
     getSquadById('hormozi-squad'),
     getSquadById('storytelling'),
     getSquadById('copy-squad'),
     getSquadById('traffic-masters'),
     getSquadById('brand-squad'),
     getSquadById('advisory-board'),
+    getSquadById('design-squad'),
   ]);
 
   const ctx = (s: any) => `${s?.description || ''}\n${(s?.chiefPrompt || '').slice(0, 500)}`;
-  const base = `ERIZON AI — SaaS de inteligência para Meta Ads. Público: gestores de tráfego e agências. Tipo de post: ${postType}. Aba editorial: ${editorialTab}.`;
+  const base = `ERIZON AI — SaaS de inteligência para Meta Ads. Público: gestores de tráfego e agências. Tipo de post: ${postType}. Aba editorial: ${editorialTab}.${customRequest ? ` PEDIDO ESPECÍFICO DO USUÁRIO: "${customRequest}" — oriente sua resposta para atender este pedido.` : ''}`;
 
-  const [r1, r2, r3, r4, r5, r6] = await Promise.all([
+  const [r1, r2, r3, r4, r5, r6, r7] = await Promise.all([
     groq.chat.completions.create({ model, temperature: 0.6, max_tokens: 120,
       messages: [
         { role: 'system', content: `Hormozi Squad chief.\n${ctx(hormozi)}\n${base}` },
@@ -4716,6 +4881,12 @@ async function generateViralBriefFromSquads(postType: string, editorialTab: stri
         { role: 'user', content: 'Em 1-2 frases: qual insight estratégico de alto nível tornaria este post memorável e diferenciado?' }
       ]
     }),
+    groq.chat.completions.create({ model, temperature: 0.7, max_tokens: 150,
+      messages: [
+        { role: 'system', content: `Design Chief da ERIZON AI. Você é o orquestrador visual do conteúdo de Instagram da ERIZON. Paleta da marca: Deep Space #0B0112 | Electric Purple #BC13FE | Cyber Pink #FF00E5 | Data Teal #00F2FF | Pure White #FFFFFF. Tipografia: Syne ExtraBold (títulos), Plus Jakarta Sans (corpo), JetBrains Mono (dados). Estética: futurista, minimalista, alta hierarquia visual, linguagem própria.\n${ctx(designSquad)}\n${base}` },
+        { role: 'user', content: 'Em 2-3 frases: qual direção visual usar para este post? Defina: composição (centralizado/assimétrico/grid), mood visual (dark-tech/neon-glow/clean-data/dramatic), qual elemento de destaque usar (número grande/frase de impacto/dado visual), e como hierarquizar a informação para máximo impacto em 1 segundo de scroll.' }
+      ]
+    }),
   ]);
 
   const get = (r: any) => r.choices[0]?.message?.content?.trim() || '';
@@ -4739,7 +4910,103 @@ ${get(r5)}
 🧠 ADVISORY BOARD — Insight estratégico:
 ${get(r6)}
 
-=== INSTRUÇÃO: crie o conteúdo mais viral possível para ERIZON AI incorporando TODOS os insights acima. ===`;
+🎨 DESIGN CHIEF — Direção visual e composição:
+${get(r7)}
+
+=== INSTRUÇÃO: crie o conteúdo mais viral possível para ERIZON AI incorporando TODOS os insights acima, incluindo a direção visual do Design Chief. ===`;
+}
+
+// ── Gerador de feedback realista ──
+async function generateRealisticFeedback(params: {
+  persona: string;
+  result: string;
+  context: string;
+  postType: string;
+}): Promise<PostContent> {
+  if (!process.env.GROQ_API_KEY) throw new Error('GROQ_API_KEY não configurada.');
+  const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+  const personaMap: Record<string, string> = {
+    'gestor-solo':     'Gestor de tráfego freelancer, trabalha sozinho, atende de 3 a 8 clientes, verba média de R$8k–R$30k/mês por cliente',
+    'agencia-pequena': 'Sócio ou gestor de agência pequena (2–5 pessoas), de 5 a 15 clientes ativos, verba total gerenciada R$50k–R$200k/mês',
+    'agencia-media':   'Head de mídia ou sócio de agência média (6–15 pessoas), de 15 a 40 clientes, verba total R$300k–R$1M+/mês',
+    'head-marketing':  'Head de marketing de empresa média, não é agência, gerencia campanhas próprias, responde ao CEO diretamente',
+    'ecommerce':       'Dono ou gerente de e-commerce, gere as próprias campanhas no Meta, faturamento mensal entre R$200k e R$2M',
+    'random':          'Perfil aleatório — escolha entre gestor solo, agência pequena/média, head de marketing ou e-commerce. Seja específico.',
+  };
+
+  const resultMap: Record<string, string> = {
+    'roas':                'ROAS de campanha melhorou significativamente após uso da Erizon (dê números reais: antes X→depois Y)',
+    'tempo':               'Economia de tempo operacional expressiva — horas que eram gastas viraram minutos (dê números: antes X horas → depois Y minutos)',
+    'cliente-recuperado':  'Campanha estava indo mal silenciosamente, a Erizon detectou o problema antes de virar prejuízo grande (descreva o cenário)',
+    'escala':              'Conseguiu escalar número de clientes sem precisar contratar mais pessoas (dê números: antes X clientes → depois Y)',
+    'deteccao':            'Fadiga de criativo ou saturação de público detectada antes de destruir o ROAS (quanto foi economizado)',
+    'random':              'Resultado aleatório — escolha o que seria mais impactante e críble para esse perfil de cliente.',
+  };
+
+  const personaDesc = personaMap[params.persona] || personaMap['random'];
+  const resultDesc  = resultMap[params.result]   || resultMap['random'];
+  const ctxExtra    = params.context ? `\nContexto adicional: ${params.context}` : '';
+
+  const systemPrompt = `Você é um especialista em prova social e copywriting para SaaS B2B brasileiro.
+Sua missão: gerar um post de Instagram de prova social que pareça 100% real e orgânico — como se fosse um cliente real compartilhando espontaneamente o resultado que teve com a ERIZON AI.
+
+ERIZON AI: SaaS de inteligência operacional para gestores de tráfego e agências. Monitora campanhas Meta Ads em tempo real, detecta problemas antes de virarem prejuízo, entrega decisões automáticas (não relatórios).
+
+PERFIL DO CLIENTE: ${personaDesc}
+RESULTADO A MOSTRAR: ${resultDesc}${ctxExtra}
+
+REGRAS ABSOLUTAS:
+- Nome: brasileiro real e comum (ex: Lucas Ferreira, Camila Rocha, Thiago Mendes, Mariana Costa — NUNCA nomes genéricos como "João Silva")
+- Cargo e empresa: específicos e críveis (ex: "Head de Mídia na Agência Pulse Digital, SP" — NUNCA genérico)
+- Números: sempre específicos e naturais (ex: "ROAS foi de 2.1 para 4.8", "economizei 6h por semana" — NUNCA "melhorou muito")
+- Tom: espontâneo, como alguém escrevendo no celular — não marketing, não formal, não corporativo
+- Linguagem: PT-BR informal, com gírias de mercado naturais ("tava", "cara", "absurdo", "real")
+- O post DEVE parecer um screenshot ou relato real de cliente, não um anúncio
+- Inclua uma citação direta do cliente em primeira pessoa (como se fosse aspas de depoimento)
+- O hook deve ser a métrica mais surpreendente — isso para o scroll
+- Caption: mencione naturalmente que isso é com Erizon, mas sem forçar — como cliente falando
+
+Responda em JSON com exatamente esta estrutura:
+{
+  "eyebrow": "// RESULTADO REAL · [CARGO CURTO] · [CIDADE]",
+  "h1": "[MÉTRICA IMPACTANTE em destaque — ex: ROAS 2.1 → 4.8 em <span class=\\"grad\\">21 dias</span>]",
+  "sub": "[Contexto: o que aconteceu, o resultado real em 1 frase]",
+  "quote": "[Citação direta do cliente em primeira pessoa — 2-3 frases naturais e específicas]",
+  "name": "[Nome completo]",
+  "role": "[Cargo · Empresa · Cidade]",
+  "caption": "[Caption do Instagram: começa com o hook mais forte, conta a história em 3-4 parágrafos curtos, cita a Erizon naturalmente, termina com CTA de engajamento e hashtags relevantes]",
+  "supporting": ["detalhe técnico 1", "detalhe técnico 2", "detalhe técnico 3"],
+  "formatHint": "fact"
+}`;
+
+  const response = await groq.chat.completions.create({
+    model: 'llama-3.3-70b-versatile',
+    temperature: 0.85,
+    max_tokens: 900,
+    response_format: { type: 'json_object' },
+    messages: [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: 'Gere agora o post de prova social realista. Seja específico, natural e críble. Nenhum detalhe pode parecer inventado ou genérico.' }
+    ]
+  });
+
+  const raw = JSON.parse(response.choices[0].message.content || '{}');
+
+  // Monta h1 com a citação embutida para o preview visual
+  const h1WithQuote = raw.h1 || '';
+  const subWithQuote = raw.sub ? `${raw.sub}\n\n"${raw.quote || ''}"` : `"${raw.quote || ''}"`;
+
+  return {
+    eyebrow:   raw.eyebrow   || '// RESULTADO REAL',
+    h1:        h1WithQuote,
+    sub:       subWithQuote,
+    caption:   raw.caption   || '',
+    cta:       raw.name && raw.role ? `${raw.name} · ${raw.role}` : '',
+    supporting: raw.supporting || [],
+    stats:     [],
+    formatHint: 'fact',
+  } as PostContent;
 }
 
 export default async function handler(req: any, res: any) {
@@ -4989,15 +5256,21 @@ export default async function handler(req: any, res: any) {
     try {
       const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
 
-      if (url.pathname === '/api/generate-viral') {
-        const { type, recentPosts, editorialTab, uploadContext } = body;
-        const squadBrief = await generateViralBriefFromSquads(type, editorialTab);
-        const content = await agent.generatePost(type, recentPosts, editorialTab, uploadContext, squadBrief, null);
+      if (url.pathname === '/api/generate-feedback') {
+        const { persona, result, context, postType } = body;
+        const content = await generateRealisticFeedback({ persona: persona || 'random', result: result || 'random', context: context || '', postType: postType || 'instagram-feed' });
+        res.status(200).json(content);
+      } else if (url.pathname === '/api/generate-viral') {
+        const { type, recentPosts, editorialTab, uploadContext, customRequest } = body;
+        const squadBrief = await generateViralBriefFromSquads(type, editorialTab, customRequest || '');
+        const combinedRequest = customRequest ? `PEDIDO DO USUÁRIO: "${customRequest}"\n\n${squadBrief}` : squadBrief;
+        const content = await agent.generatePost(type, recentPosts, editorialTab, uploadContext, combinedRequest, null);
         res.status(200).json(content);
       } else if (url.pathname === '/api/generate-viral-carousel') {
-        const { recentPosts, editorialTab } = body;
-        const squadBrief = await generateViralBriefFromSquads('instagram-carousel', editorialTab);
-        const content = await agent.generateCarousel(recentPosts, editorialTab, squadBrief, null);
+        const { recentPosts, editorialTab, customRequest } = body;
+        const squadBrief = await generateViralBriefFromSquads('instagram-carousel', editorialTab, customRequest || '');
+        const combinedRequest = customRequest ? `PEDIDO DO USUÁRIO: "${customRequest}"\n\n${squadBrief}` : squadBrief;
+        const content = await agent.generateCarousel(recentPosts, editorialTab, combinedRequest, null);
         res.status(200).json(content);
       } else if (url.pathname === '/api/generate') {
         const { type, recentPosts, editorialTab, uploadContext, customRequest, useBrandSquad } = body;
