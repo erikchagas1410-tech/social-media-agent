@@ -825,7 +825,7 @@ RETORNE OBRIGATORIAMENTE UM JSON VÁLIDO:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: userContext }
         ],
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         temperature: 0.92,
         response_format: { type: 'json_object' }
       });
@@ -930,7 +930,7 @@ RETORNE JSON VÁLIDO com exatamente 7 slides:
           { role: 'system', content: systemPrompt },
           { role: 'user', content: customRequest.trim() ? `Atenda este pedido específico do usuário sem perder a ambição de crescimento da ERIZON: "${customRequest}"` : 'Crie um carrossel VIRAL e inédito para a ERIZON. Escolha um ângulo que ninguém viu. Narrativa progressiva que vicia quem desliza e aumenta a percepção de valor da plataforma.' }
         ],
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         temperature: 0.9,
         response_format: { type: 'json_object' }
       });
@@ -1013,7 +1013,7 @@ Retorne JSON válido neste formato:
             content: 'Crie uma estratégia exclusiva da ERIZON para crescer rápido com conteúdo premium, futurista e orientado à aquisição.'
           }
         ],
-        model: 'llama-3.3-70b-versatile',
+        model: 'llama-3.1-8b-instant',
         temperature: 0.7,
         response_format: { type: 'json_object' }
       });
@@ -4991,7 +4991,7 @@ Responda em JSON com exatamente esta estrutura:
 }`;
 
   const response = await groq.chat.completions.create({
-    model: 'llama-3.3-70b-versatile',
+    model: 'llama-3.1-8b-instant',
     temperature: 0.85,
     max_tokens: 900,
     response_format: { type: 'json_object' },
