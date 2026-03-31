@@ -451,10 +451,10 @@ body::after{content:'';position:fixed;width:700px;height:700px;top:-200px;right:
       <div class="card card-p">
         <div class="ch" style="justify-content:space-between;">
           <span class="ct">🎨 Estúdio de Design Completo</span>
-          <button class="btn btn-g" style="font-size:11px;padding:4px 10px;" onclick="document.getElementById('studio-frame').src='/estudio'">🔄 Recarregar</button>
+          <button class="btn btn-g" style="font-size:11px;padding:4px 10px;" onclick="document.getElementById('studio-frame').src='/api/estudio'">🔄 Recarregar</button>
         </div>
         <div style="padding:0;overflow:hidden;border-radius:0 0 12px 12px;">
-          <iframe id="studio-frame" src="/estudio" style="width:100%;height:calc(100vh - 160px);min-height:700px;border:none;display:block;" loading="lazy"></iframe>
+          <iframe id="studio-frame" src="/api/estudio" style="width:100%;height:calc(100vh - 160px);min-height:700px;border:none;display:block;" loading="lazy"></iframe>
         </div>
       </div>
     </div>

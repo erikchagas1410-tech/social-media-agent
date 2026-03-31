@@ -5531,24 +5531,35 @@ async function _uploadCardImage(host: string, hookText: string, pillar: string, 
     const pngBuffer = isStory
       ? await makeStoryCardPng(cleanHook, pillar, tplIndex)
       : await makeVariedCardPng(cleanHook, pillar, tplIndex);
-    const base64 = pngBuffer.toString('base64');
-    const blobToken = getBlobToken();
-    const imgbbKey = process.env.IMGBB_API_KEY;
+    const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
 
+    // 1. Supabase (primário)
+    if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      const url = await uploadToSupabase(base64);
+      if (url) return url;
+    }
+
+    // 2. Vercel Blob
+    const blobToken = getBlobToken();
     if (blobToken) {
       const filename = `agency-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.png`;
       const res = await fetch(`https://blob.vercel-storage.com/${filename}`, {
         method: 'PUT', headers: { 'Authorization': `Bearer ${blobToken}`, 'Content-Type': 'image/png', 'x-api-version': '7' },
-        body: Buffer.from(base64, 'base64'),
+        body: pngBuffer as unknown as BodyInit,
       });
       if (res.ok) { const d = await res.json() as any; if (d.url) return d.url; }
     }
+
+    // 3. ImgBB
+    const imgbbKey = process.env.IMGBB_API_KEY;
     if (imgbbKey) {
-      const fd = new URLSearchParams(); fd.append('key', imgbbKey); fd.append('image', base64);
+      const fd = new URLSearchParams(); fd.append('key', imgbbKey); fd.append('image', pngBuffer.toString('base64'));
       const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: fd });
       if (res.ok) { const d = await res.json() as any; if (d?.data?.url) return d.data.url; }
     }
-  } catch {}
+  } catch (err: any) {
+    logger.warn(`_uploadCardImage falhou: ${err?.message}`);
+  }
   return `https://${host}/api/growth-card?hook=${encodeURIComponent(cleanHook)}`;
 }
 
@@ -5611,16 +5622,27 @@ async function generateMonthPlan(host: string, targetMonth?: number, targetYear?
   const month = targetMonth !== undefined ? targetMonth : now.getMonth(); // 0-indexed
 
   // Coleta datas Seg/Qua/Sex/Dom do mês alvo a partir de hoje
-  const postDates: Date[] = [];
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const today = now.getDate();
-  const isCurrentMonth = month === now.getMonth() && year === now.getFullYear();
+  const collectPostDates = (y: number, m: number): Date[] => {
+    const dates: Date[] = [];
+    const days = new Date(y, m + 1, 0).getDate();
+    const isCurrentMo = m === now.getMonth() && y === now.getFullYear();
+    const todayDay = now.getDate();
+    for (let day = 1; day <= days; day++) {
+      if (isCurrentMo && day < todayDay) continue;
+      const d = new Date(y, m, day, 12, 0, 0);
+      const dow = d.getDay();
+      if ([0, 1, 3, 5].includes(dow)) dates.push(d);
+    }
+    return dates;
+  };
 
-  for (let day = 1; day <= daysInMonth; day++) {
-    if (isCurrentMonth && day < today) continue; // pula dias passados
-    const d = new Date(year, month, day, 12, 0, 0); // meio-dia
-    const dow = d.getDay();
-    if ([0, 1, 3, 5].includes(dow)) postDates.push(d); // Dom, Seg, Qua, Sex
+  let postDates = collectPostDates(year, month);
+
+  // Se não restam datas válidas no mês atual, usa o próximo mês
+  if (postDates.length === 0) {
+    const nextMonth = month === 11 ? 0 : month + 1;
+    const nextYear = month === 11 ? year + 1 : year;
+    postDates = collectPostDates(nextYear, nextMonth);
   }
 
   // Pega até 20 datas
@@ -6400,7 +6422,43 @@ async function writeJsonBlob(pathname: string, payload: any, token: string): Pro
   }
 }
 
+async function readJsonFromSupabase(filename: string): Promise<any | null> {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseKey) return null;
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'erizon-media';
+  const res = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/data/${filename}`, {
+    headers: { 'Authorization': `Bearer ${supabaseKey}` }
+  });
+  if (!res.ok) return null;
+  try { return await res.json(); } catch { return null; }
+}
+
+async function writeJsonToSupabase(filename: string, payload: any): Promise<void> {
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !supabaseKey) throw new Error('Supabase não configurado.');
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'erizon-media';
+  const res = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/data/${filename}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${supabaseKey}`,
+      'Content-Type': 'application/json',
+      'x-upsert': 'true',
+    },
+    body: JSON.stringify(payload, null, 2),
+  });
+  if (!res.ok) throw new Error(`Supabase write falhou: ${res.status} — ${await res.text()}`);
+}
+
 async function readScheduledPosts(): Promise<ScheduledPost[]> {
+  // 1. Supabase (primário)
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    const items = await readJsonFromSupabase(SCHEDULE_BLOB_PATHNAME);
+    if (Array.isArray(items)) return items;
+  }
+
+  // 2. Vercel Blob
   const blobToken = getBlobToken();
   if (blobToken) {
     const items = await readScheduledPostsFromBlob(blobToken);
@@ -6418,6 +6476,13 @@ async function readScheduledPosts(): Promise<ScheduledPost[]> {
 }
 
 async function writeScheduledPosts(items: ScheduledPost[]): Promise<void> {
+  // 1. Supabase (primário)
+  if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    await writeJsonToSupabase(SCHEDULE_BLOB_PATHNAME, items);
+    return;
+  }
+
+  // 2. Vercel Blob
   const blobToken = getBlobToken();
   if (blobToken) {
     await writeScheduledPostsToBlob(items, blobToken);
