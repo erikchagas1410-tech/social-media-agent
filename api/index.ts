@@ -4081,14 +4081,44 @@ function stripHtmlForImage(value: string): string {
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 
-// Fonte Inter carregada do Google Fonts (cacheada em memória por invocação)
+// Fonte Inter — tenta Supabase (cache persistente) → Google Fonts → falha com erro útil
 let _fontCache: ArrayBuffer | null = null;
+const FONT_SUPABASE_PATH = 'data/inter-extrabold.woff2';
+const FONT_GOOGLE_URL = 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2';
+
 async function _loadFont(): Promise<ArrayBuffer> {
   if (_fontCache) return _fontCache;
-  const res = await fetch(
-    'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2'
-  );
+
+  // 1. Tenta Supabase (mais rápido que Google em cold starts)
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'erizon-media';
+  if (supabaseUrl && supabaseKey) {
+    try {
+      const fontRes = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${FONT_SUPABASE_PATH}`, {
+        headers: { 'Authorization': `Bearer ${supabaseKey}` }
+      });
+      if (fontRes.ok) {
+        _fontCache = await fontRes.arrayBuffer();
+        return _fontCache;
+      }
+    } catch { /* fallthrough */ }
+  }
+
+  // 2. Busca do Google Fonts e persiste no Supabase para próximas invocações
+  const res = await fetch(FONT_GOOGLE_URL);
+  if (!res.ok) throw new Error(`Falha ao carregar fonte Inter: HTTP ${res.status}`);
   _fontCache = await res.arrayBuffer();
+
+  // Salva no Supabase em background (não bloqueia renderização)
+  if (supabaseUrl && supabaseKey) {
+    fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${FONT_SUPABASE_PATH}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${supabaseKey}`, 'Content-Type': 'font/woff2', 'x-upsert': 'true' },
+      body: Buffer.from(_fontCache),
+    }).catch(() => { /* ignora erro de cache */ });
+  }
+
   return _fontCache;
 }
 
