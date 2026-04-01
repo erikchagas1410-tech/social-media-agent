@@ -4184,36 +4184,55 @@ function _wrapHook(hook: string, maxChars: number, maxLines: number): string[] {
   return lines.slice(0, maxLines);
 }
 
-// Layout 0 – Eyebrow + texto centro + brand rodapé (3 variações de cor)
-function _buildLayout0(hookLines: string[], pillarLabel: string, tmpl: CardTmpl, fontSize: number): any {
+function _stripHtml(text: string): string {
+  return text.replace(/<[^>]*>/g, '').replace(/\s+/g, ' ').trim();
+}
+
+function _subLines(sub: string): string[] {
+  const clean = _stripHtml(sub);
+  // Take up to the first period, or first 90 chars
+  const firstSentence = clean.match(/^[^.!?]+[.!?]/)?.[0] || clean.slice(0, 90);
+  return _wrapHook(firstSentence.trim(), 38, 2);
+}
+
+// Layout 0 – Eyebrow + texto centro + sub + brand rodapé
+function _buildLayout0(hookLines: string[], pillarLabel: string, tmpl: CardTmpl, fontSize: number, subLines: string[] = []): any {
   return [
     { type:'div', props:{ style:{ position:'absolute', top:0, left:0, right:0, height:8, background:`linear-gradient(90deg,transparent,${tmpl.accent},transparent)` } } },
     { type:'div', props:{ style:{ position:'absolute', bottom:0, left:0, right:0, height:8, background:`linear-gradient(90deg,${tmpl.accent},transparent,${tmpl.accent})` } } },
-    { type:'div', props:{ style:{ display:'flex', alignItems:'center', marginBottom:56 }, children:[
+    { type:'div', props:{ style:{ display:'flex', alignItems:'center', marginBottom:44 }, children:[
       { type:'div', props:{ style:{ background:tmpl.tagBg, border:tmpl.tagBorder, borderRadius:6, padding:'6px 18px', color:tmpl.tagColor, fontSize:20, fontWeight:'700', letterSpacing:'3px' }, children:pillarLabel } },
     ]}},
-    { type:'div', props:{ style:{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', gap:10 }, children:
-      hookLines.map(line => ({ type:'div', props:{ style:{ color:tmpl.text, fontSize, fontWeight:'800', lineHeight:'1.05', letterSpacing:'-1px' }, children:line } }))
-    }},
-    { type:'div', props:{ style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:56 }, children:[
+    { type:'div', props:{ style:{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', gap:10 }, children:[
+      ...hookLines.map(line => ({ type:'div', props:{ style:{ color:tmpl.text, fontSize, fontWeight:'800', lineHeight:'1.05', letterSpacing:'-1px' }, children:line } })),
+      ...(subLines.length > 0 ? [
+        { type:'div', props:{ style:{ height:2, width:60, background:tmpl.accent, marginTop:22, marginBottom:16 } } },
+        ...subLines.map(line => ({ type:'div', props:{ style:{ color:'rgba(255,255,255,0.6)', fontSize:28, fontWeight:'800', lineHeight:'1.35', letterSpacing:'0px' }, children:line } })),
+      ] : []),
+    ]}},
+    { type:'div', props:{ style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:40 }, children:[
       { type:'div', props:{ style:{ color:'rgba(255,255,255,0.3)', fontSize:20, letterSpacing:'5px' }, children:'erizon.ai' } },
       { type:'div', props:{ style:{ color:tmpl.accent, fontSize:22, fontWeight:'700', letterSpacing:'3px' }, children:'ERIZON' } },
     ]}},
   ];
 }
 
-// Layout 1 – Barra lateral esquerda + texto left-aligned + divider
-function _buildLayout1(hookLines: string[], pillarLabel: string, tmpl: CardTmpl, fontSize: number): any {
+// Layout 1 – Barra lateral esquerda + texto left-aligned + sub + divider
+function _buildLayout1(hookLines: string[], pillarLabel: string, tmpl: CardTmpl, fontSize: number, subLines: string[] = []): any {
   return [
     { type:'div', props:{ style:{ position:'absolute', left:0, top:0, bottom:0, width:14, background:tmpl.accent } } },
-    { type:'div', props:{ style:{ display:'flex', alignItems:'center', gap:14, marginBottom:48 }, children:[
+    { type:'div', props:{ style:{ display:'flex', alignItems:'center', gap:14, marginBottom:40 }, children:[
       { type:'div', props:{ style:{ width:3, height:26, background:tmpl.accent } } },
       { type:'div', props:{ style:{ color:tmpl.tagColor, fontSize:18, fontWeight:'700', letterSpacing:'4px' }, children:pillarLabel } },
     ]}},
-    { type:'div', props:{ style:{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', gap:8 }, children:
-      hookLines.map((line, i) => ({ type:'div', props:{ style:{ color: i===0 ? tmpl.text : 'rgba(255,255,255,0.8)', fontSize: i===0 ? fontSize+4 : fontSize-6, fontWeight:'800', lineHeight:'1.0' }, children:line } }))
-    }},
-    { type:'div', props:{ style:{ height:2, background:`linear-gradient(90deg,${tmpl.accent},transparent)`, marginBottom:22 } } },
+    { type:'div', props:{ style:{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', gap:8 }, children:[
+      ...hookLines.map((line, i) => ({ type:'div', props:{ style:{ color: i===0 ? tmpl.text : 'rgba(255,255,255,0.8)', fontSize: i===0 ? fontSize+4 : fontSize-6, fontWeight:'800', lineHeight:'1.0' }, children:line } })),
+      ...(subLines.length > 0 ? [
+        { type:'div', props:{ style:{ height:2, width:48, background:tmpl.accent, marginTop:18, marginBottom:14 } } },
+        ...subLines.map(line => ({ type:'div', props:{ style:{ color:'rgba(255,255,255,0.6)', fontSize:26, fontWeight:'800', lineHeight:'1.35' }, children:line } })),
+      ] : []),
+    ]}},
+    { type:'div', props:{ style:{ height:2, background:`linear-gradient(90deg,${tmpl.accent},transparent)`, marginTop: subLines.length > 0 ? 18 : 0, marginBottom:22 } } },
     { type:'div', props:{ style:{ display:'flex', alignItems:'center', justifyContent:'space-between' }, children:[
       { type:'div', props:{ style:{ color:'rgba(255,255,255,0.35)', fontSize:18, letterSpacing:'5px' }, children:'ERIZON · AI' } },
       { type:'div', props:{ style:{ background:tmpl.tagBg, border:tmpl.tagBorder, borderRadius:999, padding:'5px 16px', color:tmpl.tagColor, fontSize:13, fontWeight:'700' }, children:'2026' } },
@@ -4221,16 +4240,20 @@ function _buildLayout1(hookLines: string[], pillarLabel: string, tmpl: CardTmpl,
   ];
 }
 
-// Layout 2 – Centralizado com decoração de cantos
-function _buildLayout2(hookLines: string[], pillarLabel: string, tmpl: CardTmpl, fontSize: number): any {
+// Layout 2 – Centralizado com decoração de cantos + sub
+function _buildLayout2(hookLines: string[], pillarLabel: string, tmpl: CardTmpl, fontSize: number, subLines: string[] = []): any {
   const cFontSize = hookLines.length > 2 ? fontSize-8 : fontSize;
   return [
     { type:'div', props:{ style:{ position:'absolute', top:50, right:50, width:90, height:90, border:`4px solid ${tmpl.accent}`, borderRadius:10, opacity:0.25 } } },
     { type:'div', props:{ style:{ position:'absolute', bottom:50, left:50, width:65, height:65, border:`4px solid ${tmpl.accent}`, borderRadius:5, opacity:0.18 } } },
     { type:'div', props:{ style:{ position:'absolute', top:50, left:50, width:40, height:40, border:`3px solid ${tmpl.accent}`, borderRadius:3, opacity:0.12 } } },
-    { type:'div', props:{ style:{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:16 }, children:[
+    { type:'div', props:{ style:{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:14 }, children:[
       { type:'div', props:{ style:{ background:tmpl.tagBg, border:tmpl.tagBorder, borderRadius:999, padding:'8px 24px', color:tmpl.tagColor, fontSize:18, fontWeight:'700', letterSpacing:'4px' }, children:pillarLabel } },
       ...hookLines.map(line => ({ type:'div', props:{ style:{ color:tmpl.text, fontSize:cFontSize, fontWeight:'800', lineHeight:'1.04', letterSpacing:'-1px', textAlign:'center' }, children:line } })),
+      ...(subLines.length > 0 ? [
+        { type:'div', props:{ style:{ height:2, width:60, background:tmpl.accent, marginTop:14 } } },
+        ...subLines.map(line => ({ type:'div', props:{ style:{ color:'rgba(255,255,255,0.6)', fontSize:26, fontWeight:'800', lineHeight:'1.35', textAlign:'center' }, children:line } })),
+      ] : []),
     ]}},
     { type:'div', props:{ style:{ display:'flex', alignItems:'center', justifyContent:'center', gap:16 }, children:[
       { type:'div', props:{ style:{ height:2, width:48, background:tmpl.accent } } },
@@ -4240,7 +4263,7 @@ function _buildLayout2(hookLines: string[], pillarLabel: string, tmpl: CardTmpl,
   ];
 }
 
-async function makeVariedCardPng(hook: string, pillar: string, templateIndex?: number): Promise<Buffer> {
+async function makeVariedCardPng(hook: string, pillar: string, templateIndex?: number, sub?: string): Promise<Buffer> {
   const font = await _loadFont();
   const pillarLabel = PILLAR_LABEL_MAP[pillar] || pillar.toUpperCase().slice(0,16);
 
@@ -4252,11 +4275,12 @@ async function makeVariedCardPng(hook: string, pillar: string, templateIndex?: n
 
   const hookLines = _wrapHook(hook, layout === 2 ? 24 : 28, 4);
   const fontSize = hookLines.length > 2 ? 66 : 80;
+  const subLines = sub ? _subLines(sub) : [];
 
   let children: any[];
-  if (layout === 0) children = _buildLayout0(hookLines, pillarLabel, tmpl, fontSize);
-  else if (layout === 1) children = _buildLayout1(hookLines, pillarLabel, tmpl, fontSize);
-  else children = _buildLayout2(hookLines, pillarLabel, tmpl, fontSize);
+  if (layout === 0) children = _buildLayout0(hookLines, pillarLabel, tmpl, fontSize, subLines);
+  else if (layout === 1) children = _buildLayout1(hookLines, pillarLabel, tmpl, fontSize, subLines);
+  else children = _buildLayout2(hookLines, pillarLabel, tmpl, fontSize, subLines);
 
   const svg = await satori(
     { type:'div', props:{ style:{ width:'1080px', height:'1080px', display:'flex', flexDirection:'column', background:tmpl.bg, padding:'80px', fontFamily:'Inter', position:'relative', overflow:'hidden' }, children } },
@@ -5534,27 +5558,31 @@ function buildAgencyDashboardHtml(pendingPosts: ScheduledPost[]): string {
       const card = document.getElementById('post-' + id);
       const btn = card.querySelector('button');
       btn.disabled = true;
-      btn.innerHTML = '<span style="color:#080010">Calculando melhor horário...</span>';
-      
+      btn.innerHTML = '<span style="color:#080010">⏳ Publicando agora...</span>';
+
       try {
         const res = await fetch('/api/agency-approve', {
           method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id })
         });
         const data = await res.json();
-        if(data.success) {
-          card.style.borderColor = '#00ff88';
-          card.style.boxShadow = '0 0 20px rgba(0,255,136,0.2)';
-          card.innerHTML = \`
-            <div style="padding:32px 20px;text-align:center;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;">
-              <div style="width:48px;height:48px;border-radius:50%;background:rgba(0,255,136,.1);color:#00ff88;display:flex;align-items:center;justify-content:center;font-size:24px;margin-bottom:16px;box-shadow:0 0 15px rgba(0,255,136,.4);">✓</div>
-              <h3 style="font-family:'Syne',sans-serif;font-size:18px;color:#fff;margin-bottom:8px;">Aprovado pela Agência</h3>
-              <p style="font-size:12px;color:rgba(255,255,255,.5);line-height:1.5;">\${data.post.results[0]}</p>
-              <div class="mono" style="margin-top:16px;font-size:10px;color:#00F2FF;background:rgba(0,242,255,.1);padding:4px 8px;border-radius:4px;">A IA assumiu o controle</div>
-            </div>\`;
-          setTimeout(() => { card.style.display = 'none'; }, 5000);
-        } else { throw new Error(data.error); }
+        const results = data.results || [];
+        const hasError = !data.success;
+        const statusColor = hasError ? '#FF3366' : '#00ff88';
+        const statusIcon = hasError ? '✗' : '✓';
+        const statusTitle = hasError ? 'Falha na Publicação' : 'Publicado com Sucesso';
+        const resultsHtml = results.map(r => \`<p style="font-size:11px;color:\${r.includes('Erro') ? '#FF3366' : '#00ff88'};margin:4px 0;">\${r}</p>\`).join('');
+        card.style.borderColor = statusColor;
+        card.style.boxShadow = \`0 0 20px \${statusColor}33\`;
+        card.innerHTML = \`
+          <div style="padding:24px 20px;text-align:center;height:100%;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:12px;">
+            <div style="width:48px;height:48px;border-radius:50%;background:\${statusColor}1a;color:\${statusColor};display:flex;align-items:center;justify-content:center;font-size:24px;box-shadow:0 0 15px \${statusColor}66;">\${statusIcon}</div>
+            <h3 style="font-family:'Syne',sans-serif;font-size:16px;color:#fff;margin:0;">\${statusTitle}</h3>
+            <div>\${resultsHtml || '<p style="font-size:11px;color:rgba(255,255,255,.4);">Sem resultado reportado</p>'}</div>
+            \${hasError ? \`<p style="font-size:11px;color:rgba(255,255,255,.4);margin:0;">\${data.error || ''}</p>\` : ''}
+          </div>\`;
+        if (!hasError) setTimeout(() => { card.style.display = 'none'; }, 6000);
       } catch(e) {
-        alert(e.message);
+        alert('Erro inesperado: ' + e.message);
         btn.disabled = false;
         btn.innerHTML = 'Aprovar & Autorizar IA';
       }
@@ -5580,12 +5608,12 @@ const ALL_POST_TYPES: PostType[] = [
   'instagram-feed','instagram-story','instagram-carousel','instagram-feed',
 ];
 
-async function _uploadCardImage(host: string, hookText: string, pillar: string, tplIndex: number, isStory: boolean): Promise<string> {
+async function _uploadCardImage(host: string, hookText: string, pillar: string, tplIndex: number, isStory: boolean, sub?: string): Promise<string> {
   const cleanHook = hookText.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
   try {
     const pngBuffer = isStory
       ? await makeStoryCardPng(cleanHook, pillar, tplIndex)
-      : await makeVariedCardPng(cleanHook, pillar, tplIndex);
+      : await makeVariedCardPng(cleanHook, pillar, tplIndex, sub);
     const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
 
     logger.info(`[_uploadCardImage] Imagem gerada (${pngBuffer.length} bytes), hook: "${cleanHook.slice(0, 50)}..."`);
@@ -5668,13 +5696,28 @@ async function generatePendingPost(host: string, reqPostType?: string, reqEditor
   let editorialTab: EditorialTab = (reqEditorialTab as EditorialTab) || 'erizon';
   let postType: PostType = (reqPostType as PostType) || 'instagram-feed';
 
+  // Lê fila existente — usada para rotação de tabs E como histórico para o LLM evitar repetição
+  const existing = await readScheduledPosts();
+
   // Se não foi especificado manualmente, rotaciona baseado no total de posts na fila
   if (!reqEditorialTab || !reqPostType) {
-    const existing = await readScheduledPosts();
     const idx = existing.length % ALL_EDITORIAL_TABS.length;
     if (!reqEditorialTab) editorialTab = ALL_EDITORIAL_TABS[idx];
     if (!reqPostType) postType = ALL_POST_TYPES[idx];
   }
+
+  // Constrói histórico de posts recentes para evitar repetição no LLM
+  const recentPosts: PostMemoryEntry[] = existing
+    .filter(p => p.caption && p.caption.length > 10)
+    .slice(-8)
+    .map(p => ({
+      platform: p.postType as PostType,
+      eyebrow: p.editorialTab,
+      h1: p.caption.slice(0, 80),
+      caption: p.caption.slice(0, 300),
+      tab: p.editorialTab,
+      createdAt: p.createdAt,
+    }));
 
   const isCarousel = postType === 'instagram-carousel';
   const isStory = postType === 'instagram-story';
@@ -5683,15 +5726,15 @@ async function generatePendingPost(host: string, reqPostType?: string, reqEditor
   let images: string[] = [];
 
   if (isCarousel) {
-    const carousel = await agent.generateCarousel([], editorialTab, 'Crie um carrossel educativo e viral. Use ângulo único, nunca repita posts anteriores.', null);
+    const carousel = await agent.generateCarousel(recentPosts, editorialTab, 'Crie um carrossel educativo e viral com ângulo ÚNICO e INÉDITO. Não repita temas, hooks ou CTAs do histórico recente.', null);
     caption = carousel.caption;
     for (let si = 0; si < Math.min(4, carousel.slides.length); si++) {
       images.push(await _uploadCardImage(host, carousel.slides[si].h1, editorialTab, (tplIdx + si) % 8, false));
     }
   } else {
-    const postContent = await agent.generatePost(postType, [], editorialTab, '', 'Crie um post forte, viral e único. Mostre autoridade e traga seguidores.', null);
+    const postContent = await agent.generatePost(postType, recentPosts, editorialTab, '', 'Crie um post com ângulo ÚNICO e INÉDITO. Analise o histórico recente e escolha um tema, hook e CTA completamente diferentes dos últimos posts.', null);
     caption = postContent.caption;
-    images.push(await _uploadCardImage(host, postContent.h1, editorialTab, tplIdx, isStory));
+    images.push(await _uploadCardImage(host, postContent.h1, editorialTab, tplIdx, isStory, postContent.sub));
   }
 
   const postEntry = buildScheduledPost({
@@ -6059,17 +6102,37 @@ export default async function handler(req: any, res: any) {
       const items = await readScheduledPosts();
       const post = items.find(i => i.id === id);
       if (!post) throw new Error('Post não encontrado');
-      
-      // Agendamento para AGORA, assim a aprovação faz o sistema postar no próximo gatilho (max 15 min)
-      let predictedDate = new Date();
-      let reason = 'Aprovado e enviado para publicação imediata';
 
+      // Executa o post IMEDIATAMENTE ao invés de apenas agendar para o cron
       post.status = 'scheduled';
-      post.scheduledAt = predictedDate.toISOString();
-      post.results = [`Agendado para: ${predictedDate.toLocaleString('pt-BR')} (${reason})`];
-      
+      post.scheduledAt = new Date().toISOString();
       await writeScheduledPosts(items);
-      res.status(200).json({ success: true, post });
+
+      try {
+        const postResults = await executeScheduledPost(agent, post);
+        const hasError = postResults.some(r => r.includes('Erro'));
+        post.status = hasError ? 'failed' : 'published';
+        post.results = postResults;
+        post.publishedAt = new Date().toISOString();
+        post.lastError = hasError ? postResults.filter(r => r.includes('Erro')).join(' | ') : '';
+
+        // Re-lê a fila para salvar com o estado final (pode ter mudado durante execução)
+        const updatedItems = await readScheduledPosts();
+        const idx = updatedItems.findIndex(i => i.id === post.id);
+        if (idx !== -1) updatedItems[idx] = post;
+        await writeScheduledPosts(updatedItems);
+
+        res.status(200).json({ success: !hasError, post, results: postResults });
+      } catch (postError: any) {
+        post.status = 'failed';
+        post.lastError = postError.message;
+        post.results = [`Falha ao publicar: ${postError.message}`];
+        const updatedItems = await readScheduledPosts();
+        const idx = updatedItems.findIndex(i => i.id === post.id);
+        if (idx !== -1) updatedItems[idx] = post;
+        await writeScheduledPosts(updatedItems);
+        res.status(200).json({ success: false, post, error: postError.message });
+      }
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
