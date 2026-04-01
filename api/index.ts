@@ -4081,15 +4081,32 @@ function stripHtmlForImage(value: string): string {
 import satori from 'satori';
 import { Resvg } from '@resvg/resvg-js';
 
-// Fonte Inter — tenta Supabase (cache persistente) → Google Fonts → falha com erro útil
+// Fonte Inter — tenta Supabase (cache persistente) → Google Fonts WOFF → falha com erro útil
+// IMPORTANTE: satori usa @shuding/opentype.js que suporta WOFF mas NÃO WOFF2
+// Por isso usamos WOFF (IE9 UA) em vez de WOFF2
 let _fontCache: ArrayBuffer | null = null;
-const FONT_SUPABASE_PATH = 'data/inter-extrabold.woff2';
-const FONT_GOOGLE_URL = 'https://fonts.gstatic.com/s/inter/v13/UcCO3FwrK3iLTeHuS_fvQtMwCp50KnMw2boKoduKmMEVuLyfAZ9hiJ-Ek-_EeA.woff2';
+const FONT_SUPABASE_PATH = 'data/inter-extrabold.woff';
+const FONT_GOOGLE_CSS_URL = 'https://fonts.googleapis.com/css?family=Inter:800&subset=latin';
+
+async function _fetchFontFromGoogle(): Promise<ArrayBuffer> {
+  // Busca CSS com UA do IE9 — retorna WOFF (não WOFF2), compatível com @shuding/opentype.js
+  const cssRes = await fetch(FONT_GOOGLE_CSS_URL, {
+    headers: { 'User-Agent': 'Mozilla/5.0 (compatible; MSIE 9.0; Windows NT 6.1; Trident/5.0)' }
+  });
+  if (!cssRes.ok) throw new Error(`Falha ao carregar CSS de fontes: HTTP ${cssRes.status}`);
+  const css = await cssRes.text();
+  const match = css.match(/src:\s*url\(([^)]+\.woff[^2)][^)]*)\)/);
+  const woffUrl = match?.[1] || css.match(/src:\s*url\(([^)]+)\)/)?.[1];
+  if (!woffUrl) throw new Error(`Não foi possível extrair URL da fonte do CSS: ${css.slice(0, 200)}`);
+  const fontRes = await fetch(woffUrl);
+  if (!fontRes.ok) throw new Error(`Falha ao baixar fonte Inter WOFF: HTTP ${fontRes.status}`);
+  return fontRes.arrayBuffer();
+}
 
 async function _loadFont(): Promise<ArrayBuffer> {
   if (_fontCache) return _fontCache;
 
-  // 1. Tenta Supabase (mais rápido que Google em cold starts)
+  // 1. Tenta Supabase (cache WOFF — mais rápido que Google em cold starts)
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
   const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'erizon-media';
@@ -4105,16 +4122,14 @@ async function _loadFont(): Promise<ArrayBuffer> {
     } catch { /* fallthrough */ }
   }
 
-  // 2. Busca do Google Fonts e persiste no Supabase para próximas invocações
-  const res = await fetch(FONT_GOOGLE_URL);
-  if (!res.ok) throw new Error(`Falha ao carregar fonte Inter: HTTP ${res.status}`);
-  _fontCache = await res.arrayBuffer();
+  // 2. Busca WOFF do Google Fonts e persiste no Supabase para próximas invocações
+  _fontCache = await _fetchFontFromGoogle();
 
   // Salva no Supabase em background (não bloqueia renderização)
   if (supabaseUrl && supabaseKey) {
     fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${FONT_SUPABASE_PATH}`, {
       method: 'POST',
-      headers: { 'Authorization': `Bearer ${supabaseKey}`, 'Content-Type': 'font/woff2', 'x-upsert': 'true' },
+      headers: { 'Authorization': `Bearer ${supabaseKey}`, 'Content-Type': 'font/woff', 'x-upsert': 'true' },
       body: Buffer.from(_fontCache),
     }).catch(() => { /* ignora erro de cache */ });
   }
@@ -5380,7 +5395,17 @@ function buildAgencyDashboardHtml(pendingPosts: ScheduledPost[]): string {
     : pendingPosts.map(post => `
       <div id="post-${post.id}" style="background:rgba(255,255,255,.02);border:1px solid rgba(188,19,254,.2);border-radius:12px;overflow:hidden;transition:all 0.3s;position:relative;" class="hover:shadow-[0_0_20px_rgba(188,19,254,0.15)] hover:border-[#BC13FE]">
         <div style="position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#00F2FF,#BC13FE);"></div>
-        <img src="${post.images[0]}" style="width:100%;height:220px;object-fit:cover;border-bottom:1px solid rgba(255,255,255,.05);">
+        ${post.images && post.images[0]
+          ? `<img src="${post.images[0]}" style="width:100%;height:220px;object-fit:cover;border-bottom:1px solid rgba(255,255,255,.05);" onerror="this.style.display='none';this.nextElementSibling.style.display='flex';">
+        <div style="display:none;width:100%;height:220px;align-items:center;justify-content:center;background:rgba(188,19,254,.07);border-bottom:1px solid rgba(255,255,255,.05);flex-direction:column;gap:8px;">
+          <span style="font-size:28px;">🖼</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.3);font-family:monospace;">Imagem indisponível</span>
+        </div>`
+          : `<div style="width:100%;height:220px;display:flex;align-items:center;justify-content:center;background:rgba(188,19,254,.07);border-bottom:1px solid rgba(255,255,255,.05);flex-direction:column;gap:8px;">
+          <span style="font-size:28px;">⏳</span>
+          <span style="font-size:11px;color:rgba(255,255,255,.3);font-family:monospace;">Gerando imagem...</span>
+        </div>`
+        }
         <div style="padding:16px;">
           <div style="display:flex;justify-content:space-between;margin-bottom:12px;">
             <span class="mono" style="font-size:10px;color:#00F2FF;background:rgba(0,242,255,.1);padding:4px 8px;border-radius:4px;border:0.5px solid rgba(0,242,255,.3);">Match IA: 98%</span>
@@ -5563,33 +5588,76 @@ async function _uploadCardImage(host: string, hookText: string, pillar: string, 
       : await makeVariedCardPng(cleanHook, pillar, tplIndex);
     const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
 
+    logger.info(`[_uploadCardImage] Imagem gerada (${pngBuffer.length} bytes), hook: "${cleanHook.slice(0, 50)}..."`);
+
     // 1. Supabase (primário)
     if (process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      const url = await uploadToSupabase(base64);
-      if (url) return url;
+      logger.info(`[_uploadCardImage] Tentando Supabase...`);
+      try {
+        const url = await uploadToSupabase(base64);
+        if (url) {
+          logger.info(`[_uploadCardImage] Supabase OK: ${url}`);
+          return url;
+        }
+      } catch (err: any) {
+        logger.warn(`[_uploadCardImage] Supabase falhou: ${err?.message}`);
+      }
+    } else {
+      logger.warn(`[_uploadCardImage] Supabase não configurado (SUPABASE_URL ou SUPABASE_SERVICE_ROLE_KEY ausentes)`);
     }
 
     // 2. Vercel Blob
     const blobToken = getBlobToken();
     if (blobToken) {
+      logger.info(`[_uploadCardImage] Tentando Vercel Blob...`);
       const filename = `agency-${Date.now()}-${Math.random().toString(36).slice(2, 6)}.png`;
-      const res = await fetch(`https://blob.vercel-storage.com/${filename}`, {
-        method: 'PUT', headers: { 'Authorization': `Bearer ${blobToken}`, 'Content-Type': 'image/png', 'x-api-version': '7' },
-        body: pngBuffer as unknown as BodyInit,
-      });
-      if (res.ok) { const d = await res.json() as any; if (d.url) return d.url; }
+      try {
+        const res = await fetch(`https://blob.vercel-storage.com/${filename}`, {
+          method: 'PUT', headers: { 'Authorization': `Bearer ${blobToken}`, 'Content-Type': 'image/png', 'x-api-version': '7' },
+          body: pngBuffer as unknown as BodyInit,
+        });
+        if (res.ok) {
+          const d = await res.json() as any;
+          if (d.url) {
+            logger.info(`[_uploadCardImage] Vercel Blob OK: ${d.url}`);
+            return d.url;
+          }
+        } else {
+          logger.warn(`[_uploadCardImage] Vercel Blob falhou: HTTP ${res.status} - ${await res.text()}`);
+        }
+      } catch (err: any) {
+        logger.warn(`[_uploadCardImage] Vercel Blob exception: ${err?.message}`);
+      }
+    } else {
+      logger.warn(`[_uploadCardImage] Vercel Blob não configurado (BLOB_READ_WRITE_TOKEN ausente)`);
     }
 
     // 3. ImgBB
     const imgbbKey = process.env.IMGBB_API_KEY;
     if (imgbbKey) {
+      logger.info(`[_uploadCardImage] Tentando ImgBB...`);
       const fd = new URLSearchParams(); fd.append('key', imgbbKey); fd.append('image', pngBuffer.toString('base64'));
-      const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: fd });
-      if (res.ok) { const d = await res.json() as any; if (d?.data?.url) return d.data.url; }
+      try {
+        const res = await fetch('https://api.imgbb.com/1/upload', { method: 'POST', body: fd });
+        if (res.ok) {
+          const d = await res.json() as any;
+          if (d?.data?.url) {
+            logger.info(`[_uploadCardImage] ImgBB OK: ${d.data.url}`);
+            return d.data.url;
+          }
+        } else {
+          logger.warn(`[_uploadCardImage] ImgBB falhou: HTTP ${res.status} - ${await res.text()}`);
+        }
+      } catch (err: any) {
+        logger.warn(`[_uploadCardImage] ImgBB exception: ${err?.message}`);
+      }
+    } else {
+      logger.warn(`[_uploadCardImage] ImgBB não configurado (IMGBB_API_KEY ausente)`);
     }
   } catch (err: any) {
-    logger.warn(`_uploadCardImage falhou: ${err?.message}`);
+    logger.error(`[_uploadCardImage] Erro fatal: ${err?.message}\n${err?.stack}`);
   }
+  logger.warn(`[_uploadCardImage] Retornando URL de fallback (API)`);
   return `https://${host}/api/growth-card?hook=${encodeURIComponent(cleanHook)}`;
 }
 
@@ -6649,14 +6717,22 @@ function getBlobToken(): string {
 async function uploadToSupabase(base64Data: string): Promise<string | null> {
   const supabaseUrl = process.env.SUPABASE_URL;
   const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
-  if (!supabaseUrl || !supabaseKey) return null;
+  if (!supabaseUrl || !supabaseKey) {
+    logger.warn(`[uploadToSupabase] Supabase não configurado`);
+    return null;
+  }
 
   const image = parseImagePayload(base64Data);
   const bucket = process.env.SUPABASE_STORAGE_BUCKET || 'erizon-media';
   const filename = `posts/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${image.extension}`;
   const buffer = Buffer.from(image.base64, 'base64');
 
-  const response = await fetch(`${supabaseUrl}/storage/v1/object/${bucket}/${filename}`, {
+  logger.info(`[uploadToSupabase] Upload para ${bucket}/${filename} (${buffer.length} bytes, ${image.mimeType})`);
+
+  const uploadUrl = `${supabaseUrl}/storage/v1/object/${bucket}/${filename}`;
+  logger.info(`[uploadToSupabase] URL: ${uploadUrl}`);
+
+  const response = await fetch(uploadUrl, {
     method: 'POST',
     headers: {
       'Authorization': `Bearer ${supabaseKey}`,
@@ -6666,13 +6742,16 @@ async function uploadToSupabase(base64Data: string): Promise<string | null> {
     body: buffer,
   });
 
+  logger.info(`[uploadToSupabase] Response HTTP: ${response.status}`);
+
   if (!response.ok) {
     const err = await response.text();
+    logger.error(`[uploadToSupabase] Erro: ${response.status} — ${err.slice(0, 200)}`);
     throw new Error(`Supabase Storage falhou: ${response.status} — ${err.slice(0, 200)}`);
   }
 
   const publicUrl = `${supabaseUrl}/storage/v1/object/public/${bucket}/${filename}`;
-  logger.info(`Supabase Storage upload OK: ${publicUrl}`);
+  logger.info(`[uploadToSupabase] Upload OK: ${publicUrl}`);
   return publicUrl;
 }
 
