@@ -4263,22 +4263,103 @@ function _buildLayout2(hookLines: string[], pillarLabel: string, tmpl: CardTmpl,
   ];
 }
 
-async function makeVariedCardPng(hook: string, pillar: string, templateIndex?: number, sub?: string): Promise<Buffer> {
+// Layout 3 – Stats: hook menor + 3 blocos de estatística em destaque
+function _buildLayoutStats(hookLines: string[], pillarLabel: string, tmpl: CardTmpl, stats: Array<{value:string;label:string}>): any {
+  const displayed = stats.slice(0, 3);
+  return [
+    { type:'div', props:{ style:{ position:'absolute', top:0, left:0, right:0, height:6, background:`linear-gradient(90deg,${tmpl.accent},transparent,${tmpl.accent})` } } },
+    { type:'div', props:{ style:{ position:'absolute', bottom:0, left:0, right:0, height:6, background:`linear-gradient(90deg,transparent,${tmpl.accent},transparent)` } } },
+    { type:'div', props:{ style:{ display:'flex', alignItems:'center', marginBottom:32 }, children:[
+      { type:'div', props:{ style:{ background:tmpl.tagBg, border:tmpl.tagBorder, borderRadius:6, padding:'5px 16px', color:tmpl.tagColor, fontSize:17, fontWeight:'700', letterSpacing:'3px' }, children:pillarLabel } },
+    ]}},
+    { type:'div', props:{ style:{ display:'flex', flexDirection:'column', gap:8, marginBottom:32 }, children:
+      hookLines.map(line => ({ type:'div', props:{ style:{ color:tmpl.text, fontSize:62, fontWeight:'800', lineHeight:'1.04', letterSpacing:'-1px' }, children:line } }))
+    }},
+    { type:'div', props:{ style:{ height:2, background:`linear-gradient(90deg,${tmpl.accent},transparent)`, marginBottom:32 } } },
+    { type:'div', props:{ style:{ display:'flex', flex:1, alignItems:'stretch', gap:20 }, children:
+      displayed.map(s => ({
+        type:'div', props:{ style:{ flex:1, background:tmpl.tagBg, border:tmpl.tagBorder, borderRadius:10, padding:'20px 12px', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:10 }, children:[
+          { type:'div', props:{ style:{ color:tmpl.accent, fontSize:68, fontWeight:'800', lineHeight:'1', letterSpacing:'-2px', textAlign:'center' }, children:s.value } },
+          { type:'div', props:{ style:{ color:'rgba(255,255,255,0.55)', fontSize:18, fontWeight:'700', letterSpacing:'2px', textAlign:'center', textTransform:'uppercase' }, children:s.label } },
+        ]}
+      }))
+    }},
+    { type:'div', props:{ style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:28 }, children:[
+      { type:'div', props:{ style:{ color:'rgba(255,255,255,0.3)', fontSize:18, letterSpacing:'5px' }, children:'erizon.ai' } },
+      { type:'div', props:{ style:{ color:tmpl.accent, fontSize:20, fontWeight:'700', letterSpacing:'3px' }, children:'ERIZON' } },
+    ]}},
+  ];
+}
+
+// Layout 4 – Checklist: hook menor + 3 itens com marcador accent
+function _buildLayoutChecklist(hookLines: string[], pillarLabel: string, tmpl: CardTmpl, items: string[]): any {
+  const displayed = items.slice(0, 3);
+  return [
+    { type:'div', props:{ style:{ position:'absolute', left:0, top:0, bottom:0, width:10, background:`linear-gradient(180deg,${tmpl.accent},transparent,${tmpl.accent})` } } },
+    { type:'div', props:{ style:{ display:'flex', alignItems:'center', gap:10, marginBottom:32 }, children:[
+      { type:'div', props:{ style:{ width:3, height:22, background:tmpl.accent } } },
+      { type:'div', props:{ style:{ color:tmpl.tagColor, fontSize:16, fontWeight:'700', letterSpacing:'4px' }, children:pillarLabel } },
+    ]}},
+    { type:'div', props:{ style:{ display:'flex', flexDirection:'column', gap:8, marginBottom:28 }, children:
+      hookLines.map(line => ({ type:'div', props:{ style:{ color:tmpl.text, fontSize:60, fontWeight:'800', lineHeight:'1.04', letterSpacing:'-1px' }, children:line } }))
+    }},
+    { type:'div', props:{ style:{ height:2, width:72, background:tmpl.accent, marginBottom:24 } } },
+    { type:'div', props:{ style:{ flex:1, display:'flex', flexDirection:'column', justifyContent:'center', gap:18 }, children:
+      displayed.map(item => ({
+        type:'div', props:{ style:{ display:'flex', alignItems:'flex-start', gap:14 }, children:[
+          { type:'div', props:{ style:{ width:8, height:8, background:tmpl.accent, borderRadius:2, marginTop:9, flexShrink:0 } } },
+          { type:'div', props:{ style:{ color:'rgba(255,255,255,0.82)', fontSize:26, fontWeight:'800', lineHeight:'1.3' }, children:item.slice(0, 75) } },
+        ]}
+      }))
+    }},
+    { type:'div', props:{ style:{ display:'flex', alignItems:'center', justifyContent:'space-between', marginTop:24 }, children:[
+      { type:'div', props:{ style:{ color:'rgba(255,255,255,0.3)', fontSize:17, letterSpacing:'4px' }, children:'ERIZON · AI' } },
+      { type:'div', props:{ style:{ background:tmpl.tagBg, border:tmpl.tagBorder, borderRadius:999, padding:'4px 14px', color:tmpl.tagColor, fontSize:13, fontWeight:'700' }, children:'2026' } },
+    ]}},
+  ];
+}
+
+// Mapeia visualDirection do brand brief para índice de template
+function _templateFromVisualDirection(visualDirection: string, fallback: number): number {
+  const vd = (visualDirection || '').toLowerCase();
+  if (/urgên|alerta|contraste forte|forense|crimson|vermelh/.test(vd)) return 5;
+  if (/command|premium|roxo|purple|viola|sistema/.test(vd)) return 0;
+  if (/cyan|azul|dados|analyt|oceano|ocean|teal/.test(vd)) return 1;
+  if (/verde|crescimento|positiv|forest/.test(vd)) return 3;
+  if (/amarelo|amber|aviso|atenção/.test(vd)) return 4;
+  if (/preto|black|contraste máximo|máximo contraste/.test(vd)) return 7;
+  if (/magenta|rosa|pink/.test(vd)) return 2;
+  return fallback;
+}
+
+async function makeVariedCardPng(hook: string, pillar: string, templateIndex?: number, sub?: string, supporting?: string[], stats?: Array<{value:string;label:string}>, formatHint?: string, visualDirection?: string): Promise<Buffer> {
   const font = await _loadFont();
   const pillarLabel = PILLAR_LABEL_MAP[pillar] || pillar.toUpperCase().slice(0,16);
 
-  // Seleciona template por índice ou por hash do conteúdo (nunca o mesmo consecutivamente)
   const hash = hook.split('').reduce((a, c) => (a * 31 + c.charCodeAt(0)) & 0xffff, 0);
-  const tIdx = templateIndex !== undefined ? templateIndex % CARD_TEMPLATES.length : hash % CARD_TEMPLATES.length;
+  // Aplica visualDirection do design chief para escolher o template de cor
+  const baseIdx = templateIndex !== undefined ? templateIndex % CARD_TEMPLATES.length : hash % CARD_TEMPLATES.length;
+  const tIdx = visualDirection ? _templateFromVisualDirection(visualDirection, baseIdx) : baseIdx;
   const tmpl = CARD_TEMPLATES[tIdx];
-  const layout = tIdx % 3;
 
-  const hookLines = _wrapHook(hook, layout === 2 ? 24 : 28, 4);
+  // Seleciona layout baseado no formatHint (design chief) ou rotação padrão
+  const hasStats = formatHint === 'stats' && stats && stats.length >= 2;
+  const hasChecklist = formatHint === 'checklist' && supporting && supporting.length >= 2;
+
+  let layout: number;
+  if (hasStats) layout = 3;
+  else if (hasChecklist) layout = 4;
+  else layout = tIdx % 3;
+
+  const hookMaxChars = (layout === 2 || layout === 3 || layout === 4) ? 24 : 28;
+  const hookLines = _wrapHook(hook, hookMaxChars, layout >= 3 ? 3 : 4);
   const fontSize = hookLines.length > 2 ? 66 : 80;
   const subLines = sub ? _subLines(sub) : [];
 
   let children: any[];
-  if (layout === 0) children = _buildLayout0(hookLines, pillarLabel, tmpl, fontSize, subLines);
+  if (layout === 3) children = _buildLayoutStats(hookLines, pillarLabel, tmpl, stats!);
+  else if (layout === 4) children = _buildLayoutChecklist(hookLines, pillarLabel, tmpl, supporting!);
+  else if (layout === 0) children = _buildLayout0(hookLines, pillarLabel, tmpl, fontSize, subLines);
   else if (layout === 1) children = _buildLayout1(hookLines, pillarLabel, tmpl, fontSize, subLines);
   else children = _buildLayout2(hookLines, pillarLabel, tmpl, fontSize, subLines);
 
@@ -5608,12 +5689,23 @@ const ALL_POST_TYPES: PostType[] = [
   'instagram-feed','instagram-story','instagram-carousel','instagram-feed',
 ];
 
-async function _uploadCardImage(host: string, hookText: string, pillar: string, tplIndex: number, isStory: boolean, sub?: string): Promise<string> {
+async function _uploadCardImage(
+  host: string,
+  hookText: string,
+  pillar: string,
+  tplIndex: number,
+  isStory: boolean,
+  sub?: string,
+  supporting?: string[],
+  stats?: Array<{value:string;label:string}>,
+  formatHint?: string,
+  visualDirection?: string,
+): Promise<string> {
   const cleanHook = hookText.replace(/<[^>]*>?/gm, ' ').replace(/\s+/g, ' ').trim();
   try {
     const pngBuffer = isStory
       ? await makeStoryCardPng(cleanHook, pillar, tplIndex)
-      : await makeVariedCardPng(cleanHook, pillar, tplIndex, sub);
+      : await makeVariedCardPng(cleanHook, pillar, tplIndex, sub, supporting, stats, formatHint, visualDirection);
     const base64 = `data:image/png;base64,${pngBuffer.toString('base64')}`;
 
     logger.info(`[_uploadCardImage] Imagem gerada (${pngBuffer.length} bytes), hook: "${cleanHook.slice(0, 50)}..."`);
@@ -5725,16 +5817,44 @@ async function generatePendingPost(host: string, reqPostType?: string, reqEditor
   let caption = '';
   let images: string[] = [];
 
+  // Requisições automáticas por aba para o design chief
+  const TAB_AUTO_REQUEST: Partial<Record<EditorialTab, string>> = {
+    diagnostics: 'Post de diagnóstico revelando erro crítico que destrói ROAS em campanhas Meta Ads',
+    authority: 'Post de autoridade com domínio técnico sobre gestão avançada de tráfego pago',
+    'anti-myth': 'Post quebrando mito que gestores de tráfego acreditam e que prejudica resultados reais',
+    'social-proof': 'Post de prova social com resultado concreto de cliente usando a Erizon',
+    erizon: 'Post mostrando como a Erizon resolve um problema crítico de agências de tráfego com precisão',
+    'deep-dive': 'Post técnico aprofundado sobre estratégia avançada de Meta Ads e otimização de campanhas',
+    'tweet-style': 'Post estilo tweet com opinião polêmica e divisiva sobre gestão de tráfego pago',
+    toolbox: 'Post checklist prático para gestores otimizarem campanhas e economizarem tempo operacional',
+    market: 'Post de inteligência de mercado e tendências de tráfego pago para agências em 2026',
+    'deep-dive': 'Post técnico aprofundado sobre framework de decisão em Meta Ads para escala',
+  };
+  const autoRequest = TAB_AUTO_REQUEST[editorialTab] || `Post premium de ${editorialTab} para a ERIZON, voltado para gestores de tráfego qualificados`;
+
+  // Passa pelo design chief para obter direção visual e criativa
+  const brandBrief = await generateBrandCreativeBrief({ editorialTab, postType, customRequest: autoRequest }).catch(() => null);
+  const visualDirection = brandBrief?.visualDirection;
+
+  logger.info(`[generatePendingPost] brandBrief=${brandBrief ? 'OK' : 'null'} | visualDirection="${visualDirection?.slice(0,60) || 'n/a'}"`);
+
   if (isCarousel) {
-    const carousel = await agent.generateCarousel(recentPosts, editorialTab, 'Crie um carrossel educativo e viral com ângulo ÚNICO e INÉDITO. Não repita temas, hooks ou CTAs do histórico recente.', null);
+    const carousel = await agent.generateCarousel(recentPosts, editorialTab, 'Crie um carrossel educativo e viral com ângulo ÚNICO e INÉDITO. Não repita temas, hooks ou CTAs do histórico recente.', brandBrief);
     caption = carousel.caption;
     for (let si = 0; si < Math.min(4, carousel.slides.length); si++) {
-      images.push(await _uploadCardImage(host, carousel.slides[si].h1, editorialTab, (tplIdx + si) % 8, false));
+      images.push(await _uploadCardImage(host, carousel.slides[si].h1, editorialTab, (tplIdx + si) % 8, false, undefined, undefined, undefined, undefined, visualDirection));
     }
   } else {
-    const postContent = await agent.generatePost(postType, recentPosts, editorialTab, '', 'Crie um post com ângulo ÚNICO e INÉDITO. Analise o histórico recente e escolha um tema, hook e CTA completamente diferentes dos últimos posts.', null);
+    const postContent = await agent.generatePost(postType, recentPosts, editorialTab, '', 'Crie um post com ângulo ÚNICO e INÉDITO. Analise o histórico recente e escolha um tema, hook e CTA completamente diferentes dos últimos posts.', brandBrief);
     caption = postContent.caption;
-    images.push(await _uploadCardImage(host, postContent.h1, editorialTab, tplIdx, isStory, postContent.sub));
+    images.push(await _uploadCardImage(
+      host, postContent.h1, editorialTab, tplIdx, isStory,
+      postContent.sub,
+      postContent.supporting,
+      postContent.stats,
+      postContent.formatHint,
+      visualDirection,
+    ));
   }
 
   const postEntry = buildScheduledPost({
